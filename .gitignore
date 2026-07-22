@@ -1,0 +1,7 @@
+node_modules/
+.env
+data/*.sqlite*
+uploads/invoices/*
+uploads/complaints/*
+!uploads/invoices/.gitkeep
+!uploads/complaints/.gitkeep
