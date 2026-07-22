@@ -24,6 +24,7 @@ app.use(express.static(path.join(__dirname, 'public', 'site'))); // pl. polbram.
 // API route-ok
 app.use('/api/auth', require('./src/routes/auth'));
 app.use('/api/admin', require('./src/routes/admin'));
+app.use('/api/admin/garage-types', require('./src/routes/garageTypes'));
 app.use('/public', require('./src/routes/public'));
 
 const PORT = process.env.PORT || 3000;

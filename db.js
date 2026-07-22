@@ -39,6 +39,15 @@ CREATE TABLE IF NOT EXISTS customers (
   satisfaction_rating INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS garage_types (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  image_path TEXT,
+  form_data TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS admin_users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL,

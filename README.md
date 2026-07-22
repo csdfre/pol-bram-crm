@@ -123,3 +123,14 @@ garage-crm/
 ├── data/                   # SQLite adatbázis fájl (automatikusan létrejön)
 └── uploads/                # feltöltött előlegszámlák és reklamációs képek
 ```
+
+## 8. Típusgarázsok kezelése (backoffice)
+
+A típusgarázsokat (amiket az ügyfél-oldali form legördülő listája + ikonos galériája mutat)
+mostantól **a backoffice-ban** hozzátok létre és szerkesztitek — nem a kódban vannak rögzítve.
+
+- Backoffice → **"Típusgarázsok"** fül → **"+ Új típusgarázs"**
+- Adj neki nevet, tölts fel hozzá egy képet (ez jelenik meg az ügyfél-oldali ikonon), majd állítsd be
+  a teljes konfigurációt (méret, tető, szín, kapu, ablakok, stb. — ugyanaz a felület, mint az ügyfél-oldalon)
+- **Mentés** — ezután azonnal megjelenik az ügyfél-oldali listában is
+- Meglévő típus szerkesztéséhez/törléséhez: a "Típusgarázsok" listában a kártyán lévő gombok

@@ -20,6 +20,20 @@ const upload = multer({
 });
 
 // ---------------------------------------------------------------
+// Típusgarázsok listája és részletei (publikus, olvasás-only — az ügyfél-oldali konfigurátornak)
+// ---------------------------------------------------------------
+router.get('/garage-types', (req, res) => {
+  const rows = db.prepare('SELECT id, name, image_path FROM garage_types ORDER BY name ASC').all();
+  res.json(rows);
+});
+
+router.get('/garage-types/:id', (req, res) => {
+  const t = db.prepare('SELECT id, name, image_path, form_data FROM garage_types WHERE id = ?').get(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Nem található.' });
+  res.json({ ...t, form_data: JSON.parse(t.form_data || '{}') });
+});
+
+// ---------------------------------------------------------------
 // Ügyfél beküldi az igényét a garázs-konfigurátor oldalról
 // ---------------------------------------------------------------
 router.post('/submit', async (req, res) => {

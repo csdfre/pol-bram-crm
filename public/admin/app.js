@@ -255,4 +255,37 @@ async function setStatusManually() {
   openDetail(currentCustomer.id);
 }
 
+function switchTab(tab){
+  document.getElementById('tabCustomers').classList.toggle('active', tab==='customers');
+  document.getElementById('tabTypes').classList.toggle('active', tab==='types');
+  document.getElementById('customersView').style.display = tab==='customers' ? 'block' : 'none';
+  document.getElementById('typesView').style.display = tab==='types' ? 'block' : 'none';
+  if(tab==='types') loadGarageTypes();
+}
+
+async function loadGarageTypes(){
+  const rows = await api('/admin/garage-types');
+  const grid = document.getElementById('typesGrid');
+  grid.innerHTML = rows.map(t => `
+    <div class="type-card">
+      <div class="type-thumb">
+        ${t.image_path ? `<img src="${t.image_path}" alt="${esc(t.name)}">` : `<span class="no-image">Nincs kép</span>`}
+      </div>
+      <div class="type-body">
+        <h4>${esc(t.name)}</h4>
+        <div class="type-actions">
+          <a class="btn-secondary" href="type-editor.html?id=${t.id}" style="text-decoration:none;display:inline-block">Szerkesztés</a>
+          <button class="btn-ghost" style="border-color:#b23a3a;color:#b23a3a" onclick="deleteGarageType(${t.id})">Törlés</button>
+        </div>
+      </div>
+    </div>
+  `).join('') || '<p style="color:#7a828a">Még nincs mentett típusgarázs.</p>';
+}
+
+async function deleteGarageType(id){
+  if(!confirm('Biztosan törli ezt a típusgarázst?')) return;
+  await api('/admin/garage-types/'+id, { method: 'DELETE' });
+  loadGarageTypes();
+}
+
 checkSession();
