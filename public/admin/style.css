@@ -34,6 +34,7 @@ tbody tr:hover{background:#fafbfb;}
 .status-elolegszamla_kikuldve{background:#ffe3c2;color:#a05a00;}
 .status-telepitve{background:#20242A;color:#fff;}
 .status-garancialis_problema{background:#fddede;color:#a01f1f;}
+.status-elutasitva{background:#e8e8e8;color:#555;}
 
 .btn-ghost{background:transparent;border:1px solid #555;color:#fff;padding:8px 14px;border-radius:4px;cursor:pointer;font-size:0.85rem;}
 .btn-main{background:var(--signal);border:none;padding:10px 16px;border-radius:4px;cursor:pointer;font-weight:600;font-size:0.88rem;text-transform:uppercase;letter-spacing:.02em;}

@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../../db');
 const requireAuth = require('../middleware/requireAuth');
 const { calculateQuote } = require('../services/pricing');
-const { generateOrderFormPdf } = require('../services/pdf');
+const { generateOrderFormPdf, buildOrderFields, sectionHtml } = require('../services/pdf');
 const email = require('../services/email');
 
 const router = express.Router();
@@ -27,7 +27,7 @@ const invoiceUpload = multer({
 router.get('/customers', (req, res) => {
   const rows = db.prepare(`
     SELECT id, created_at, status, name, address, zip, city, phone, email, price_huf
-    FROM customers ORDER BY created_at DESC
+    FROM customers ORDER BY updated_at DESC
   `).all();
   res.json(rows);
 });
@@ -87,7 +87,11 @@ router.post('/customers/:id/send-offer', async (req, res) => {
   const quote = JSON.parse(c.price_breakdown);
   const priceText = `${quote.displayTotal.toLocaleString('hu-HU')} Ft (${quote.displayLabel})`;
   try {
-    await email.sendOffer(c, priceText);
+    const fd = JSON.parse(c.form_data || '{}');
+    const sections = buildOrderFields(fd, 'hu');
+    const detailsHtml = `<div>${sections.map(sectionHtml).join('')}</div>`;
+    const sketchHtml = c.sketch_svg ? `<div style="background:#161A1E;border-radius:8px;padding:14px;text-align:center;margin:16px 0">${c.sketch_svg}</div>` : '';
+    await email.sendOffer(c, priceText, { detailsHtml, sketchHtml });
     db.prepare('UPDATE customers SET status=?, updated_at=? WHERE id=?')
       .run('ajanlat_kikuldve', new Date().toISOString(), c.id);
     logStatus(c.id, 'ajanlat_kikuldve', 'Ajánlat kiküldve az ügyfélnek');

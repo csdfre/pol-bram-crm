@@ -92,5 +92,7 @@ addColIfMissing('colleague_approved', 'INTEGER DEFAULT 0');
 addColIfMissing('modify_request_text', 'TEXT');
 addColIfMissing('modify_request_at', 'TEXT');
 addColIfMissing('vat_requested', 'INTEGER DEFAULT 0');
+addColIfMissing('reject_reason', 'TEXT');
+addColIfMissing('reject_at', 'TEXT');
 
 module.exports = db;

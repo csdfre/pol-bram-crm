@@ -139,8 +139,8 @@ function calculateQuote(formData) {
   }
 
   // Kapu(k)
-  if (formData.gateType && formData.gateType !== 'none' || formData.__gateType && formData.__gateType !== 'none') {
-    const effectiveGateType = formData.gateType || formData.__gateType;
+  if (formData.__gateType && formData.__gateType !== 'none' || formData.gateType && formData.gateType !== 'none') {
+    const effectiveGateType = formData.__gateType || formData.gateType;
     const gw = parseFloat(formData.gateWidth) || 300;
     const gh = parseFloat(formData.gateHeight) || (effectiveGateType === 'uchylna' ? 185 : 200);
     const count = Math.max(1, parseInt(formData.gateCount) || 1);

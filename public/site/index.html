@@ -103,7 +103,7 @@ label.field.color-field.show{display:block;}
 .swatch-lg{width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
 .swatch-lg .sw-color{width:56px;height:56px;border-radius:8px;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);}
 .swatch-lg.sel .sw-color{box-shadow:0 0 0 3px var(--signal-deep);}
-.swatch-lg span{font-size:0.66rem;text-align:center;color:var(--graphite-soft);line-height:1.15;}
+.swatch-lg span{font-size:0.66rem;text-align:center;color:var(--graphite-soft);line-height:1.15;max-width:64px;word-break:break-word;}
 .sidebar{position:sticky;top:20px;align-self:start;}
 .sketch-card{background:var(--graphite);border-radius:var(--radius);padding:14px 14px 8px;margin-bottom:16px;}
 .sketch-card h3{color:#fff;font-size:0.95rem;margin-bottom:8px;}
@@ -586,14 +586,14 @@ const catLabels = {horganyzott:'Horganyzott', ral:'RAL', fa:'Fa'};
 
 // Általános kategóriák (tető, oldalfal, szegélyek, kapu, ajtó, oldaltető falak)
 const generalCategoryColors = {
-  horganyzott: [['OCNATUR','Horganyzott (natúr fém)']],
+  horganyzott: [['OCNATUR','Horganyzott']],
   ral: [
-    ['RAL9005','Mély fekete'], ['RAL7016-M','Antracitszürke (matt)'], ['RAL8017-M','Csokoládébarna (matt)'],
-    ['RAL8004','Rézbarna'], ['RAL3011','Vörös burgundi'], ['RAL6020','Zöld króm'],
-    ['RAL7016-F','Antracitszürke (fényes)'], ['RAL9006','Alumíniumezüst'], ['RAL7035','Világosszürke'],
-    ['RAL9010','Tiszta fehér'], ['RAL5010','Búzavirágkék'], ['RAL1002','Homokszínű sárga']
+    ['RAL9005','Fekete'], ['RAL7016-M','Antracit matt'], ['RAL8017-M','Csokoládébarna'],
+    ['RAL8004','Rézbarna'], ['RAL3011','Bordó'], ['RAL6020','Zöld'],
+    ['RAL7016-F','Antracit fényes'], ['RAL9006','Ezüst'], ['RAL7035','Szürke'],
+    ['RAL9010','Fehér'], ['RAL5010','Kék'], ['RAL1002','Sárga']
   ],
-  fa: [['OAK','Rusztikus tölgy'], ['WALNUT','Dió'], ['WINCH','Winchester']]
+  fa: [['OAK','Tölgy'], ['WALNUT','Dió'], ['WINCH','Winchester']]
 };
 // Ablakkeret kategóriák (nincs horganyzott, arany tölgy csak itt)
 const windowCategoryColors = {

@@ -24,9 +24,17 @@ async function sendInquiryReceived(customer) {
   return sendMail({ to: customer.email, subject, html });
 }
 
-async function sendOffer(customer, priceText) {
+async function sendOffer(customer, priceText, extra) {
   const acceptUrl = `${process.env.BASE_URL}/public/accept-offer/${customer.accept_token}`;
-  const { subject, html } = renderTemplate('offer', { name: customer.name || '', price: priceText, acceptUrl });
+  const modifyUrl = `${process.env.BASE_URL}/public/modify-offer/${customer.accept_token}`;
+  const rejectUrl = `${process.env.BASE_URL}/public/reject-offer/${customer.accept_token}`;
+  const { subject, html } = renderTemplate('offer', {
+    name: customer.name || '',
+    price: priceText,
+    acceptUrl, modifyUrl, rejectUrl,
+    detailsHtml: (extra && extra.detailsHtml) || '',
+    sketchHtml: (extra && extra.sketchHtml) || '',
+  });
   return sendMail({ to: customer.email, subject, html });
 }
 
