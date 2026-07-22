@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pol-Bram Backoffice</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <h1>Pol-Bram <span>Backoffice</span></h1>
+    <input type="text" id="loginUser" placeholder="Felhasználónév">
+    <input type="password" id="loginPass" placeholder="Jelszó">
+    <button id="loginBtn">Belépés</button>
+    <div id="loginError" class="error-text"></div>
+  </div>
+</div>
+
+<div id="appScreen" class="app-screen" style="display:none">
+  <header>
+    <h1>Pol-Bram <span>Backoffice</span></h1>
+    <div class="header-right">
+      <span id="whoami"></span>
+      <button id="logoutBtn" class="btn-ghost">Kijelentkezés</button>
+    </div>
+  </header>
+
+  <main>
+    <table id="customerTable">
+      <thead>
+        <tr>
+          <th>Név</th><th>Cím</th><th>Telefon</th><th>E-mail</th><th>Beküldve</th><th>Státusz</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="customerTableBody"></tbody>
+    </table>
+  </main>
+</div>
+
+<!-- Részletes adatlap modal -->
+<div id="detailModal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <button class="modal-close" id="closeModalBtn">&times;</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

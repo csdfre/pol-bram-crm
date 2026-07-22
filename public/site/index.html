@@ -1,0 +1,2102 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pol-Bram | Egyedi garázs igénylés</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --graphite:#20242A;
+  --graphite-soft:#454C54;
+  --steel-bg:#EEF1F2;
+  --panel:#FFFFFF;
+  --line:#C7D0D6;
+  --line-soft:#DDE3E6;
+  --signal:#F2B705;
+  --signal-deep:#B9860A;
+  --accept:#2F6B4F;
+  --accept-bg:#E7F1EC;
+  --radius:2px;
+  font-size:16px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--steel-bg);color:var(--graphite);font-family:'Inter',sans-serif;line-height:1.45;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,.disp{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.03em;color:var(--graphite);margin:0;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+header.top{background:#fff;color:var(--graphite);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:4px solid var(--signal);}
+header.top .brand{font-family:'Oswald',sans-serif;font-weight:700;font-size:1.4rem;letter-spacing:0.08em;}
+header.top .brand span{color:var(--signal-deep);}
+header.top .tag{font-size:0.78rem;color:var(--graphite-soft);letter-spacing:0.05em;text-transform:uppercase;}
+.intro{max-width:1240px;margin:0 auto;padding:26px 20px 0;}
+.intro p{max-width:640px;color:var(--graphite-soft);font-size:0.95rem;}
+.preset-bar{max-width:1240px;margin:16px auto 0;padding:0 20px;}
+.preset-card{background:#fff;border:1px solid var(--signal-deep);border-left:6px solid var(--signal);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.preset-panel{background:#fff;border-radius:8px;box-shadow:0 2px 14px rgba(32,36,42,0.08);border-top:4px solid var(--signal);padding:20px 22px;}
+.preset-panel-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.preset-panel-head h3{font-size:1.1rem;letter-spacing:0.02em;}
+.preset-panel-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.preset-panel-row select{max-width:340px;padding:10px 12px;font-size:0.92rem;}
+.preset-gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px;}
+@media (max-width:760px){.preset-gallery{grid-template-columns:repeat(2,1fr);}}
+.preset-gallery-card{cursor:pointer;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fafbfb;transition:box-shadow .15s, transform .15s;}
+.preset-gallery-card:hover{box-shadow:0 4px 14px rgba(32,36,42,0.15);transform:translateY(-2px);border-color:var(--signal-deep);}
+.preset-gallery-card .thumb-wrap{position:relative;width:100%;height:90px;overflow:hidden;background:#e4e6e7;}
+.preset-gallery-card .thumb-wrap img{position:absolute;top:50%;left:50%;width:100%;height:100%;object-fit:cover;object-position:center;transform:translate(-50%,-50%);display:block;}
+.preset-gallery-card span{display:block;text-align:center;padding:8px 4px;font-family:'Oswald',sans-serif;font-size:0.85rem;letter-spacing:0.02em;text-transform:uppercase;color:var(--graphite);}
+.preset-card label{font-size:0.85rem;color:var(--graphite-soft);white-space:nowrap;}
+.preset-card select{max-width:340px;}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 20px 80px;display:grid;grid-template-columns:1.6fr 1fr;gap:24px;}
+@media (max-width:920px){.wrap{grid-template-columns:1fr;} .sidebar{position:static !important;}}
+.section{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:16px;overflow:hidden;}
+.section > summary{list-style:none;cursor:pointer;padding:16px 20px;display:flex;align-items:center;gap:12px;font-family:'Oswald',sans-serif;font-size:1.05rem;letter-spacing:0.02em;text-transform:uppercase;background:#fafbfb;border-bottom:1px solid transparent;}
+.section[open] > summary{border-bottom-color:var(--line);}
+.section > summary::-webkit-details-marker{display:none;}
+.section > summary .num{font-family:'IBM Plex Mono',monospace;font-size:0.85rem;color:#fff;background:var(--graphite-soft);width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex:none;}
+.section > summary::after{content:'+';margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:1.3rem;color:var(--graphite-soft);}
+.section[open] > summary::after{content:'–';}
+.section .body{padding:20px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+@media (max-width:600px){.grid2,.grid3{grid-template-columns:1fr;}}
+label.field{display:block;margin-bottom:4px;}
+label.field span{display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:5px;letter-spacing:0.02em;}
+label.field span.color-label{font-size:1.05rem;font-weight:700;color:var(--graphite);margin-bottom:8px;letter-spacing:0.01em;text-transform:none;}
+input[type=text],input[type=number],input[type=email],input[type=tel],select,textarea{
+  width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:0.92rem;background:#fff;color:var(--graphite);
+}
+textarea{resize:vertical;min-height:60px;}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--signal);outline-offset:1px;border-color:var(--signal-deep);}
+input[readonly]{background:#f5f6f6;color:var(--graphite-soft);}
+.choice-row{display:flex;flex-wrap:wrap;gap:8px;}
+.choice{border:1px solid var(--line);background:#fff;padding:8px 14px;border-radius:var(--radius);font-size:0.86rem;cursor:pointer;user-select:none;}
+.choice input{position:absolute;opacity:0;pointer-events:none;}
+.choice.active{border-color:var(--graphite);background:var(--graphite);color:#fff;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line-soft);}
+.toggle-row:last-child{border-bottom:none;}
+.toggle-row .lbl{font-size:0.92rem;}
+.toggle-row .lbl small{display:block;color:var(--graphite-soft);font-size:0.76rem;margin-top:2px;}
+.switch{position:relative;width:46px;height:26px;flex:none;}
+.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;}
+.switch .track{position:absolute;inset:0;background:#d8dee1;border-radius:20px;transition:.15s;}
+.switch .thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:.15s;}
+.switch input:checked + .track{background:var(--signal-deep);}
+.switch input:checked + .track + .thumb{transform:translateX(20px);}
+.toggle-extra{margin-top:8px;display:none;}
+.toggle-extra.show{display:block;}
+.subgrid{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line-soft);}
+.hint{font-size:0.76rem;color:#7a828a;margin-top:4px;}
+.qty-line{display:grid;grid-template-columns:1fr 100px;gap:10px;align-items:end;margin-bottom:10px;}
+.qty-line .lbl{font-size:0.88rem;padding-bottom:9px;}
+label.field.color-field{display:none;}
+label.field.color-field.show{display:block;}
+.cond-row{display:none;}
+.cond-row.show{display:flex;}
+.swatch-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px;}
+.swatch-sm{width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;position:relative;flex:none;}
+.swatch-sm.sel{box-shadow:0 0 0 2px var(--graphite);}
+.swatch-sm.sel::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.7rem;text-shadow:0 0 2px #000;}
+.swatch-label{font-size:0.74rem;color:var(--graphite-soft);margin-top:4px;}
+.swatch-row-lg{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;}
+.swatch-lg{width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
+.swatch-lg .sw-color{width:56px;height:56px;border-radius:8px;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);}
+.swatch-lg.sel .sw-color{box-shadow:0 0 0 3px var(--signal-deep);}
+.swatch-lg span{font-size:0.66rem;text-align:center;color:var(--graphite-soft);line-height:1.15;}
+.sidebar{position:sticky;top:20px;align-self:start;}
+.sketch-card{background:var(--graphite);border-radius:var(--radius);padding:14px 14px 8px;margin-bottom:16px;}
+.sketch-card h3{color:#fff;font-size:0.95rem;margin-bottom:8px;}
+.sketch-card .cap{color:#8b939a;font-size:0.72rem;margin-top:6px;letter-spacing:0.03em;}
+svg#sketch{width:100%;height:auto;background:#161A1E;border-radius:2px;}
+.submit-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;}
+.submit-card h3{font-size:0.95rem;margin-bottom:8px;}
+.submit-card p{font-size:0.82rem;color:var(--graphite-soft);margin:0 0 12px;}
+.btn-main{width:100%;background:var(--signal);border:none;color:var(--graphite);font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.03em;font-size:1rem;padding:14px;border-radius:var(--radius);cursor:pointer;}
+.btn-main:hover{background:var(--signal-deep);color:#fff;}
+.btn-ghost{width:100%;margin-top:8px;background:transparent;border:1px solid var(--line);padding:11px;border-radius:var(--radius);font-family:'Inter',sans-serif;font-size:0.86rem;cursor:pointer;}
+#preview{display:none;background:#fafbfb;border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:14px;white-space:pre-wrap;font-family:'IBM Plex Mono',monospace;font-size:0.74rem;max-height:360px;overflow:auto;}
+.note-box{background:var(--accept-bg);border:1px solid var(--accept);color:#204634;padding:12px 14px;border-radius:var(--radius);font-size:0.8rem;margin-top:14px;display:none;}
+footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;font-size:0.75rem;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div style="display:flex;align-items:center;gap:16px">
+    <img src="data:image/png;base64,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" alt="Pol-Bram logó" style="height:38px;display:block">
+    <div>
+      <div class="disp" style="font-size:1.1rem;color:var(--graphite);letter-spacing:0.03em">Árajánlat kérő űrlap</div>
+      <div class="tag">Egyedi garázs igénylés · Magyarország</div>
+    </div>
+  </div>
+</header>
+
+<div class="intro">
+  <p>Állítsa össze álmai garázsát az alábbi lépésekben. A beküldött igény alapján
+  munkatársunk <strong>személyre szabott, végleges árajánlatot készít, és azt e-mailben visszaküldi Önnek</strong> –
+  a lenti kiegészítők melletti összegek csak <strong>tájékoztató jellegű, hozzávetőleges felárak</strong>, a garázs teljes ára itt nem jelenik meg.</p>
+</div>
+
+<div class="preset-bar">
+  <div class="preset-panel">
+    <div class="preset-panel-head">
+      <h3>Válasszon típusgarázst</h3>
+      <span class="hint" style="margin:0">A kiválasztás előtölti az adatokat, ezután bármi módosítható.</span>
+    </div>
+    <div class="preset-panel-row">
+      <select id="presetSelect">
+        <option value="">— Egyedi összeállítás —</option>
+      </select>
+      <button class="btn-ghost" id="updatePresetBtn" style="display:none;width:auto;margin:0;padding:8px 16px">Módosítások mentése ebbe a típusba</button>
+      <button class="btn-ghost" id="deletePresetBtn" style="display:none;width:auto;margin:0;padding:8px 16px;border-color:#b23a3a;color:#b23a3a">Típus törlése</button>
+    </div>
+    <div class="preset-gallery">
+      <div class="preset-gallery-card" data-preset="black">
+        <div class="thumb-wrap"><img src="data:image/jpeg;base64,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" alt="Black"></div>
+        <span>Black</span>
+      </div>
+      <div class="preset-gallery-card" data-preset="monarch">
+        <div class="thumb-wrap"><img src="data:image/jpeg;base64,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" alt="Monarch"></div>
+        <span>Monarch</span>
+      </div>
+      <div class="preset-gallery-card" data-preset="melios">
+        <div class="thumb-wrap"><img src="data:image/jpeg;base64,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" alt="Melios"></div>
+        <span>Melios</span>
+      </div>
+      <div class="preset-gallery-card" data-preset="evo">
+        <div class="thumb-wrap"><img src="data:image/jpeg;base64,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" alt="Evo"></div>
+        <span>Evo</span>
+      </div>
+      <div class="preset-gallery-card" data-preset="varro">
+        <div class="thumb-wrap"><img src="data:image/jpeg;base64,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" alt="Varro"></div>
+        <span>Varro</span>
+      </div>
+      <div class="preset-gallery-card" data-preset="amaz">
+        <div class="thumb-wrap"><img src="data:image/jpeg;base64,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" alt="Amaz"></div>
+        <span>Amaz</span>
+      </div>
+      <div class="preset-gallery-card" data-preset="stand">
+        <div class="thumb-wrap"><img src="data:image/jpeg;base64,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" alt="Stand"></div>
+        <span>Stand</span>
+      </div>
+      <div class="preset-gallery-card" data-preset="onyx">
+        <div class="thumb-wrap"><img src="data:image/jpeg;base64,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" alt="Onyx"></div>
+        <span>Onyx</span>
+      </div>
+    </div>
+  </div>
+  <div class="preset-panel" style="margin-top:12px;border-color:var(--accept)">
+    <div class="preset-panel-head">
+      <h3 style="color:var(--accept)">Mentés saját típusként</h3>
+    </div>
+    <div class="preset-panel-row">
+      <input type="text" id="savePresetName" placeholder="pl. Monarch modell – egyedi variáns" style="max-width:320px">
+      <button class="btn-ghost" id="savePresetBtn" style="width:auto;margin:0;padding:8px 16px">Mentés új típusgarázsként</button>
+      <span class="hint" id="savePresetStatus" style="margin:0"></span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="col-form">
+
+    <details class="section" open>
+      <summary><span class="num">1</span> Garázs mérete és teteje</summary>
+      <div class="body">
+        <div class="grid3">
+          <div>
+            <label class="field"><span>Tetőtípus</span>
+              <select id="roofType">
+                <option value="dwuspad" selected>Nyeregtető</option>
+                <option value="spad tyl">Hátrafelé lejtő</option>
+                <option value="spad przod">Előrefelé lejtő</option>
+                <option value="spad jobbra">Jobbra lejtő</option>
+                <option value="spad balra">Balra lejtő</option>
+              </select>
+            </label>
+          </div>
+          <div>
+            <label class="field"><span>Oldalfalak lemezmintázata (trapéz)</span>
+              <select id="wallPattern">
+                <option>T7 – függőleges</option>
+                <option>T7 – vízszintes</option>
+              </select>
+              <div class="hint" id="wallPatternSurchargeHint" style="display:none"></div>
+            </label>
+          </div>
+          <div>
+            <label class="field"><span>Szerkezet típusa</span>
+              <select id="structureType">
+                <option value="szogvas">Horganyzott szögvas</option>
+                <option value="zartprofil">Horganyzott zárt profil (30×30 mm)</option>
+              </select>
+              <div class="hint" id="structureSurchargeHint" style="display:none">Felár: ≈5 400 Ft/fm</div>
+            </label>
+          </div>
+        </div>
+
+        <div class="grid3" style="margin-top:14px">
+          <label class="field"><span>Garázs szélessége (cm)</span><input type="number" id="width" value="300" min="180" max="800" step="5"></label>
+          <label class="field"><span>Garázs hosszúsága (cm)</span><input type="number" id="length" value="500" min="300" max="3000" step="5"></label>
+          <label class="field"><span>Oldalmagasság (automatikusan számolt, cm)</span><input type="text" id="height" value="213 cm" readonly></label>
+        </div>
+
+        <div class="grid2" style="margin-top:14px">
+          <label class="field"><span>Nem szabványos falmagasság (cm, opcionális)</span><input type="number" id="customHeight" min="213" step="1" placeholder="csak ha a számoltnál is magasabbat kér"></label>
+          <div></div>
+        </div>
+        <div class="hint">Ezt csak akkor töltse ki, ha a fent automatikusan számított magasságnál is nagyobb oldalfalat szeretne.</div>
+
+        <div class="cond-row" id="folyometerField" style="display:none;margin-top:14px">
+          <label class="field" style="width:100%"><span>Folyóméter (fm)</span><input type="number" id="folyometer" value="5" min="1" step="0.1"></label>
+        </div>
+        <div class="hint cond-row" id="folyometerHint" style="display:none">Oldalra lejtő tetőnél a lejtés a szélesség mentén fut, ezért a hosszirányú méretet folyóméterben (fm) is kérjük megadni.</div>
+        <div class="hint" id="heightHint">Alap magasság: 213 cm. A kapu magasításából, az automatikából és a tetőtípusból adódó többlet automatikusan hozzáadódik.</div>
+
+        <div class="toggle-row cond-row" id="ridgeShiftField" style="margin-top:10px">
+          <div class="lbl">Egy szinten fusson a magasság?<small>Oldalra lejtő tetőnél ehhez eltolt gerincvonal szükséges (felárral jár)</small></div>
+          <label class="switch"><input type="checkbox" id="ridgeShift"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+        <div class="hint" id="ridgeShiftMandatoryNote" style="display:none;color:#d9a520">⚠ 6 méternél szélesebb garázsnál az eltolt gerincvonal (Przesunięta kalenica) minden esetben kötelező az árazásban — ezt automatikusan bejelöltük.</div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><span class="num">2</span> Nyitott / fedett oldaltető a garázs mellett</summary>
+      <div class="body">
+        <div class="toggle-row">
+          <div class="lbl">Kér nyitott vagy részben nyitott, de fedett részt a garázs mellé?</div>
+          <label class="switch"><input type="checkbox" id="canopyYes"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+        <div class="toggle-extra" id="canopyExtra">
+          <div class="grid2">
+            <label class="field"><span>Melyik oldalon legyen?</span>
+              <select id="canopySide">
+                <option value="left">A garázs bal oldalán</option>
+                <option value="right">A garázs jobb oldalán</option>
+                <option value="front">A garázs elülső oldalán</option>
+                <option value="back">A garázs hátsó oldalán</option>
+              </select>
+            </label>
+            <div></div>
+          </div>
+          <div class="grid2" style="margin-top:14px">
+            <label class="field"><span>Szélessége (cm)</span><input type="number" id="canopyWidth" value="300" min="100" step="10"></label>
+            <label class="field"><span>Hosszúsága (cm)</span><input type="number" id="canopyLength" value="500" min="100" step="10"></label>
+          </div>
+
+          <div class="grid2" style="margin-top:14px">
+            <label class="field" style="grid-column:1/-1"><span>A fedett rész magassága a garázshoz képest</span>
+              <select id="canopyHeightMode">
+                <option value="level">Szintbe fusson a garázs magasságával (eltolt gerincvonal, felárral jár)</option>
+                <option value="continuous">Folyamatosan lejtsen tovább (a tető vonala folytatódik)</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="subgrid">
+            <label class="field"><span>Hátsó fal</span>
+              <select id="canopyBackWall">
+                <option value="none">Nincs (teljesen nyitott)</option>
+                <option value="lamella">Lamellás (panel)</option>
+                <option value="solid">Teli fal (lemez)</option>
+              </select>
+            </label>
+            <label class="field color-field" id="canopyBackColorField"><span class="color-label">Hátsó fal színe</span><select id="colorCanopyBack" class="color-select"></select></label>
+          </div>
+
+          <div class="subgrid">
+            <label class="field"><span>Oldalsó fal</span>
+              <select id="canopySideWall">
+                <option value="none">Nincs (teljesen nyitott)</option>
+                <option value="lamella">Lamellás (panel)</option>
+                <option value="solid">Teli fal (lemez)</option>
+              </select>
+            </label>
+            <label class="field color-field" id="canopySideColorField"><span class="color-label">Oldalsó fal színe</span><select id="colorCanopySide" class="color-select"></select></label>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><span class="num">3</span> Előtető (pl. gazdasági rész előtt)</summary>
+      <div class="body">
+        <div class="toggle-row">
+          <div class="lbl">Kér ilyen előtetőt?<small>Pl. egy gazdasági rész bejárata előtt</small></div>
+          <label class="switch"><input type="checkbox" id="notchYes"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+        <div class="toggle-extra" id="notchExtra">
+          <div class="grid3">
+            <label class="field"><span>Melyik sarkon legyen? (az elülső fal mentén)</span>
+              <select id="notchSide">
+                <option value="left">Bal sarkon</option>
+                <option value="right">Jobb sarkon</option>
+              </select>
+            </label>
+            <label class="field"><span>Szélessége (cm)</span><input type="number" id="notchWidth" value="150" min="50" step="10"></label>
+            <label class="field"><span>Mélysége (cm)</span><input type="number" id="notchDepth" value="100" min="30" step="10"></label>
+          </div>
+          <div class="hint">Az előtető az elülső fal kijelölt sarkába kerül. Az előtetőben keletkező fal teli falként jelenik meg a rajzon, és arra ajtó vagy ablak is felhelyezhető ("Előtető fala" opcióként lentebb). Alapértelmezett mélység 100 cm (1 m), igény szerint módosítható.</div>
+        </div>
+      </div>
+    </details>
+
+
+    <details class="section">
+      <summary><span class="num">4</span> Garázsajtó / kapu</summary>
+      <div class="body">
+        <div class="choice-row" id="gateType">
+          <label class="choice active" data-val="none"><input type="radio" name="gateType" checked>Nincs</label>
+          <label class="choice" data-val="uchylna"><input type="radio" name="gateType">Billenő kapu</label>
+          <label class="choice" data-val="dwuskrz"><input type="radio" name="gateType">Kétszárnyú kapu</label>
+        </div>
+
+        <div class="subgrid" id="gateDetails" style="display:none">
+          <div class="grid3">
+            <label class="field"><span>Kapuk száma (db)</span><input type="number" id="gateCount" value="1" min="1"></label>
+            <label class="field"><span>Kapu szélessége (cm)</span><input type="number" id="gateWidth" value="300" min="180" max="400" step="5"><div class="hint" id="gateWidthSurchargeHint" style="display:none"></div></label>
+            <label class="field"><span>Kapu magassága (cm)</span><input type="number" id="gateHeight" value="185" min="185" max="290" step="1"></label>
+          </div>
+          <div class="toggle-extra" id="gatePositionField">
+            <label class="field"><span>Kapu(k) elhelyezése</span>
+              <select id="gatePositionMode">
+                <option value="auto">Automatikus, arányosan a falon belül (nem nyúlik túl)</option>
+                <option value="custom">Egyéni pozíció megadása (kapunként)</option>
+              </select>
+            </label>
+            <div class="toggle-extra" id="gateCustomPosExtra">
+              <div id="gateCustomPosList"></div>
+              <div class="hint">Minden kapunál megadhatja, melyik faltól és hány cm-re legyen — a rendszer figyeli, hogy egyik se nyúljon túl a garázs méretén, és ne fussanak egymásra.</div>
+            </div>
+          </div>
+          <div class="grid2" style="margin-top:14px">
+            <label class="field"><span>Lemez mintázata</span>
+              <select id="gatePattern">
+                <option id="gateWideOpt">Széles vízszintes</option>
+                <option>T7 – vízszintes</option>
+                <option>T7 – függőleges</option>
+              </select>
+              <div class="hint" id="gatePatternRestrictionHint" style="display:none">Kétszárnyú kapunál a "Széles vízszintes" minta csak Horganyzott zárt profil szerkezettel választható.</div>
+            </label>
+            <div></div>
+          </div>
+          <div class="hint" id="gateSizeHint">Alapszélesség: 300 cm (tiszta szélesség kb. 275 cm), max. 400 cm. Alap (tiszta) magasság: 185 cm.</div>
+
+          <div class="toggle-row cond-row" id="automationField" style="margin-top:10px">
+            <div class="lbl">Kér automatikát?<small>Felár: ≈83 100 Ft/db</small></div>
+            <label class="switch"><input type="checkbox" id="automation"><span class="track"></span><span class="thumb"></span></label>
+          </div>
+          <div class="toggle-extra" id="automationExtra">
+            <label class="field"><span>Automatika darabszám</span><input type="number" id="automationQty" value="1" min="1"></label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="lbl">Bevilágító a kapun<small>60×27 cm-es fix betét a kapulemezbe · Felár: ≈16 600 Ft/db</small></div>
+            <label class="switch"><input type="checkbox" id="gateLightYes"><span class="track"></span><span class="thumb"></span></label>
+          </div>
+          <div class="toggle-extra" id="gateLightExtra">
+            <div class="grid2">
+              <label class="field"><span>Hány darab / kapu</span><input type="number" id="gateLightQty" value="1" min="1"></label>
+              <label class="field"><span>Elrendezés</span>
+                <select id="gateLightArrangement">
+                  <option value="sides">Kapu két oldalán, egy szinten</option>
+                  <option value="left-stack">Kapu bal oldalán, egymás alatt</option>
+                  <option value="right-stack">Kapu jobb oldalán, egymás alatt</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><span class="num">5</span> Ajtók, ablakok, bevilágító</summary>
+      <div class="body">
+        <div class="toggle-row">
+          <div class="lbl">Kér személyi bejárót?<small>Felár: ≈37 400–49 900 Ft (szín szerint)</small></div>
+          <label class="switch"><input type="checkbox" id="personalDoorYes"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+        <div class="toggle-extra" id="personalDoorExtra">
+          <div class="grid3">
+            <label class="field"><span>Ajtók száma (db)</span><input type="number" id="personalDoorCount" value="1" min="1"></label>
+            <label class="field"><span>Méret</span>
+              <select id="personalDoorSize">
+                <option value="90x200">90×200 cm (alap)</option>
+                <option value="100x200">100×200 cm</option>
+                <option value="110x200">110×200 cm</option>
+              </select>
+            </label>
+            <label class="field"><span>Lemez mintázata</span>
+              <select id="personalDoorPattern">
+                <option>Széles vízszintes</option>
+                <option>T7 – vízszintes</option>
+                <option>T7 – függőleges</option>
+              </select>
+            </label>
+          </div>
+          <div id="personalDoorPosList"></div>
+        </div>
+
+        <div class="subgrid">
+          <div class="qty-line"><div class="lbl">Bukó ablak 80×60 (db)<small class="hint" style="margin:0">≈41 500 Ft/db</small></div><input type="number" id="win8060" value="0" min="0"></div>
+          <div class="toggle-extra" id="win8060PosField"><div id="win8060PosList"></div></div>
+
+          <div class="qty-line"><div class="lbl">Fix ablak 150×50 (db)<small class="hint" style="margin:0">≈83 100 Ft/db</small></div><input type="number" id="win50150" value="0" min="0"></div>
+          <div class="toggle-extra" id="win50150PosField"><div id="win50150PosList"></div></div>
+
+          <div class="qty-line"><div class="lbl">Ablaknyílás (keret nélkül, db)<small class="hint" style="margin:0">≈8 300 Ft/db</small></div><input type="number" id="winOpening" value="0" min="0"></div>
+          <div class="toggle-extra" id="winOpeningPosField"><div id="winOpeningPosList"></div></div>
+
+          <div class="qty-line"><div class="lbl">Ablakbetét / bevilágító (60×27 cm, db)<small class="hint" style="margin:0">≈16 600 Ft/db</small></div><input type="number" id="skylight" value="0" min="0"></div>
+          <div class="toggle-extra" id="skylightPosField"><div id="skylightPosList"></div></div>
+        </div>
+      </div>
+    </details>
+
+
+
+    <details class="section">
+      <summary><span class="num">6</span> Kiegészítők</summary>
+      <div class="body">
+        <div class="toggle-row">
+          <div class="lbl">Kér ereszcsatornát?</div>
+          <label class="switch"><input type="checkbox" id="gutterYes"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+        <div class="toggle-extra" id="gutterExtra">
+          <label class="field"><span class="color-label">Ereszcsatorna színe</span>
+            <select id="gutterColor"><option value="GRAFIT">Grafit</option><option value="BARNA">Barna</option></select>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="lbl">Páralecsapódás-gátló filc</div>
+          <label class="switch"><input type="checkbox" id="feltYes"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <div class="lbl">Kér válaszfalat?<small>Ha igen, kérjük röviden írja le hova, milyen hosszan · Felár: ≈15 000 Ft/fm</small></div>
+          <label class="switch"><input type="checkbox" id="wallYes"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+        <div class="toggle-extra" id="wallExtra">
+          <div class="hint" id="wallMandatoryNote" style="display:none;color:#d9a520">⚠ Nyeregtetős garázsnál 7 m szélesség felett statikai okokból válaszfal szükséges — ezt automatikusan bekapcsoltuk, hossza a garázs hosszúságával egyezik meg.</div>
+          <label class="field"><span>Válaszfal hossza (fm)</span><input type="number" id="wallLength" value="0" min="0" step="0.1"></label>
+          <div class="grid2">
+            <label class="field"><span>Válaszfal helye: melyik faltól mérjük?</span>
+              <select id="wallCorner"><option value="left">Bal oldalfaltól</option><option value="right">Jobb oldalfaltól</option></select>
+            </label>
+            <label class="field"><span>Távolság (cm)</span><input type="number" id="wallPosition" value="250" min="0" step="10"></label>
+          </div>
+
+          <label class="field" style="margin-top:10px"><span>Válaszfalban</span>
+            <select id="wallOpeningType">
+              <option value="none">Nincs (tömör válaszfal)</option>
+              <option value="opening">Szabad nyílás</option>
+              <option value="door">Ajtó</option>
+            </select>
+          </label>
+          <div class="toggle-extra" id="wallOpeningExtra">
+            <div class="grid3">
+              <label class="field" id="wallOpeningWidthField"><span>Nyílás szélessége (cm)</span><input type="number" id="wallOpeningWidth" value="90" min="60" step="5"></label>
+              <label class="field" id="wallDoorSizeField" style="display:none"><span>Ajtó mérete</span>
+                <select id="wallDoorSize">
+                  <option value="90x200">90×200 cm</option>
+                  <option value="100x200">100×200 cm</option>
+                  <option value="110x200">110×200 cm</option>
+                </select>
+              </label>
+              <label class="field" id="wallDoorHandleField" style="display:none"><span>Merre nyíljon</span>
+                <select id="wallDoorHandle"><option value="left">Bal felé</option><option value="right">Jobb felé</option></select>
+              </label>
+            </div>
+            <div class="grid2" style="margin-top:8px">
+              <label class="field"><span>Melyik saroktól mérjük? (a válaszfal mentén)</span>
+                <select id="wallOpeningCorner"><option value="front">Elülső faltól</option><option value="back">Hátsó faltól</option></select>
+              </label>
+              <label class="field"><span>Távolság (cm)</span><input type="number" id="wallOpeningDistance" value="50" min="0" step="5"></label>
+            </div>
+          </div>
+
+          <textarea id="wallNote" placeholder="pl. a garázs felénél, kb. 3 méter hosszan" style="margin-top:8px"></textarea>
+        </div>
+
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><span class="num">7</span> Szín</summary>
+      <div class="body">
+        <div class="grid2">
+          <label class="field"><span class="color-label">Tető színe</span><select id="colorRoof" class="color-select"></select></label>
+          <label class="field"><span class="color-label">Tetőszegély színe</span><select id="colorRoofTrim" class="color-select"></select></label>
+          <label class="field"><span class="color-label">Oldalfal színe</span><select id="colorWall" class="color-select"></select></label>
+          <label class="field"><span class="color-label">Oldalfal szegély színe</span><select id="colorWallTrim" class="color-select"></select></label>
+        </div>
+        <label class="field color-field" id="colorGateField"><span class="color-label">Kapu színe</span><select id="colorGate" class="color-select"></select></label>
+        <label class="field color-field" id="colorWindowField"><span class="color-label">Ablak színe</span><select id="colorWindow" class="color-select"></select></label>
+        <label class="field color-field" id="colorDoorField"><span class="color-label">Személyi bejáró színe</span><select id="colorDoor" class="color-select"></select></label>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary><span class="num">8</span> Ön adatai</summary>
+      <div class="body">
+        <div class="grid2">
+          <label class="field"><span>Vezetéknév, keresztnév</span><input type="text" id="custName" placeholder="Kovács János"></label>
+          <label class="field"><span>Telefonszám</span><input type="tel" id="custPhone" placeholder="+36 30 000 0000"></label>
+          <label class="field"><span>E-mail cím</span><input type="email" id="custEmail" placeholder="nev@pelda.hu"></label>
+          <label class="field"><span>Irányítószám</span><input type="text" id="custZip" placeholder="2000"></label>
+          <label class="field"><span>Város</span><input type="text" id="custCity" placeholder="Szentendre"></label>
+          <label class="field"><span>Szállítási cím</span><input type="text" id="custAddress" placeholder="utca, házszám"></label>
+          <label class="field"><span>Áfás számlát igényel?</span>
+            <select id="custInvoice"><option value="nem">Nem</option><option value="igen">Igen</option></select>
+          </label>
+          <div></div>
+        </div>
+
+        <div class="toggle-extra" id="custCompanyExtra">
+          <div class="hint" style="margin-bottom:8px">Áfás számlához kérjük a cég adatait:</div>
+          <div class="grid2">
+            <label class="field"><span>Cégnév</span><input type="text" id="custCompanyName" placeholder="Pl. Kovács Kft."></label>
+            <label class="field"><span>Közösségi adószám</span><input type="text" id="custCompanyVat" placeholder="HU12345678"></label>
+            <label class="field"><span>Cég címe</span><input type="text" id="custCompanyAddress" placeholder="Székhely cím"></label>
+            <label class="field"><span>Szállítási cím (ha eltér)</span><input type="text" id="custCompanyShipping" placeholder="Ha más, mint a székhely"></label>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:14px">
+          <label class="field" style="grid-column:1/-1"><span>Megjegyzés</span><textarea id="custNote" placeholder="Bármilyen egyéb kérés, megjegyzés..."></textarea></label>
+        </div>
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:0.8rem;color:var(--graphite-soft);margin-top:12px">
+          <input type="checkbox" id="gdprConsent" style="margin-top:3px">
+          <span>Hozzájárulok ahhoz, hogy a fent megadott személyes adataimat kizárólag az általam elküldött üzenetre adott válasz céljából kezeljék.</span>
+        </label>
+      </div>
+    </details>
+
+  </div>
+
+  <div class="sidebar">
+    <div id="wallWarnings" style="display:none;background:#3a1f1f;border:1px solid #b23a3a;color:#f2c9c9;padding:12px 14px;border-radius:2px;font-size:0.8rem;margin-bottom:14px;"></div>
+
+    <div class="sketch-card">
+      <h3>Felülnézeti vázlat (élő)</h3>
+      <svg id="sketch" viewBox="0 0 400 300"></svg>
+      <div class="cap">Automatikusan generált, arányos vázlat &mdash; nem építészi terv.</div>
+    </div>
+
+    <div class="submit-card">
+      <h3>Igény beküldése</h3>
+      <p>A beküldés után munkatársunk kiszámolja az árat, és külön e-mailben elküldi Önnek a személyre szabott ajánlatot.</p>
+      <button class="btn-main" id="submitBtn">Igényem elküldése</button>
+      <button class="btn-ghost" id="previewBtn">Összefoglaló megtekintése</button>
+      <div id="preview"></div>
+      <div class="note-box" id="sentNote" style="display:none">Köszönjük! Az igényét rögzítettük.</div>
+    </div>
+  </div>
+</div>
+
+<div id="thankYouModal" style="display:none;position:fixed;inset:0;background:rgba(32,36,42,0.55);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:8px;border-top:4px solid var(--signal);padding:36px 40px;max-width:420px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.25)">
+    <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase;margin-bottom:12px">Köszönjük megkeresését!</h2>
+    <p style="color:var(--graphite-soft);font-size:0.95rem">Hamarosan jelentkezünk az árajánlattal e-mailben. Kérjük, időnként nézze meg a Spam / Levélszemét mappáját is.</p>
+    <button class="btn-main" style="width:auto;padding:12px 28px;margin-top:10px" onclick="document.getElementById('thankYouModal').style.display='none'">Rendben</button>
+  </div>
+</div>
+
+<footer class="notice">
+</footer>
+
+<script>
+// ⚠️ FONTOS: állítsd be a ténylegesen üzembe helyezett backend címét (lásd garage-crm/README.md)
+const BACKEND_URL = ''; // ugyanarról a domainről fut, mint a backend, ezért üres (relatív) string
+
+// ---------------------------------------------------------------
+// SZÍNPALETTA – kategória (Horganyzott / RAL / Fa) előválasztással, nagyobb ikonokkal
+// Arany tölgy KIZÁRÓLAG az ablak-palettában érhető el.
+// ---------------------------------------------------------------
+const colorHex = {
+  'OCNATUR':'#b9bcbe',
+  'RAL9005':'#1c1c1c', 'RAL7016-M':'#383e42', 'RAL8017-M':'#4a3728', 'RAL8004':'#a05a2c',
+  'RAL3011':'#7a1f2b', 'RAL6020':'#37473a', 'RAL7016-F':'#2b323a', 'RAL9006':'#a8adb0',
+  'RAL7035':'#d9dcdd', 'RAL9010':'#f5f4ef', 'RAL5010':'#1c4d78', 'RAL1002':'#d9a520',
+  'OAK':'#8a5a2b', 'WALNUT':'#4a3225', 'WINCH':'#a9835a', 'GOLDOAK':'#c98a2e',
+  'GRAFIT':'#383e42', 'BARNA':'#4a3728'
+};
+const catLabels = {horganyzott:'Horganyzott', ral:'RAL', fa:'Fa'};
+
+// Általános kategóriák (tető, oldalfal, szegélyek, kapu, ajtó, oldaltető falak)
+const generalCategoryColors = {
+  horganyzott: [['OCNATUR','Horganyzott (natúr fém)']],
+  ral: [
+    ['RAL9005','Mély fekete'], ['RAL7016-M','Antracitszürke (matt)'], ['RAL8017-M','Csokoládébarna (matt)'],
+    ['RAL8004','Rézbarna'], ['RAL3011','Vörös burgundi'], ['RAL6020','Zöld króm'],
+    ['RAL7016-F','Antracitszürke (fényes)'], ['RAL9006','Alumíniumezüst'], ['RAL7035','Világosszürke'],
+    ['RAL9010','Tiszta fehér'], ['RAL5010','Búzavirágkék'], ['RAL1002','Homokszínű sárga']
+  ],
+  fa: [['OAK','Rusztikus tölgy'], ['WALNUT','Dió'], ['WINCH','Winchester']]
+};
+// Ablakkeret kategóriák (nincs horganyzott, arany tölgy csak itt)
+const windowCategoryColors = {
+  ral: [['RAL9005','Fekete'],['RAL7016-M','Grafit'],['RAL9010','Fehér']],
+  fa: [['WALNUT','Dió'],['GOLDOAK','Arany tölgy'],['WINCH','Winchester']]
+};
+const twoToneCategoryColors = { szin: [['GRAFIT','Grafit'],['BARNA','Barna']] };
+
+const colorFieldRegistry = {};
+function setupColorField(id, categoryMap){
+  const sel = document.getElementById(id);
+  const emptyOpt = document.createElement('option'); emptyOpt.value=''; emptyOpt.textContent='— Válasszon színt —';
+  sel.appendChild(emptyOpt);
+  Object.values(categoryMap).flat().forEach(([val,name])=>{
+    const o=document.createElement('option'); o.value=val; o.textContent=name; sel.appendChild(o);
+  });
+  sel.value='';
+  sel.style.display='none';
+
+  const catRow = document.createElement('div'); catRow.className='choice-row';
+  const swatchRow = document.createElement('div'); swatchRow.className='swatch-row-lg';
+
+  function findCategoryOf(val){
+    for(const cat of Object.keys(categoryMap)){ if(categoryMap[cat].some(([v])=>v===val)) return cat; }
+    return Object.keys(categoryMap)[0];
+  }
+  function renderSwatches(cat){
+    swatchRow.innerHTML='';
+    categoryMap[cat].forEach(([val,name])=>{
+      const sw=document.createElement('div');
+      sw.className='swatch-lg'+(sel.value===val?' sel':'');
+      sw.innerHTML = `<div class="sw-color" style="background:${colorHex[val]||'#ccc'}"></div><span>${name}</span>`;
+      sw.addEventListener('click', ()=>{
+        sel.value = val;
+        swatchRow.querySelectorAll('.swatch-lg').forEach(s=>s.classList.remove('sel'));
+        sw.classList.add('sel');
+        sel.dispatchEvent(new Event('change'));
+      });
+      swatchRow.appendChild(sw);
+    });
+  }
+  const cats = Object.keys(categoryMap);
+  cats.forEach((cat,i)=>{
+    const btn=document.createElement('label'); btn.className='choice'+(i===0?' active':'');
+    btn.textContent = catLabels[cat] || cat;
+    btn.addEventListener('click', ()=>{
+      catRow.querySelectorAll('.choice').forEach(c=>c.classList.remove('active'));
+      btn.classList.add('active');
+      renderSwatches(cat);
+    });
+    catRow.appendChild(btn);
+  });
+  const initCat = findCategoryOf(sel.value);
+  catRow.querySelectorAll('.choice').forEach((b,i)=>b.classList.toggle('active', cats[i]===initCat));
+  renderSwatches(initCat);
+
+  sel.insertAdjacentElement('afterend', catRow);
+  catRow.insertAdjacentElement('afterend', swatchRow);
+
+  colorFieldRegistry[id] = { findCategoryOf, renderSwatches, catRow, cats };
+}
+function resyncColorField(id){
+  const reg = colorFieldRegistry[id];
+  if(!reg) return;
+  const sel = document.getElementById(id);
+  const cat = reg.findCategoryOf(sel.value);
+  reg.catRow.querySelectorAll('.choice').forEach((b,i)=>b.classList.toggle('active', reg.cats[i]===cat));
+  reg.renderSwatches(cat);
+}
+function resyncAllColorFields(){
+  Object.keys(colorFieldRegistry).forEach(resyncColorField);
+}
+setupColorField('colorRoof', generalCategoryColors);
+setupColorField('colorRoofTrim', generalCategoryColors);
+setupColorField('colorWall', generalCategoryColors);
+setupColorField('colorWallTrim', generalCategoryColors);
+setupColorField('colorGate', generalCategoryColors);
+setupColorField('colorDoor', generalCategoryColors);
+setupColorField('colorWindow', windowCategoryColors);
+setupColorField('gutterColor', twoToneCategoryColors);
+setupColorField('colorCanopyBack', generalCategoryColors);
+setupColorField('colorCanopySide', generalCategoryColors);
+
+function updateCanopyColorVisibility(){
+  document.getElementById('canopyBackColorField').classList.toggle('show', document.getElementById('canopyBackWall').value!=='none');
+  document.getElementById('canopySideColorField').classList.toggle('show', document.getElementById('canopySideWall').value!=='none');
+}
+document.getElementById('canopyBackWall').addEventListener('change', updateCanopyColorVisibility);
+document.getElementById('canopySideWall').addEventListener('change', updateCanopyColorVisibility);
+
+// ---------------------------------------------------------------
+// TÍPUSGARÁZS PRESETEK
+// ---------------------------------------------------------------
+const presets = [
+  {id:'black',  name:'Black – 8×6 m, jobb oldali oldaltetővel',
+    width:800, length:600, roof:'dwuspad',
+    gateType:'uchylna', gateCount:2, gateHeight:185, gatePattern:'Széles vízszintes',
+    wallColor:'RAL9005', roofColor:'RAL9005', gateColor:'OAK',
+    gutter:false, felt:false, divider:false,
+    canopy:{side:'right', width:200, length:600, backWall:'solid', sideWall:'solid', color:'OCNATUR'},
+    notch:null, pdoor:true, pdoorWall:'canopy'},
+  {id:'monarch',name:'Monarch – 5,5×5,75 m, kiskapuval',
+    width:550, length:575, roof:'dwuspad',
+    gateType:'uchylna', gateCount:2, gateHeight:200, gatePattern:'Széles vízszintes',
+    wallColor:'RAL9005', roofColor:'RAL9005', gateColor:'RAL9005',
+    gutter:true, gutterColor:'GRAFIT', felt:true, divider:false,
+    canopy:null, notch:null, pdoor:true, pdoorWall:'left'},
+  {id:'monarch_jobb', name:'Monarch modell – gazdasági helyiség a jobb oldalt',
+    width:550, length:575, roof:'dwuspad',
+    gateType:'uchylna', gateCount:2, gateHeight:200, gatePattern:'Széles vízszintes',
+    wallColor:'RAL9005', roofColor:'RAL9005', gateColor:'RAL9005',
+    gutter:true, gutterColor:'GRAFIT', felt:true, divider:false,
+    canopy:null, notch:null, pdoor:true, pdoorWall:'right'},
+  {id:'melios', name:'Melios – 6,5×5 m, Winchester, gazdasági résszel',
+    width:650, length:500, roof:'dwuspad',
+    gateType:'uchylna', gateCount:1, gateHeight:185, gatePattern:'Széles vízszintes',
+    wallColor:'WINCH', roofColor:'RAL7016-M', gateColor:'RAL7016-M', windowColor:'RAL7016-M', doorColor:'RAL7016-M',
+    gutter:true, gutterColor:'GRAFIT', felt:false, divider:false,
+    canopy:null, notch:{side:'right', width:250, depth:100}, pdoor:true, pdoorWall:'notch',
+    win8060:1, win8060Wall:'notch'},
+  {id:'evo',    name:'Evo – 5,92×6 m, fahatású, oldaltetővel',
+    width:592, length:600, roof:'dwuspad',
+    gateType:'uchylna', gateCount:1, gateHeight:185, gatePattern:'T7 – vízszintes',
+    wallColor:'OAK', roofColor:'RAL7016-M', gateColor:'RAL7016-M',
+    gutter:true, gutterColor:'GRAFIT', felt:false, divider:true,
+    canopy:{side:'right', width:296, length:600, backWall:'solid', sideWall:'solid', color:'OCNATUR'},
+    notch:null, pdoor:false},
+  {id:'varro',  name:'Varro – 9×6 m, oldaltetővel, kiskapuval',
+    width:900, length:600, roof:'dwuspad',
+    gateType:'uchylna', gateCount:1, gateHeight:185, gatePattern:'Széles vízszintes',
+    wallColor:'RAL9005', roofColor:'OAK', gateColor:'RAL9005',
+    gutter:false, felt:false, divider:false,
+    canopy:{side:'right', width:250, length:600, backWall:'solid', sideWall:'solid', color:'OCNATUR'},
+    notch:null, pdoor:true, pdoorWall:'canopy'},
+  {id:'amaz',   name:'Amaz – 6,5×6 m, oldaltetővel és tárolóval',
+    width:650, length:600, roof:'dwuspad',
+    gateType:'uchylna', gateCount:1, gateHeight:185, gatePattern:'T7 – vízszintes',
+    wallColor:'OAK', roofColor:'RAL7016-M', gateColor:'RAL7016-M',
+    gutter:false, felt:false, divider:false,
+    canopy:{side:'right', width:200, length:600, backWall:'solid', sideWall:'solid', color:'OCNATUR'},
+    notch:null, pdoor:false},
+  {id:'stand',  name:'Stand – 3×5 m, mobilgarázs, matt fekete',
+    width:300, length:500, roof:'spad tyl',
+    gateType:'uchylna', gateCount:1, gateHeight:185, gatePattern:'T7 – vízszintes',
+    wallColor:'RAL9005', roofColor:'OAK', gateColor:'RAL9005',
+    gutter:false, felt:false, divider:false, canopy:null, notch:null, pdoor:false},
+  {id:'onyx',   name:'Onyx – 7×6 m, fahatású, matt grafit',
+    width:700, length:600, roof:'dwuspad',
+    gateType:'uchylna', gateCount:1, gateHeight:185, gatePattern:'T7 – vízszintes',
+    wallColor:'RAL7016-M', roofColor:'OAK', gateColor:'RAL7016-M',
+    gutter:false, felt:false, divider:false, canopy:null, notch:null, pdoor:false},
+];
+const presetSelect = document.getElementById('presetSelect');
+document.querySelectorAll('.preset-gallery-card').forEach(card=>{
+  card.addEventListener('click', ()=>{
+    presetSelect.value = card.dataset.preset;
+    presetSelect.dispatchEvent(new Event('change'));
+    document.querySelectorAll('.preset-gallery-card').forEach(c=>c.style.outline='none');
+    card.style.outline = '2px solid var(--signal-deep)';
+    if(card.scrollIntoView) card.scrollIntoView({behavior:'smooth', block:'nearest'});
+  });
+});
+presets.forEach(p=>{
+  const o=document.createElement('option'); o.value=p.id; o.textContent=p.name; presetSelect.appendChild(o);
+});
+function setSelectByValue(sel, val){ if([...sel.options].some(o=>o.value===val)) sel.value=val; }
+
+// ---------------------------------------------------------------
+// EGYEDI, MENTETT TÍPUSGARÁZSOK (window.storage, megosztott — minden felhasználó látja)
+// ---------------------------------------------------------------
+const customOptGroup = document.createElement('optgroup');
+customOptGroup.label = 'Mentett egyedi típusok';
+presetSelect.appendChild(customOptGroup);
+let customPresetIndex = [];
+
+async function loadCustomPresets(){
+  try{
+    const idxRes = await window.storage.get('custom_preset_index', true);
+    customPresetIndex = idxRes ? JSON.parse(idxRes.value) : [];
+  } catch(e){ customPresetIndex = []; }
+  customOptGroup.innerHTML = '';
+  customPresetIndex.forEach(entry=>{
+    const o=document.createElement('option'); o.value='custom:'+entry.key; o.textContent=entry.name;
+    customOptGroup.appendChild(o);
+  });
+}
+loadCustomPresets();
+
+function captureFormState(){
+  const data = {};
+  document.querySelectorAll('input[id],select[id]').forEach(el=>{
+    if(el.type==='checkbox') data[el.id] = el.checked;
+    else data[el.id] = el.value;
+  });
+  data.__gateType = state.gateType;
+  return data;
+}
+function applyFormState(data){
+  // 1. kör: minden statikus mező, ami most létezik
+  Object.keys(data).forEach(id=>{
+    if(id==='__gateType') return;
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(el.type==='checkbox') el.checked = data[id]; else el.value = data[id];
+  });
+  // kapu típus (choice pillek, külön state változó)
+  if(data.__gateType){
+    const gateEl = document.getElementById('gateType');
+    gateEl.querySelectorAll('.choice').forEach(c=>{
+      const match = c.dataset.val===data.__gateType;
+      c.classList.toggle('active', match);
+      c.querySelector('input').checked = match;
+    });
+    state.gateType = data.__gateType;
+    document.getElementById('gateDetails').style.display = data.__gateType==='none' ? 'none':'block';
+  }
+  onGateTypeChange();
+  refreshPositionUnits();
+  updateCanopyColorVisibility();
+  // 2. kör: most már léteznek a dinamikusan legenerált (egységenkénti) mezők is
+  Object.keys(data).forEach(id=>{
+    if(id==='__gateType') return;
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(el.type==='checkbox') el.checked = data[id]; else el.value = data[id];
+  });
+  resyncAllColorFields();
+  refreshAll();
+}
+
+document.getElementById('savePresetBtn').addEventListener('click', async ()=>{
+  const nameInput = document.getElementById('savePresetName');
+  const statusEl = document.getElementById('savePresetStatus');
+  const name = nameInput.value.trim();
+  if(!name){ statusEl.textContent='Adjon nevet a mentendő típusnak.'; statusEl.style.color='var(--danger, #b23a3a)'; return; }
+  const key = 'custom_preset_'+Date.now();
+  try{
+    const data = captureFormState();
+    await window.storage.set(key, JSON.stringify(data), true);
+    customPresetIndex.push({key, name});
+    await window.storage.set('custom_preset_index', JSON.stringify(customPresetIndex), true);
+    await loadCustomPresets();
+    presetSelect.value = 'custom:'+key;
+    updatePresetButtonsVisibility();
+    statusEl.textContent = '„'+name+'” elmentve — mostantól bárki kiválaszthatja a listából.';
+    statusEl.style.color = 'var(--accept)';
+    nameInput.value = '';
+  } catch(e){
+    statusEl.textContent = 'Hiba a mentés közben: '+e.message;
+    statusEl.style.color = 'var(--danger, #b23a3a)';
+  }
+});
+
+function updatePresetButtonsVisibility(){
+  const isCustom = presetSelect.value.startsWith('custom:');
+  const isBuiltIn = !isCustom && presetSelect.value!=='';
+  document.getElementById('updatePresetBtn').style.display = (isCustom || isBuiltIn) ? 'inline-block' : 'none';
+  document.getElementById('deletePresetBtn').style.display = isCustom ? 'inline-block' : 'none';
+  document.getElementById('updatePresetBtn').textContent = isBuiltIn ? 'Javítás mentése ebbe a gyári típusba' : 'Módosítások mentése ebbe a típusba';
+}
+presetSelect.addEventListener('change', updatePresetButtonsVisibility);
+
+document.getElementById('updatePresetBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('savePresetStatus');
+  try{
+    const data = captureFormState();
+    if(presetSelect.value.startsWith('custom:')){
+      const key = presetSelect.value.slice('custom:'.length);
+      await window.storage.set(key, JSON.stringify(data), true);
+      const entry = customPresetIndex.find(e=>e.key===key);
+      statusEl.textContent = 'A(z) „'+(entry?entry.name:'típus')+'” módosításai elmentve.';
+    } else if(presetSelect.value){
+      // Gyári típus javítása: felülírás (override) mentése, a hardcode-olt adat helyett ezt fogja használni mindenki
+      const builtInId = presetSelect.value;
+      await window.storage.set('preset_override_'+builtInId, JSON.stringify(data), true);
+      statusEl.textContent = 'A gyári típus javítása elmentve — mostantól mindenkinél ez a javított verzió töltődik be.';
+    }
+    statusEl.style.color = 'var(--accept)';
+  } catch(e){
+    statusEl.textContent = 'Hiba a mentés közben: '+e.message;
+    statusEl.style.color = 'var(--danger, #b23a3a)';
+  }
+});
+
+document.getElementById('deletePresetBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('savePresetStatus');
+  if(!presetSelect.value.startsWith('custom:')) return;
+  const key = presetSelect.value.slice('custom:'.length);
+  const entry = customPresetIndex.find(e=>e.key===key);
+  if(!confirm('Biztosan törli a(z) „'+(entry?entry.name:'ez a')+'” mentett típust? Ez minden felhasználónál eltűnik.')) return;
+  try{
+    customPresetIndex = customPresetIndex.filter(e=>e.key!==key);
+    await window.storage.set('custom_preset_index', JSON.stringify(customPresetIndex), true);
+    await window.storage.delete(key, true);
+    await loadCustomPresets();
+    presetSelect.value = '';
+    updatePresetButtonsVisibility();
+    statusEl.textContent = 'A típus törölve lett.';
+    statusEl.style.color = 'var(--accept)';
+  } catch(e){
+    statusEl.textContent = 'Hiba a törlés közben: '+e.message;
+    statusEl.style.color = 'var(--danger, #b23a3a)';
+  }
+});
+
+presetSelect.addEventListener('change', async ()=>{
+  if(presetSelect.value.startsWith('custom:')){
+    const key = presetSelect.value.slice('custom:'.length);
+    try{
+      const res = await window.storage.get(key, true);
+      if(res) applyFormState(JSON.parse(res.value));
+    } catch(e){ console.error('Nem sikerült betölteni a mentett típust:', e); }
+    return;
+  }
+  if(presetSelect.value){
+    try{
+      const overrideRes = await window.storage.get('preset_override_'+presetSelect.value, true);
+      if(overrideRes){ applyFormState(JSON.parse(overrideRes.value)); return; }
+    } catch(e){ /* nincs javított verzió, mehet a gyári alapértelmezett */ }
+  }
+  const p = presets.find(x=>x.id===presetSelect.value);
+  if(!p) return;
+  document.getElementById('width').value = p.width;
+  document.getElementById('length').value = p.length;
+  document.getElementById('roofType').value = p.roof;
+  setSelectByValue(document.getElementById('colorWall'), p.wallColor);
+  setSelectByValue(document.getElementById('colorRoof'), p.roofColor);
+  setSelectByValue(document.getElementById('colorRoofTrim'), p.roofColor);
+  setSelectByValue(document.getElementById('colorWallTrim'), p.wallColor);
+
+  // kapu
+  const gateEl = document.getElementById('gateType');
+  gateEl.querySelectorAll('.choice').forEach(c=>{
+    const match = c.dataset.val===p.gateType;
+    c.classList.toggle('active', match);
+    c.querySelector('input').checked = match;
+  });
+  state.gateType = p.gateType;
+  document.getElementById('gateDetails').style.display = p.gateType==='none' ? 'none':'block';
+  onGateTypeChange();
+  if(p.gateType!=='none'){
+    document.getElementById('gateCount').value = p.gateCount||1;
+    document.getElementById('gateHeight').value = p.gateHeight;
+    if(p.gatePattern) document.getElementById('gatePattern').value = p.gatePattern;
+    setSelectByValue(document.getElementById('colorGate'), p.gateColor);
+  }
+
+  // ereszcsatorna / filc
+  document.getElementById('gutterYes').checked = !!p.gutter;
+  document.getElementById('gutterExtra').classList.toggle('show', !!p.gutter);
+  if(p.gutter && p.gutterColor) setSelectByValue(document.getElementById('gutterColor'), p.gutterColor);
+  document.getElementById('feltYes').checked = !!p.felt;
+
+  // belső válaszfal
+  document.getElementById('wallYes').checked = !!p.divider;
+  document.getElementById('wallExtra').classList.toggle('show', !!p.divider);
+
+  // oldaltető (nagy, nyitott/fedett rész)
+  const hasCanopy = !!p.canopy;
+  document.getElementById('canopyYes').checked = hasCanopy;
+  document.getElementById('canopyExtra').classList.toggle('show', hasCanopy);
+  if(hasCanopy){
+    document.getElementById('canopySide').value = p.canopy.side;
+    document.getElementById('canopyWidth').value = p.canopy.width;
+    document.getElementById('canopyLength').value = p.canopy.length;
+    document.getElementById('canopyBackWall').value = p.canopy.backWall||'none';
+    document.getElementById('canopySideWall').value = p.canopy.sideWall||'none';
+    if(p.canopy.color){ setSelectByValue(document.getElementById('colorCanopyBack'), p.canopy.color); setSelectByValue(document.getElementById('colorCanopySide'), p.canopy.color); }
+  }
+  updateCanopyColorVisibility();
+
+  // előtető (kis bevágás)
+  const hasNotch = !!p.notch;
+  document.getElementById('notchYes').checked = hasNotch;
+  document.getElementById('notchExtra').classList.toggle('show', hasNotch);
+  if(hasNotch){
+    document.getElementById('notchSide').value = p.notch.side;
+    document.getElementById('notchWidth').value = p.notch.width;
+    document.getElementById('notchDepth').value = p.notch.depth;
+  }
+
+  // személyi bejáró
+  document.getElementById('personalDoorYes').checked = !!p.pdoor;
+  document.getElementById('personalDoorExtra').classList.toggle('show', !!p.pdoor);
+  if(p.doorColor) setSelectByValue(document.getElementById('colorDoor'), p.doorColor);
+  if(p.windowColor) setSelectByValue(document.getElementById('colorWindow'), p.windowColor);
+
+  // ablak (bukó 80x60), ha a preset megadja
+  document.getElementById('win8060').value = p.win8060||0;
+
+  refreshPositionUnits();
+  // egységenkénti pozíciók utólagos beállítása (a dinamikus mezők legenerálása után)
+  if(p.pdoor && p.pdoorWall){
+    const el = document.getElementById('personalDoorWall0');
+    if(el) el.value = p.pdoorWall;
+  }
+  if(p.win8060 && p.win8060Wall){
+    const el = document.getElementById('win8060Wall0');
+    if(el) el.value = p.win8060Wall;
+  }
+
+  resyncAllColorFields();
+  refreshAll();
+});
+
+// ---------------------------------------------------------------
+// STATE / CHOICE GROUP
+// ---------------------------------------------------------------
+let state = { gateType:'none' };
+function wireChoiceGroup(containerId, onChange){
+  const el = document.getElementById(containerId);
+  el.querySelectorAll('.choice').forEach(ch=>{
+    ch.addEventListener('click', ()=>{
+      el.querySelectorAll('.choice').forEach(c=>c.classList.remove('active'));
+      ch.classList.add('active');
+      ch.querySelector('input').checked = true;
+      onChange(ch.dataset.val);
+    });
+  });
+}
+wireChoiceGroup('gateType', v=>{
+  state.gateType=v;
+  document.getElementById('gateDetails').style.display = (v==='none')?'none':'block';
+  onGateTypeChange();
+  refreshAll();
+});
+
+function onGateTypeChange(){
+  const gh = document.getElementById('gateHeight');
+  const hint = document.getElementById('gateSizeHint');
+  if(state.gateType==='uchylna'){
+    gh.min=185; gh.max=290; gh.value=185;
+    hint.textContent = 'Alapszélesség: 300 cm (tiszta szélesség kb. 275 cm), max. 400 cm. Alap (tiszta) magasság: 185 cm.';
+  } else if(state.gateType==='dwuskrz'){
+    gh.min=200; gh.max=420; gh.value=200;
+    hint.textContent = 'Alapszélesség: 300 cm (tiszta szélesség kb. 275 cm), max. 400 cm. Alap (tiszta) magasság: 200 cm.';
+  }
+}
+
+// ---------------------------------------------------------------
+// EGYSÉGENKÉNTI ELHELYEZÉS – minden ablak/ajtó darabhoz külön fal+sarok+cm mező
+// ---------------------------------------------------------------
+function wallOptionsHtml(){
+  const notchActive = document.getElementById('notchYes').checked;
+  let html = '<option value="front">Elülső fal</option>';
+  html += `
+  <option value="back">Hátsó fal</option>
+  <option value="left">Bal oldalfal</option>
+  <option value="right">Jobb oldalfal</option>
+  <option value="canopy">Oldaltető oldalfala (ha teli fal)</option>`;
+  if(notchActive) html += '<option value="notch">Előtető fala</option>';
+  return html;
+}
+
+function buildPositionUnits(containerId, qty, prefix, withHandle){
+  const container = document.getElementById(containerId);
+  const notchActive = document.getElementById('notchYes').checked;
+  const prevWall=[], prevCorner=[], prevDist=[], prevHandle=[];
+  for(let i=0;i<qty;i++){
+    const w=document.getElementById(prefix+'Wall'+i), c=document.getElementById(prefix+'Corner'+i),
+          d=document.getElementById(prefix+'Distance'+i), h=document.getElementById(prefix+'Handle'+i);
+    let wv = w?w.value:'front';
+    prevWall[i]=wv; prevCorner[i]=c?c.value:'left'; prevDist[i]=d?d.value:(50+i*60); prevHandle[i]=h?h.value:'left';
+  }
+  const wallOpts = wallOptionsHtml();
+  let html='';
+  for(let i=0;i<qty;i++){
+    html += `<div class="subgrid" style="margin-top:${i===0?'12':'10'}px">
+      <div class="hint" style="margin-bottom:6px">${i+1}. egység elhelyezése</div>
+      <div class="grid3">
+        <label class="field"><span>Fala</span><select id="${prefix}Wall${i}">${wallOpts}</select></label>
+        <label class="field"><span>Melyik saroktól?</span><select id="${prefix}Corner${i}"><option value="left">Bal saroktól</option><option value="right">Jobb saroktól</option></select></label>
+        <label class="field"><span>Távolság (cm)</span><input type="number" id="${prefix}Distance${i}" value="${prevDist[i]}" min="0" step="5"></label>
+      </div>
+      ${withHandle ? `<div class="grid3" style="margin-top:8px"><div></div><label class="field"><span>Kilincs oldala</span><select id="${prefix}Handle${i}"><option value="left">Bal oldalt</option><option value="right">Jobb oldalt</option></select></label><div></div></div>` : ''}
+    </div>`;
+  }
+  container.innerHTML = html;
+  for(let i=0;i<qty;i++){
+    const w=document.getElementById(prefix+'Wall'+i), c=document.getElementById(prefix+'Corner'+i), h=document.getElementById(prefix+'Handle'+i);
+    if(w) w.value=prevWall[i]; if(c) c.value=prevCorner[i]; if(h) h.value=prevHandle[i];
+  }
+  container.querySelectorAll('input,select').forEach(el=>{
+    el.addEventListener('input', refreshAll);
+    el.addEventListener('change', refreshAll);
+  });
+}
+function refreshPositionUnits(){
+  buildPositionUnits('win8060PosList', Math.max(0,parseInt(document.getElementById('win8060').value)||0), 'win8060', false);
+  buildPositionUnits('win50150PosList', Math.max(0,parseInt(document.getElementById('win50150').value)||0), 'win50150', false);
+  buildPositionUnits('winOpeningPosList', Math.max(0,parseInt(document.getElementById('winOpening').value)||0), 'winOpening', false);
+  buildPositionUnits('skylightPosList', Math.max(0,parseInt(document.getElementById('skylight').value)||0), 'skylight', false);
+  buildPositionUnits('personalDoorPosList', Math.max(0,parseInt(document.getElementById('personalDoorCount').value)||0), 'personalDoor', true);
+  buildGateCustomPositions(Math.max(1,parseInt(document.getElementById('gateCount').value)||1));
+}
+function buildGateCustomPositions(qty){
+  const container = document.getElementById('gateCustomPosList');
+  const prevCorner=[], prevDist=[];
+  for(let i=0;i<qty;i++){
+    const c=document.getElementById('gateCustomCorner'+i), d=document.getElementById('gateCustomDistance'+i);
+    prevCorner[i]=c?c.value:'left'; prevDist[i]=d?d.value:(50+i*350);
+  }
+  let html='';
+  for(let i=0;i<qty;i++){
+    html += `<div class="grid2" style="margin-top:${i===0?'0':'8px'}">
+      <label class="field"><span>${i+1}. kapu — melyik faltól?</span>
+        <select id="gateCustomCorner${i}"><option value="left">Bal faltól</option><option value="right">Jobb faltól</option></select>
+      </label>
+      <label class="field"><span>${i+1}. kapu — távolság (cm)</span><input type="number" id="gateCustomDistance${i}" value="${prevDist[i]}" min="0" step="5"></label>
+    </div>`;
+  }
+  container.innerHTML = html;
+  for(let i=0;i<qty;i++){
+    const c=document.getElementById('gateCustomCorner'+i);
+    if(c) c.value=prevCorner[i];
+  }
+  container.querySelectorAll('input,select').forEach(el=>{
+    el.addEventListener('input', refreshAll);
+    el.addEventListener('change', refreshAll);
+  });
+}
+document.getElementById('gateCount').addEventListener('input', refreshPositionUnits);
+document.getElementById('win8060').addEventListener('input', refreshPositionUnits);
+document.getElementById('win50150').addEventListener('input', refreshPositionUnits);
+document.getElementById('winOpening').addEventListener('input', refreshPositionUnits);
+document.getElementById('skylight').addEventListener('input', refreshPositionUnits);
+document.getElementById('personalDoorCount').addEventListener('input', refreshPositionUnits);
+document.getElementById('notchYes').addEventListener('change', refreshPositionUnits);
+
+
+document.getElementById('wallYes').addEventListener('change', e=>document.getElementById('wallExtra').classList.toggle('show', e.target.checked));
+document.getElementById('gutterYes').addEventListener('change', e=>{document.getElementById('gutterExtra').classList.toggle('show', e.target.checked); refreshAll();});
+document.getElementById('automation').addEventListener('change', e=>{document.getElementById('automationExtra').classList.toggle('show', e.target.checked); refreshAll();});
+document.getElementById('gateLightYes').addEventListener('change', e=>{document.getElementById('gateLightExtra').classList.toggle('show', e.target.checked); refreshAll();});
+document.getElementById('personalDoorYes').addEventListener('change', e=>{document.getElementById('personalDoorExtra').classList.toggle('show', e.target.checked); refreshAll();});
+document.getElementById('canopyYes').addEventListener('change', e=>document.getElementById('canopyExtra').classList.toggle('show', e.target.checked));
+document.getElementById('notchYes').addEventListener('change', e=>{document.getElementById('notchExtra').classList.toggle('show', e.target.checked); refreshAll();});
+document.getElementById('custInvoice').addEventListener('change', e=>document.getElementById('custCompanyExtra').classList.toggle('show', e.target.value==='igen'));
+
+// ---------------------------------------------------------------
+// SZÍN SZEKCIÓ – kondicionális mezők láthatósága
+// ---------------------------------------------------------------
+function updateColorVisibility(){
+  document.getElementById('colorGateField').classList.toggle('show', state.gateType!=='none');
+  const winCount = ['win8060','win50150'].reduce((s,id)=>s+(parseInt(document.getElementById(id).value)||0),0);
+  document.getElementById('colorWindowField').classList.toggle('show', winCount>0);
+  document.getElementById('colorDoorField').classList.toggle('show', document.getElementById('personalDoorYes').checked);
+}
+['win8060','win50150'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', refreshAll);
+});
+
+// ---------------------------------------------------------------
+// MAGASSÁG SZÁMÍTÁS (cm-ben): kapu magasítás + automatika (+10cm) + hátrafelé lejtő tető (+20cm)
+// + opcionális "nem szabványos falmagasság" felülírás, ha az nagyobb, mint a számolt érték
+// ---------------------------------------------------------------
+function computeBaseHeightForRoof(){
+  // Hátrafelé lejtő tetőnél az alap (elülső) oldalfal-magasság a garázs hosszától függően nő:
+  // 5 m hosszig 213 cm, e fölött méterenként +5 cm (az Excel táblázata szerint).
+  const roof = document.getElementById('roofType').value;
+  if(roof==='spad tyl'){
+    const lengthM = (parseFloat(document.getElementById('length').value)||500)/100;
+    const extra = Math.max(0, lengthM-5)*5;
+    return 213 + extra;
+  }
+  return 213;
+}
+function computeWallHeight(){
+  const roof = document.getElementById('roofType').value;
+  let h = computeBaseHeightForRoof();
+  if(state.gateType!=='none'){
+    const gateStandard = state.gateType==='uchylna' ? 185 : 200;
+    const gh = parseFloat(document.getElementById('gateHeight').value)||gateStandard;
+    h += Math.max(0, gh-gateStandard);
+  }
+  // Automatika: hátrafelé lejtő tetőnél +20 cm, minden más esetben +10 cm
+  if(document.getElementById('automation').checked){
+    h += (roof==='spad tyl') ? 20 : 10;
+  }
+  // Ereszcsatorna +10 cm kizárólag előre lejtő tetőnél
+  if(document.getElementById('gutterYes').checked && roof==='spad przod') h += 10;
+  const custom = parseFloat(document.getElementById('customHeight').value);
+  if(custom && custom>h) h = custom;
+  // Kapu típushoz kötött maximum oldalfal-magasság
+  if(state.gateType==='uchylna') h = Math.min(h, 290);
+  if(state.gateType==='dwuskrz') h = Math.min(h, 370);
+  return h;
+}
+function updateHeightDisplay(){
+  const roof = document.getElementById('roofType').value;
+  const h = computeWallHeight();
+  document.getElementById('height').value = h.toFixed(0)+' cm';
+  const reasons=[];
+  const baseForRoof = computeBaseHeightForRoof();
+  if(baseForRoof>213) reasons.push('hátrafelé lejtő tető, hossz alapján (+'+Math.round(baseForRoof-213)+' cm)');
+  if(state.gateType!=='none'){
+    const gateStandard = state.gateType==='uchylna' ? 185 : 200;
+    const gh = parseFloat(document.getElementById('gateHeight').value)||gateStandard;
+    if(gh>gateStandard) reasons.push('kapu magasítás (+'+Math.round(gh-gateStandard)+' cm)');
+  }
+  if(document.getElementById('automation').checked) reasons.push('automatika ('+(roof==='spad tyl'?'+20':'+10')+' cm)');
+  if(document.getElementById('gutterYes').checked && roof==='spad przod') reasons.push('ereszcsatorna, előre lejtő tetőnél (+10 cm)');
+  const custom = parseFloat(document.getElementById('customHeight').value);
+  if(custom && custom>=h) reasons.push('egyedi (nem szabványos) kérés');
+  if(state.gateType==='uchylna' && h>=290) reasons.push('billenő kapunál max. 290 cm — erre korlátozva');
+  if(state.gateType==='dwuskrz' && h>=370) reasons.push('kétszárnyú kapunál max. 370 cm — erre korlátozva');
+  const hint = document.getElementById('heightHint');
+  hint.textContent = reasons.length ? ('Kötelező / számolt magasság: '+h.toFixed(0)+' cm — ok: '+reasons.join(', ')+'.') : 'Alap magasság: 213 cm.';
+}
+
+// ---------------------------------------------------------------
+// FELÜLNÉZETI VÁZLAT
+// ---------------------------------------------------------------
+function wallPoint(wallVal, cornerVal, distanceCm, x0, y0, rw, rl, wcm, lcm){
+  // Sarkok: FL=elöl-bal, FR=elöl-jobb, BL=hátul-bal, BR=hátul-jobb
+  const FL={x:x0,y:y0+rl}, FR={x:x0+rw,y:y0+rl}, BL={x:x0,y:y0}, BR={x:x0+rw,y:y0};
+  let A,B,horizontal,wallLenCm;
+  if(wallVal==='front'){ A=FL; B=FR; horizontal=true; wallLenCm=wcm; }
+  else if(wallVal==='back'){ A=BL; B=BR; horizontal=true; wallLenCm=wcm; }
+  else if(wallVal==='left'){ A=FL; B=BL; horizontal=false; wallLenCm=lcm; }
+  else { A=FR; B=BR; horizontal=false; wallLenCm=lcm; }
+  let distFromLeft = cornerVal==='left' ? distanceCm : (wallLenCm - distanceCm);
+  distFromLeft = Math.max(5, Math.min(wallLenCm-5, distFromLeft));
+  const t = distFromLeft / wallLenCm;
+  const refCorner = cornerVal==='left' ? A : B;
+  return { x:A.x+(B.x-A.x)*t, y:A.y+(B.y-A.y)*t, horizontal, wallVal, refCorner };
+}
+
+function renderSketch(){
+  const svg = document.getElementById('sketch');
+  const w = parseFloat(document.getElementById('width').value)||300;
+  const l = parseFloat(document.getElementById('length').value)||500;
+  const maxW=320, maxH=220;
+
+  // Oldaltető kiterjedésének figyelembevétele a méretezésnél, hogy nagy épületnél/oldaltetőnél is minden kiférjen
+  const canopyOn = document.getElementById('canopyYes').checked;
+  const canopySideVal = document.getElementById('canopySide').value;
+  const canopyWidthCm = canopyOn ? (parseFloat(document.getElementById('canopyWidth').value)||0) : 0;
+  const extraLeftCm = (canopyOn && canopySideVal==='left') ? canopyWidthCm : 0;
+  const extraRightCm = (canopyOn && canopySideVal==='right') ? canopyWidthCm : 0;
+  const extraTopCm = (canopyOn && canopySideVal==='back') ? canopyWidthCm : 0;
+  const extraBottomCm = (canopyOn && canopySideVal==='front') ? canopyWidthCm : 0;
+  const totalWcm = w + extraLeftCm + extraRightCm;
+  const totalLcm = l + extraTopCm + extraBottomCm;
+
+  const scale = Math.min(maxW/totalWcm, maxH/totalLcm);
+  const rw = w*scale, rl = l*scale;
+  const extraLeftPx=extraLeftCm*scale, extraRightPx=extraRightCm*scale, extraTopPx=extraTopCm*scale, extraBottomPx=extraBottomCm*scale;
+  const totalWpx = rw+extraLeftPx+extraRightPx, totalLpx = rl+extraTopPx+extraBottomPx;
+  const x0 = 200-totalWpx/2+extraLeftPx, y0 = 150-totalLpx/2+extraTopPx;
+
+  // Előtető alapadatai előre kiolvasva, hogy a kapu ki tudja kerülni
+  const notchActive = document.getElementById('notchYes').checked;
+  const notchSideVal = document.getElementById('notchSide').value;
+  const notchWidthCm = notchActive ? (parseFloat(document.getElementById('notchWidth').value)||0) : 0;
+  const availStartCm = (notchActive && notchSideVal==='left') ? notchWidthCm : 0;
+  const availWidthCm = Math.max(0, w - notchWidthCm);
+
+  // --- Kapu(k) az elülső falon, elrendezés szerint, az előtetőt kikerülve ---
+  let gateEls='';
+  let gateMarginEls='';
+  function drawGateMargin(startCm, endCm){
+    const leftMarginCm = Math.max(0, startCm - availStartCm);
+    const rightMarginCm = Math.max(0, (availStartCm+availWidthCm) - endCm);
+    const y1 = y0+rl+2, y2 = y0+rl+9;
+    const xL1 = x0+availStartCm*scale, xL2 = x0+startCm*scale;
+    const xR1 = x0+endCm*scale, xR2 = x0+(availStartCm+availWidthCm)*scale;
+    if(leftMarginCm>1){
+      gateMarginEls += `<line x1="${xL1}" y1="${y1}" x2="${xL2}" y2="${y1}" stroke="#8b939a" stroke-width="1"/>
+        <line x1="${xL1}" y1="${y1-2}" x2="${xL1}" y2="${y1+2}" stroke="#8b939a" stroke-width="1"/>
+        <line x1="${xL2}" y1="${y1-2}" x2="${xL2}" y2="${y1+2}" stroke="#8b939a" stroke-width="1"/>
+        <text x="${(xL1+xL2)/2}" y="${y2+7}" fill="#8b939a" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">${leftMarginCm.toFixed(0)}cm</text>`;
+    }
+    if(rightMarginCm>1){
+      gateMarginEls += `<line x1="${xR1}" y1="${y1}" x2="${xR2}" y2="${y1}" stroke="#8b939a" stroke-width="1"/>
+        <line x1="${xR1}" y1="${y1-2}" x2="${xR1}" y2="${y1+2}" stroke="#8b939a" stroke-width="1"/>
+        <line x1="${xR2}" y1="${y1-2}" x2="${xR2}" y2="${y1+2}" stroke="#8b939a" stroke-width="1"/>
+        <text x="${(xR1+xR2)/2}" y="${y2+7}" fill="#8b939a" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">${rightMarginCm.toFixed(0)}cm</text>`;
+    }
+  }
+  if(state.gateType!=='none'){
+    const gwCm = parseFloat(document.getElementById('gateWidth').value)||300;
+    const count = Math.max(1, parseInt(document.getElementById('gateCount').value)||1);
+    const posMode = document.getElementById('gatePositionMode').value;
+    let firstGateX;
+    const gateStartCms = [];
+    if(posMode==='custom'){
+      for(let i=0;i<count;i++){
+        const cEl = document.getElementById('gateCustomCorner'+i), dEl = document.getElementById('gateCustomDistance'+i);
+        const corner = cEl ? cEl.value : 'left';
+        const dist = dEl ? (parseFloat(dEl.value)||0) : 0;
+        const startCm = corner==='left' ? dist : (w-dist-gwCm);
+        gateStartCms.push(startCm);
+      }
+    } else {
+      // Automatikus mód: 1 kapunál középre igazítva; 2+ kapunál a fal két szélén flush (ráhagyás nélkül),
+      // a kapuk közti rés tölti ki a maradék helyet. Kétkapus megoldásnál 50 cm közös tartóelem-átfedés megengedett.
+      if(count===1){
+        gateStartCms.push(availStartCm + (availWidthCm-gwCm)/2);
+      } else {
+        let gap = (availWidthCm - gwCm*count)/(count-1);
+        if(count===2) gap = Math.max(gap, -50);
+        else gap = Math.max(gap, 0);
+        for(let i=0;i<count;i++){
+          gateStartCms.push(availStartCm + i*(gwCm+gap));
+        }
+      }
+    }
+    gateStartCms.forEach((startCm, idx)=>{
+      let gx = x0 + startCm*scale;
+      let gw = Math.min(gwCm, w)*scale;
+      // Vizuális klemp: a kapu semmi esetre se csússzon túl a garázs (x0..x0+rw) határán a rajzon
+      if(gx < x0){ gw -= (x0-gx); gx = x0; }
+      if(gx+gw > x0+rw){ gw = x0+rw-gx; }
+      if(idx===0) firstGateX = gx;
+      gateEls += `<rect x="${gx}" y="${y0+rl-3}" width="${Math.max(0,gw)}" height="6" fill="#F2B705"/>`;
+      drawGateMargin(startCm, startCm+gwCm);
+    });
+    if(document.getElementById('gateLightYes').checked){
+      const gw = gwCm*scale;
+      const qty = Math.max(1, parseInt(document.getElementById('gateLightQty').value)||1);
+      const arr = document.getElementById('gateLightArrangement').value;
+      const lightSize=7, gateBarY=y0+rl;
+      if(arr==='sides'){
+        gateEls += `<rect x="${firstGateX+3}" y="${gateBarY-lightSize/2}" width="${lightSize}" height="${lightSize}" fill="#6fb7e0"/>`;
+        gateEls += `<rect x="${firstGateX+gw-lightSize-3}" y="${gateBarY-lightSize/2}" width="${lightSize}" height="${lightSize}" fill="#6fb7e0"/>`;
+      } else {
+        const stackX = arr==='left-stack' ? firstGateX+3 : firstGateX+gw-lightSize-3;
+        for(let i=0;i<qty;i++){
+          gateEls += `<rect x="${stackX}" y="${gateBarY-lightSize/2-i*(lightSize+3)}" width="${lightSize}" height="${lightSize}" fill="#6fb7e0"/>`;
+        }
+      }
+    }
+  }
+
+  // --- Nyitott/fedett oldaltető, más tónussal, elülső falhoz igazítva (bal vagy jobb sarkon) ---
+  let canopyEls='';
+  let canopyGeom=null;
+  function drawWallLine(type,x1,y1,x2,y2){
+    if(type==='solid') return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#c9cdd0" stroke-width="5"/>`;
+    if(type==='lamella'){
+      let ticks='';
+      const steps=8, dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy)||1, nx=-dy/len*4, ny=dx/len*4;
+      for(let i=0;i<=steps;i++){
+        const t=i/steps, px=x1+dx*t, py=y1+dy*t;
+        ticks+=`<line x1="${px-nx}" y1="${py-ny}" x2="${px+nx}" y2="${py+ny}" stroke="#8b939a" stroke-width="1.5"/>`;
+      }
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#8b939a" stroke-width="1" stroke-dasharray="1,3"/>${ticks}`;
+    }
+    return '';
+  }
+  if(document.getElementById('canopyYes').checked){
+    const cwPx = (parseFloat(document.getElementById('canopyWidth').value)||300)*scale;
+    const clRaw = parseFloat(document.getElementById('canopyLength').value)||500;
+    const side = document.getElementById('canopySide').value;
+    const backType = document.getElementById('canopyBackWall').value;
+    const sideType = document.getElementById('canopySideWall').value;
+    let x1,x2,y1,y2, outerOrientation, outerFixed, outerFrom, outerTo, backLine;
+    if(side==='left' || side==='right'){
+      const len = Math.min(clRaw, l)*scale;
+      y1 = y0+rl-len; y2 = y0+rl;
+      if(side==='left'){ x1=x0-cwPx; x2=x0; outerFixed=x1; }
+      else { x1=x0+rw; x2=x0+rw+cwPx; outerFixed=x2; }
+      outerOrientation='vertical'; outerFrom={x:outerFixed,y:y1}; outerTo={x:outerFixed,y:y2};
+      backLine = {x1:x1,y1:y1,x2:x2,y2:y1};
+    } else {
+      const len = Math.min(clRaw, w)*scale;
+      x1 = x0; x2 = x0+len;
+      if(side==='front'){ y1=y0+rl; y2=y0+rl+cwPx; outerFixed=y2; }
+      else { y1=y0-cwPx; y2=y0; outerFixed=y1; }
+      outerOrientation='horizontal'; outerFrom={x:x1,y:outerFixed}; outerTo={x:x2,y:outerFixed};
+      backLine = (side==='front') ? {x1:x2,y1:y1,x2:x2,y2:y2} : {x1:x1,y1:y1,x2:x1,y2:y2};
+    }
+    canopyEls = `<rect x="${x1}" y="${y1}" width="${x2-x1}" height="${y2-y1}" fill="rgba(242,183,5,0.15)" stroke="#F2B705" stroke-width="1" stroke-dasharray="4,3"/>`;
+    canopyEls += drawWallLine(backType, backLine.x1, backLine.y1, backLine.x2, backLine.y2);
+    canopyEls += drawWallLine(sideType, outerFrom.x, outerFrom.y, outerTo.x, outerTo.y);
+    canopyGeom = {x1,x2,y1,y2,side,outerOrientation,outerFixed,outerFrom,outerTo};
+    const canopyLenCm = Math.round((outerOrientation==='vertical' ? (y2-y1) : (x2-x1))/scale);
+    const canopyCx = (x1+x2)/2, canopyTopY = Math.min(y1,y2);
+    canopyEls += `<text x="${canopyCx}" y="${canopyTopY-10}" fill="#F2B705" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Oldaltető</text>
+      <text x="${canopyCx}" y="${canopyTopY-22}" fill="#8b939a" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">${Math.round(cwPx/scale)}×${canopyLenCm} cm</text>`;
+  }
+
+  // --- Előtető (elülső fal bal vagy jobb sarkán, a belső fala teli falként szolgál) ---
+  // --- Válaszfal (belső, alapjáraton függőleges, oldalfaltól mért távolságban) ---
+  let dividerEls='';
+  if(document.getElementById('wallYes').checked){
+    const posCm = parseFloat(document.getElementById('wallPosition').value)||0;
+    const corner = document.getElementById('wallCorner').value;
+    const posPxRaw = posCm*scale;
+    const dxFromLeft = corner==='left' ? posPxRaw : rw-posPxRaw;
+    const dx = x0 + Math.max(4, Math.min(rw-4, dxFromLeft));
+
+    const openType = document.getElementById('wallOpeningType').value;
+    if(openType==='none'){
+      dividerEls = `<line x1="${dx}" y1="${y0}" x2="${dx}" y2="${y0+rl}" stroke="#c9cdd0" stroke-width="3" stroke-dasharray="6,3"/>`;
+    } else {
+      const openWidthCm = openType==='door' ? parseInt((document.getElementById('wallDoorSize').value||'90x200').split('x')[0])||90 : (parseFloat(document.getElementById('wallOpeningWidth').value)||90);
+      const oCorner = document.getElementById('wallOpeningCorner').value;
+      const oDist = parseFloat(document.getElementById('wallOpeningDistance').value)||0;
+      const centerFromBackCm = oCorner==='back' ? oDist+openWidthCm/2 : (l-oDist-openWidthCm/2);
+      const centerY = y0 + Math.max(openWidthCm*scale/2, Math.min(rl-openWidthCm*scale/2, centerFromBackCm*scale));
+      const halfPx = (openWidthCm*scale)/2;
+      const gapY1 = centerY-halfPx, gapY2 = centerY+halfPx;
+      dividerEls = `<line x1="${dx}" y1="${y0}" x2="${dx}" y2="${gapY1}" stroke="#c9cdd0" stroke-width="3" stroke-dasharray="6,3"/>
+        <line x1="${dx}" y1="${gapY2}" x2="${dx}" y2="${y0+rl}" stroke="#c9cdd0" stroke-width="3" stroke-dasharray="6,3"/>
+        <text x="${dx+10}" y="${centerY+3}" fill="#c9cdd0" font-size="7.5" font-family="IBM Plex Mono">${openType==='door'?'ajtó':'nyílás'} ${openWidthCm}cm</text>`;
+      if(openType==='door'){
+        const handle = document.getElementById('wallDoorHandle').value; // merre nyíljon
+        const outDir = handle==='left' ? {x:-1,y:0} : {x:1,y:0};
+        const hinge = {x:dx, y: handle==='left' ? gapY2 : gapY1};
+        const R = Math.max(6, openWidthCm*scale*0.9);
+        const leafEnd = {x:hinge.x+outDir.x*R, y:hinge.y};
+        const wallEnd = {x:hinge.x, y: handle==='left' ? gapY1 : gapY2};
+        dividerEls += `<line x1="${hinge.x}" y1="${hinge.y}" x2="${leafEnd.x}" y2="${leafEnd.y}" stroke="#c9cdd0" stroke-width="2"/>`;
+        dividerEls += quarterArcPath(hinge, R, leafEnd, wallEnd);
+      }
+    }
+    dividerEls += `<text x="${dx}" y="${y0-4}" fill="#c9cdd0" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">válaszfal</text>`;
+  }
+
+  let notchEls='';
+  let notchGeom=null;
+  if(document.getElementById('notchYes').checked){
+    const depthPx = (parseFloat(document.getElementById('notchDepth').value)||100)*scale;
+    const notchWCm = parseFloat(document.getElementById('notchWidth').value)||150;
+    const notchWpx = Math.min(notchWCm*scale, rw-20);
+    const side = document.getElementById('notchSide').value;
+    let nx1,nx2;
+    if(side==='left'){ nx1=x0; nx2=x0+notchWpx; }
+    else { nx1=x0+rw-notchWpx; nx2=x0+rw; }
+    const ny1 = y0+rl-depthPx, ny2 = y0+rl;
+    notchEls = `<rect x="${nx1}" y="${ny1}" width="${nx2-nx1}" height="${ny2-ny1}" fill="#161A1E" stroke="#8b939a" stroke-width="1" stroke-dasharray="3,2"/>`;
+    notchEls += `<line x1="${nx1}" y1="${ny1}" x2="${nx2}" y2="${ny1}" stroke="#c9cdd0" stroke-width="5"/>`;
+    notchGeom = { x1:nx1, x2:nx2, y:ny1, side };
+    const notchCx=(nx1+nx2)/2, notchCy=(ny1+ny2)/2;
+    notchEls += `<text x="${notchCx}" y="${notchCy-2}" fill="#8b939a" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">Előtető</text>
+      <text x="${notchCx}" y="${notchCy+9}" fill="#8b939a" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">${notchWCm.toFixed(0)}×${(depthPx/scale).toFixed(0)} cm</text>`;
+  }
+
+  // --- Ablakok és személyi ajtó (sarok + cm távolság alapján) ---
+  let els='';
+  let labelEls='';
+  function drawMarker(wallVal, cornerVal, distanceCm, color, size){
+    if(wallVal==='canopy' && canopyGeom){
+      const A = canopyGeom.outerFrom, B = canopyGeom.outerTo;
+      const wallLenCm = Math.hypot(B.x-A.x, B.y-A.y)/scale;
+      let distFromLeft = cornerVal==='left' ? distanceCm : (wallLenCm - distanceCm);
+      distFromLeft = Math.max(5, Math.min(wallLenCm-5, distFromLeft));
+      const t = distFromLeft/wallLenCm;
+      const px = A.x+(B.x-A.x)*t, py = A.y+(B.y-A.y)*t;
+      const horizontal = canopyGeom.outerOrientation==='horizontal';
+      const THK = 3.5;
+      els += `<rect x="${px-(horizontal?size/2:THK/2)}" y="${py-(horizontal?THK/2:size/2)}" width="${horizontal?size:THK}" height="${horizontal?THK:size}" fill="${color}"/>`;
+      const refCorner = cornerVal==='left' ? A : B;
+      return {x:px, y:py, horizontal, refCorner};
+    }
+    if(wallVal==='notch' && notchGeom){
+      const wallLenCm = (notchGeom.x2-notchGeom.x1)/scale;
+      let distFromLeft = cornerVal==='left' ? distanceCm : (wallLenCm - distanceCm);
+      distFromLeft = Math.max(5, Math.min(wallLenCm-5, distFromLeft));
+      const px = notchGeom.x1 + distFromLeft*scale;
+      const py = notchGeom.y;
+      els += `<rect x="${px-size/2}" y="${py-1.75}" width="${size}" height="3.5" fill="${color}"/>`;
+      const refCorner = cornerVal==='left' ? {x:notchGeom.x1,y:notchGeom.y} : {x:notchGeom.x2,y:notchGeom.y};
+      return {x:px, y:py, horizontal:true, refCorner};
+    }
+    const p = wallPoint(wallVal, cornerVal, distanceCm, x0, y0, rw, rl, w, l);
+    const wsz = p.horizontal ? size : 3.5;
+    const hsz = p.horizontal ? 3.5 : size;
+    els += `<rect x="${p.x-wsz/2}" y="${p.y-hsz/2}" width="${wsz}" height="${hsz}" fill="${color}"/>`;
+    return p;
+  }
+  const wallLabelCount = {};
+  function nextLabelOffset(wallVal){
+    const n = wallLabelCount[wallVal] || 0;
+    wallLabelCount[wallVal] = n+1;
+    return n;
+  }
+  function drawUnits(qty, prefix, color, widthCm){
+    const size = Math.max(4, widthCm*scale);
+    for(let i=0;i<qty;i++){
+      const wEl=document.getElementById(prefix+'Wall'+i), cEl=document.getElementById(prefix+'Corner'+i), dEl=document.getElementById(prefix+'Distance'+i);
+      if(!wEl||!cEl||!dEl) continue;
+      const dist = parseFloat(dEl.value)||50;
+      const centerDist = dist + widthCm/2; // a megadott távolság az ablak sarkáig (éléig) értendő
+      const p = drawMarker(wEl.value, cEl.value, centerDist, color, size);
+      const cornerLabel = cEl.value==='left' ? 'bal sarok' : 'jobb sarok';
+      const n = nextLabelOffset(wEl.value);
+      const baseOff = 9 + n*11;
+      if(p.refCorner){
+        labelEls += `<line x1="${p.refCorner.x}" y1="${p.refCorner.y}" x2="${p.x}" y2="${p.y}" stroke="#F2B705" stroke-width="0.75" stroke-dasharray="2,2" opacity="0.6"/>
+          <circle cx="${p.refCorner.x}" cy="${p.refCorner.y}" r="2" fill="#F2B705" opacity="0.8"/>`;
+      }
+      labelEls += `<text x="${p.x+(p.horizontal?0:baseOff)}" y="${p.y+(p.horizontal?-baseOff:4)}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${dist}cm a ${cornerLabel}tól</text>`;
+    }
+  }
+  const w1=Math.max(0,parseInt(document.getElementById('win8060').value)||0);
+  drawUnits(w1, 'win8060', '#6fb7e0', 80);
+  const w4=Math.max(0,parseInt(document.getElementById('win50150').value)||0);
+  drawUnits(w4, 'win50150', '#4a90c4', 150);
+  const wo=Math.max(0,parseInt(document.getElementById('winOpening').value)||0);
+  drawUnits(wo, 'winOpening', '#8fa9bd', 60);
+  const sky=Math.max(0,parseInt(document.getElementById('skylight').value)||0);
+  drawUnits(sky, 'skylight', '#d9a520', 60);
+
+  function quarterArcPath(center, r, p1, p2){
+    const a1 = Math.atan2(p1.y-center.y, p1.x-center.x);
+    let a2 = Math.atan2(p2.y-center.y, p2.x-center.x);
+    let diff = a2-a1;
+    while(diff>Math.PI) diff-=2*Math.PI;
+    while(diff<-Math.PI) diff+=2*Math.PI;
+    const segments=10;
+    let d='';
+    for(let i=0;i<=segments;i++){
+      const t=i/segments, a=a1+diff*t;
+      const x=center.x+r*Math.cos(a), y=center.y+r*Math.sin(a);
+      d += (i===0?'M ':'L ')+x.toFixed(2)+' '+y.toFixed(2)+' ';
+    }
+    return `<path d="${d}" fill="none" stroke="#c98a2e" stroke-width="1.2" stroke-dasharray="2,2"/>`;
+  }
+  let doorArc='';
+  if(document.getElementById('personalDoorYes').checked){
+    const doorCount = Math.max(0,parseInt(document.getElementById('personalDoorCount').value)||0);
+    for(let i=0;i<doorCount;i++){
+      const wEl=document.getElementById('personalDoorWall'+i), cEl=document.getElementById('personalDoorCorner'+i),
+            dEl=document.getElementById('personalDoorDistance'+i), hEl=document.getElementById('personalDoorHandle'+i);
+      if(!wEl||!cEl||!dEl||!hEl) continue;
+      const dWall = wEl.value, dCorner = cEl.value, dDist = parseFloat(dEl.value)||50;
+      const doorWidthCm = parseInt((document.getElementById('personalDoorSize').value||'90x200').split('x')[0])||90;
+      const dCenterDist = dDist + doorWidthCm/2; // a megadott távolság az ajtó sarkáig (éléig) értendő, a középpontot ebből számoljuk
+      const p = drawMarker(dWall, dCorner, dCenterDist, '#c98a2e', Math.max(4, doorWidthCm*scale));
+      const cornerLabel = dCorner==='left' ? 'bal sarok' : 'jobb sarok';
+      const doorN = nextLabelOffset(dWall);
+      const doorOff = 10 + doorN*11;
+      if(p.refCorner){
+        labelEls += `<line x1="${p.refCorner.x}" y1="${p.refCorner.y}" x2="${p.x}" y2="${p.y}" stroke="#F2B705" stroke-width="0.75" stroke-dasharray="2,2" opacity="0.6"/>
+          <circle cx="${p.refCorner.x}" cy="${p.refCorner.y}" r="2" fill="#F2B705" opacity="0.8"/>`;
+      }
+      labelEls += `<text x="${p.x+(p.horizontal?0:doorOff)}" y="${p.y+(p.horizontal?-doorOff:4)}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${dDist} cm a ${cornerLabel}tól</text>`;
+      const outDir = dWall==='front' ? {x:0,y:1} : dWall==='back' ? {x:0,y:-1} : dWall==='left' ? {x:-1,y:0} : dWall==='right' ? {x:1,y:0} : dWall==='notch' ? {x:0,y:1} : (canopyGeom&&canopyGeom.side==='left'?{x:-1,y:0}:{x:1,y:0});
+      const along  = (dWall==='front' || dWall==='back' || dWall==='notch') ? {x:1,y:0} : {x:0,y:1};
+      const handle = hEl.value;
+      const hingeSign = handle==='left' ? 1 : -1; // a zsanér a kilincs ellentétes oldalán van
+      const R = Math.max(6, doorWidthCm*scale*0.9);
+      const halfDoorPx = Math.max(4, doorWidthCm*scale)/2;
+      // zsanér a falon (a nyílás egyik szélén, a kilincstől távolabb) — pontosan a jelölő sarkával egyvonalban
+      const hinge = { x:p.x+along.x*hingeSign*halfDoorPx, y:p.y+along.y*hingeSign*halfDoorPx };
+      // a nyitott ajtószárny merőlegesen áll ki a falból (mint a mellékelt szabvány jelölésen)
+      const leafEnd = { x:hinge.x+outDir.x*R, y:hinge.y+outDir.y*R };
+      // a zárt (fal menti) végpont a kilincs felőli oldalon
+      const wallEnd = { x:hinge.x+along.x*(-hingeSign)*R, y:hinge.y+along.y*(-hingeSign)*R };
+      doorArc += `<line x1="${hinge.x}" y1="${hinge.y}" x2="${leafEnd.x}" y2="${leafEnd.y}" stroke="#c98a2e" stroke-width="2"/>`;
+      doorArc += quarterArcPath(hinge, R, leafEnd, wallEnd);
+    }
+  }
+
+  let outlineEls = `<line x1="${x0}" y1="${y0}" x2="${x0+rw}" y2="${y0}" stroke="#F2B705" stroke-width="2"/>
+    <line x1="${x0}" y1="${y0}" x2="${x0}" y2="${y0+rl}" stroke="#F2B705" stroke-width="2"/>
+    <line x1="${x0+rw}" y1="${y0}" x2="${x0+rw}" y2="${y0+rl}" stroke="#F2B705" stroke-width="2"/>`;
+  if(notchGeom){
+    outlineEls += `<line x1="${x0}" y1="${y0+rl}" x2="${notchGeom.x1}" y2="${y0+rl}" stroke="#F2B705" stroke-width="2"/>
+      <line x1="${notchGeom.x2}" y1="${y0+rl}" x2="${x0+rw}" y2="${y0+rl}" stroke="#F2B705" stroke-width="2"/>
+      <circle cx="${notchGeom.side==='left'?notchGeom.x2:notchGeom.x1}" cy="${y0+rl}" r="3" fill="#8b939a"/>`;
+  } else {
+    outlineEls += `<line x1="${x0}" y1="${y0+rl}" x2="${x0+rw}" y2="${y0+rl}" stroke="#F2B705" stroke-width="2"/>`;
+  }
+
+  svg.innerHTML = `
+    <defs><pattern id="grid" width="16" height="16" patternUnits="userSpaceOnUse">
+      <path d="M16 0H0V16" fill="none" stroke="#232a30" stroke-width="1"/>
+    </pattern></defs>
+    <rect width="400" height="300" fill="url(#grid)"/>
+    ${canopyEls}
+    ${outlineEls}
+    ${notchEls}
+    ${dividerEls}
+    ${gateEls}${gateMarginEls}${els}${doorArc}${labelEls}
+    <text x="${x0+rw/2}" y="${y0-10}" fill="#8b939a" font-size="11" text-anchor="middle" font-family="IBM Plex Mono">${w.toFixed(0)} cm</text>
+    <text x="${x0-14}" y="150" fill="#8b939a" font-size="11" text-anchor="middle" font-family="IBM Plex Mono" transform="rotate(-90 ${x0-14} 150)">${l.toFixed(0)} cm</text>
+    <text x="${x0+rw/2}" y="${y0+rl+30}" fill="#F2B705" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">ELÜLSŐ FAL (kapu oldala)</text>
+  `;
+}
+
+function computeWallUsage(){
+  const w = parseFloat(document.getElementById('width').value)||0;
+  const l = parseFloat(document.getElementById('length').value)||0;
+  const notchActive = document.getElementById('notchYes').checked;
+  const notchWidth = notchActive ? (parseFloat(document.getElementById('notchWidth').value)||0) : 0;
+  const canopyActive = document.getElementById('canopyYes').checked;
+  const canopyLen = canopyActive ? Math.min(parseFloat(document.getElementById('canopyLength').value)||0, l) : 0;
+
+  const wallLength = { front: Math.max(0, w-notchWidth), back: w, left: l, right: l, canopy: canopyLen, notch: notchWidth };
+  const wallUsed = { front:0, back:0, left:0, right:0, canopy:0, notch:0 };
+  const wallItems = { front:[], back:[], left:[], right:[], canopy:[], notch:[] };
+  const wallIntervals = { front:[], back:[], left:[], right:[], canopy:[], notch:[] };
+
+  function addInterval(wallKey, name, widthCm, cornerVal, distanceCm){
+    if(!wallIntervals.hasOwnProperty(wallKey)) return;
+    // Az elülső/hátsó falnál mindig a teljes épületszélesség a viszonyítási alap (ahogy a rajzon is),
+    // az oldalfalaknál a teljes hosszúság — az előtető csak külön intervallumként korlátozza a helyet.
+    const wallLen = (wallKey==='front'||wallKey==='back') ? w : (wallKey==='left'||wallKey==='right') ? l : (wallLength[wallKey]||0);
+    const center = cornerVal==='left' ? distanceCm : (wallLen-distanceCm);
+    wallIntervals[wallKey].push({name, start:center-widthCm/2, end:center+widthCm/2});
+  }
+
+  if(notchActive){
+    const nSide = document.getElementById('notchSide').value;
+    if(nSide==='left') wallIntervals.front.push({name:'előtető', start:0, end:notchWidth});
+    else wallIntervals.front.push({name:'előtető', start:w-notchWidth, end:w});
+  }
+  if(state.gateType!=='none'){
+    const gw = parseFloat(document.getElementById('gateWidth').value)||0;
+    const count = Math.max(1, parseInt(document.getElementById('gateCount').value)||1);
+    // Kétkapus megoldásnál a közös tartóelem miatt 50 cm engedmény jár (pl. 2×300 cm = 600 cm helyett elég 550 cm)
+    const requiredSpan = (count===2) ? Math.max(0, gw*2-50) : gw*count;
+    wallUsed.front += requiredSpan;
+    wallItems.front.push(count+'× kapu ('+gw+' cm)');
+    const nSide = document.getElementById('notchSide').value;
+    const availStart = (notchActive && nSide==='left') ? notchWidth : 0;
+    const availWidth = Math.max(0, w-notchWidth);
+    const posMode = document.getElementById('gatePositionMode').value;
+    if(posMode==='custom'){
+      for(let i=0;i<count;i++){
+        const cEl = document.getElementById('gateCustomCorner'+i), dEl = document.getElementById('gateCustomDistance'+i);
+        const corner = cEl ? cEl.value : 'left';
+        const dist = dEl ? (parseFloat(dEl.value)||0) : 0;
+        const centerCm = corner==='left' ? dist+gw/2 : (w-dist-gw/2);
+        wallIntervals.front.push({name:(count>1?(i+1)+'. kapu':'kapu'), start:centerCm-gw/2, end:centerCm+gw/2});
+      }
+    } else {
+      // Automatikus mód: 1 kapunál középre; 2+ kapunál a fal két szélén flush, ráhagyás nélkül
+      if(count===1){
+        const centerCm = availStart + availWidth/2;
+        wallIntervals.front.push({name:'kapu', start:centerCm-gw/2, end:centerCm+gw/2});
+      } else {
+        let gap = (availWidth - gw*count)/(count-1);
+        if(count===2) gap = Math.max(gap, -50);
+        else gap = Math.max(gap, 0);
+        for(let i=0;i<count;i++){
+          const startCm = availStart + i*(gw+gap);
+          wallIntervals.front.push({name:(i+1)+'. kapu', start:startCm, end:startCm+gw});
+        }
+      }
+    }
+  }
+  const doorWidth = parseFloat((document.getElementById('personalDoorSize').value||'90x200').split('x')[0])||90;
+  if(document.getElementById('personalDoorYes').checked){
+    const doorCount = parseInt(document.getElementById('personalDoorCount').value)||0;
+    for(let i=0;i<doorCount;i++){
+      const wEl = document.getElementById('personalDoorWall'+i), cEl=document.getElementById('personalDoorCorner'+i), dEl=document.getElementById('personalDoorDistance'+i);
+      if(wEl && wallUsed.hasOwnProperty(wEl.value)){
+        wallUsed[wEl.value]+=doorWidth; wallItems[wEl.value].push('személyi ajtó ('+doorWidth+' cm)');
+        if(cEl&&dEl) addInterval(wEl.value, 'személyi ajtó', doorWidth, cEl.value, (parseFloat(dEl.value)||0)+doorWidth/2);
+      }
+    }
+  }
+  const w1qty = parseInt(document.getElementById('win8060').value)||0;
+  for(let i=0;i<w1qty;i++){
+    const wEl=document.getElementById('win8060Wall'+i), cEl=document.getElementById('win8060Corner'+i), dEl=document.getElementById('win8060Distance'+i);
+    if(wEl && wallUsed.hasOwnProperty(wEl.value)){
+      wallUsed[wEl.value]+=80; wallItems[wEl.value].push('bukó ablak (80 cm)');
+      if(cEl&&dEl) addInterval(wEl.value, 'bukó ablak', 80, cEl.value, (parseFloat(dEl.value)||0)+40);
+    }
+  }
+  const w4qty = parseInt(document.getElementById('win50150').value)||0;
+  for(let i=0;i<w4qty;i++){
+    const wEl=document.getElementById('win50150Wall'+i), cEl=document.getElementById('win50150Corner'+i), dEl=document.getElementById('win50150Distance'+i);
+    if(wEl && wallUsed.hasOwnProperty(wEl.value)){
+      wallUsed[wEl.value]+=150; wallItems[wEl.value].push('fix ablak (150 cm)');
+      if(cEl&&dEl) addInterval(wEl.value, 'fix ablak', 150, cEl.value, (parseFloat(dEl.value)||0)+75);
+    }
+  }
+  const woqty = parseInt(document.getElementById('winOpening').value)||0;
+  for(let i=0;i<woqty;i++){
+    const wEl=document.getElementById('winOpeningWall'+i), cEl=document.getElementById('winOpeningCorner'+i), dEl=document.getElementById('winOpeningDistance'+i);
+    if(wEl && wallUsed.hasOwnProperty(wEl.value)){
+      wallUsed[wEl.value]+=60; wallItems[wEl.value].push('ablaknyílás (60 cm)');
+      if(cEl&&dEl) addInterval(wEl.value, 'ablaknyílás', 60, cEl.value, (parseFloat(dEl.value)||0)+30);
+    }
+  }
+  const skyqty = parseInt(document.getElementById('skylight').value)||0;
+  for(let i=0;i<skyqty;i++){
+    const wEl=document.getElementById('skylightWall'+i), cEl=document.getElementById('skylightCorner'+i), dEl=document.getElementById('skylightDistance'+i);
+    if(wEl && wallUsed.hasOwnProperty(wEl.value)){
+      wallUsed[wEl.value]+=60; wallItems[wEl.value].push('bevilágító (60 cm)');
+      if(cEl&&dEl) addInterval(wEl.value, 'bevilágító', 60, cEl.value, (parseFloat(dEl.value)||0)+30);
+    }
+  }
+  return {wallLength, wallUsed, wallItems, wallIntervals};
+}
+
+function validateWalls(){
+  const {wallLength, wallUsed, wallItems, wallIntervals} = computeWallUsage();
+  const wallLabels = {front:'Elülső fal', back:'Hátsó fal', left:'Bal oldalfal', right:'Jobb oldalfal', canopy:'Oldaltető oldalfala', notch:'Előtető fala'};
+  const w = parseFloat(document.getElementById('width').value)||0;
+  const l = parseFloat(document.getElementById('length').value)||0;
+  const boundsRef = {front:w, back:w, left:l, right:l, canopy:wallLength.canopy, notch:wallLength.notch};
+  const warnings = [];
+  Object.keys(wallLength).forEach(k=>{
+    if(wallLength[k]<=0) return; // nincs ilyen fal / nincs bekapcsolva
+    if(wallUsed[k] > wallLength[k]){
+      warnings.push(`${wallLabels[k]}: ${wallLength[k].toFixed(0)} cm hosszú, de a ráhelyezett elemek összesen ${wallUsed[k].toFixed(0)} cm szélesek (${wallItems[k].join(', ')}) — ez nem fér el!`);
+    }
+    // Fizikai átfedés-ellenőrzés (két elem egymásra futna) — két kapunál 50 cm közös tartóelem-átfedés megengedett
+    const items = wallIntervals[k];
+    for(let i=0;i<items.length;i++){
+      for(let j=i+1;j<items.length;j++){
+        const overlap = Math.min(items[i].end, items[j].end) - Math.max(items[i].start, items[j].start);
+        if(overlap<=0) continue;
+        const bothGates = items[i].name.includes('kapu') && items[j].name.includes('kapu');
+        const tolerance = bothGates ? 50 : 0;
+        if(overlap > tolerance){
+          warnings.push(`${wallLabels[k]}: a(z) ${items[i].name} és a(z) ${items[j].name} egymásra futna — módosítsa a távolságot egyiknél!`);
+        }
+      }
+    }
+    // Falhatáron túlnyúlás (pl. a kapu szélesebb/kijjebb van, mint maga a fal/garázs mérete)
+    const maxRef = boundsRef[k];
+    items.forEach(it=>{
+      if(it.name==='előtető') return; // az előtető maga a viszonyítási keret része, nem "túlnyúlás"
+      if(it.start < -0.5 || it.end > maxRef+0.5){
+        warnings.push(`${wallLabels[k]}: a(z) ${it.name} túlnyúlik a garázs méretén (a fal csak ${maxRef.toFixed(0)} cm hosszú) — ez nem lehetséges!`);
+      }
+    });
+  });
+  const box = document.getElementById('wallWarnings');
+  if(warnings.length){
+    box.style.display='block';
+    box.innerHTML = '<strong>⚠ Helyhiány / ütközés:</strong><ul style="margin:6px 0 0;padding-left:18px">'+warnings.map(w=>`<li>${w}</li>`).join('')+'</ul>';
+  } else {
+    box.style.display='none';
+    box.innerHTML='';
+  }
+}
+
+function checkMandatoryWall(){
+  const roof = document.getElementById('roofType').value;
+  const widthCm = parseFloat(document.getElementById('width').value)||0;
+  const mandatory = (roof==='dwuspad' && widthCm>700);
+  const wallYesEl = document.getElementById('wallYes');
+  const wallLenEl = document.getElementById('wallLength');
+  const noteEl = document.getElementById('wallMandatoryNote');
+  const lengthM = (parseFloat(document.getElementById('length').value)||0)/100;
+  if(mandatory){
+    wallYesEl.checked = true;
+    wallYesEl.disabled = true;
+    document.getElementById('wallExtra').classList.add('show');
+    wallLenEl.value = lengthM.toFixed(1);
+    noteEl.style.display='block';
+  } else {
+    wallYesEl.disabled = false;
+    noteEl.style.display='none';
+    // Ha az ügyfél maga jelölte be a válaszfalat, és még nincs hossz megadva, töltsük fel a garázs hosszával — utána szabadon módosítható
+    if(wallYesEl.checked && (!wallLenEl.value || parseFloat(wallLenEl.value)===0)){
+      wallLenEl.value = lengthM.toFixed(1);
+    }
+  }
+}
+
+function refreshAll(){
+  updateHeightDisplay();
+  updateColorVisibility();
+  const isSideSlope = (document.getElementById('roofType').value==='spad jobbra' || document.getElementById('roofType').value==='spad balra');
+  const widthCm = parseFloat(document.getElementById('width').value)||0;
+  const ridgeMandatory = widthCm>600;
+  const ridgeShiftEl = document.getElementById('ridgeShift');
+  document.getElementById('ridgeShiftField').classList.toggle('show', isSideSlope || ridgeMandatory);
+  document.getElementById('ridgeShiftMandatoryNote').style.display = ridgeMandatory ? 'block' : 'none';
+  if(ridgeMandatory){ ridgeShiftEl.checked = true; ridgeShiftEl.disabled = true; }
+  else { ridgeShiftEl.disabled = false; }
+  document.getElementById('folyometerField').style.display = isSideSlope ? 'flex' : 'none';
+  document.getElementById('folyometerHint').style.display = isSideSlope ? 'block' : 'none';
+  document.getElementById('win8060PosField').classList.toggle('show', (parseInt(document.getElementById('win8060').value)||0)>0);
+  document.getElementById('win50150PosField').classList.toggle('show', (parseInt(document.getElementById('win50150').value)||0)>0);
+  document.getElementById('winOpeningPosField').classList.toggle('show', (parseInt(document.getElementById('winOpening').value)||0)>0);
+  document.getElementById('skylightPosField').classList.toggle('show', (parseInt(document.getElementById('skylight').value)||0)>0);
+  const gatePosMode = document.getElementById('gatePositionMode').value;
+  document.getElementById('gatePositionField').classList.toggle('show', state.gateType!=='none');
+  document.getElementById('gateCustomPosExtra').classList.toggle('show', state.gateType!=='none' && gatePosMode==='custom');
+  const automationField = document.getElementById('automationField');
+  automationField.classList.toggle('show', state.gateType==='uchylna');
+  if(state.gateType!=='uchylna'){
+    document.getElementById('automation').checked = false;
+    document.getElementById('automationExtra').classList.remove('show');
+  }
+
+  // Kapu szélesség felár (300 cm alaptól eltérés)
+  const gwHint = document.getElementById('gateWidthSurchargeHint');
+  const gwVal = parseFloat(document.getElementById('gateWidth').value)||300;
+  if(state.gateType!=='none' && gwVal!==300){
+    gwHint.style.display='block';
+    gwHint.textContent = 'A 300 cm alapszélességtől eltérő kapuméret felára: ≈500 zł';
+  } else { gwHint.style.display='none'; }
+
+  // T7 vízszintes trapéz felár hátra/előre lejtő tetőnél
+  const wpHint = document.getElementById('wallPatternSurchargeHint');
+  const roofVal = document.getElementById('roofType').value;
+  if(document.getElementById('wallPattern').value==='T7 – vízszintes' && (roofVal==='spad tyl'||roofVal==='spad przod')){
+    wpHint.style.display='block';
+    wpHint.textContent = 'T7 vízszintes mintázat felára hátra/előre lejtő tetőnél: ≈500 zł';
+  } else { wpHint.style.display='none'; }
+
+  document.getElementById('structureSurchargeHint').style.display = (document.getElementById('structureType').value==='zartprofil') ? 'block' : 'none';
+
+  // Kétszárnyú kapunál a "Széles vízszintes" minta csak Horganyzott zárt profil szerkezettel választható
+  const gatePatternEl = document.getElementById('gatePattern');
+  const structureIsZartprofil = document.getElementById('structureType').value==='zartprofil';
+  const gatePatternRestricted = (state.gateType==='dwuskrz' && !structureIsZartprofil);
+  document.getElementById('gatePatternRestrictionHint').style.display = gatePatternRestricted ? 'block' : 'none';
+
+  // Válaszfalban nyílás/ajtó mezők
+  const wallOpeningTypeVal = document.getElementById('wallOpeningType').value;
+  document.getElementById('wallOpeningExtra').classList.toggle('show', document.getElementById('wallYes').checked && wallOpeningTypeVal!=='none');
+  document.getElementById('wallOpeningWidthField').style.display = wallOpeningTypeVal==='opening' ? 'block' : 'none';
+  document.getElementById('wallDoorSizeField').style.display = wallOpeningTypeVal==='door' ? 'block' : 'none';
+  document.getElementById('wallDoorHandleField').style.display = wallOpeningTypeVal==='door' ? 'block' : 'none';
+  document.getElementById('gateWideOpt').disabled = gatePatternRestricted;
+  if(gatePatternRestricted && gatePatternEl.value==='Széles vízszintes'){
+    gatePatternEl.value = 'T7 – vízszintes';
+  }
+
+  checkMandatoryWall();
+  validateWalls();
+  renderSketch();
+}
+document.querySelectorAll('input,select').forEach(el=>{
+  el.addEventListener('input', refreshAll);
+  el.addEventListener('change', refreshAll);
+});
+
+// ---------------------------------------------------------------
+// ÖSSZEFOGLALÓ (nincs ár!)
+// ---------------------------------------------------------------
+function colorLabel(id){
+  const sel = document.getElementById(id);
+  return sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '—';
+}
+function buildSummary(){
+  const roofNames = {'dwuspad':'Nyeregtető','spad tyl':'Hátrafelé lejtő','spad przod':'Előrefelé lejtő','spad jobbra':'Jobbra lejtő','spad balra':'Balra lejtő'};
+  const structureNames = {'szogvas':'Horganyzott szögvas','zartprofil':'Horganyzott zárt profil (30×30 mm)'};
+  const wallTypeNames = {'none':'nincs (nyitott)','lamella':'lamellás (panel)','solid':'teli fal (lemez)'};
+  const g = id=>document.getElementById(id);
+
+  const extras = [];
+  if(g('gutterYes').checked) extras.push('Ereszcsatorna: igen ('+colorLabel('gutterColor')+')');
+  if(g('feltYes').checked) extras.push('Páralecsapódás-gátló filc: igen');
+  if(g('wallYes').checked){
+    const mandatory = g('wallYes').disabled;
+    const cornerTxt = g('wallCorner').value==='left' ? 'bal oldalfaltól' : 'jobb oldalfaltól';
+    let wallTxt = 'Válaszfal: igen, '+g('wallLength').value+' fm, '+g('wallPosition').value+' cm-re a '+cornerTxt+(mandatory?' (kötelező, 7 m feletti nyeregtető miatt)':'');
+    const openType = g('wallOpeningType').value;
+    if(openType!=='none'){
+      const oCornerTxt = g('wallOpeningCorner').value==='front' ? 'elülső faltól' : 'hátsó faltól';
+      if(openType==='opening'){
+        wallTxt += '; a válaszfalban szabad nyílás: '+g('wallOpeningWidth').value+' cm széles, '+g('wallOpeningDistance').value+' cm-re a '+oCornerTxt;
+      } else {
+        wallTxt += '; a válaszfalban ajtó: '+g('wallDoorSize').value+' cm, '+(g('wallDoorHandle').value==='left'?'balra':'jobbra')+' nyílik, '+g('wallOpeningDistance').value+' cm-re a '+oCornerTxt;
+      }
+    }
+    wallTxt += (g('wallNote').value?' — megjegyzés: '+g('wallNote').value:'');
+    extras.push(wallTxt);
+  }
+
+  if(g('canopyYes').checked){
+    const sideNames={'left':'bal sarkon','right':'jobb sarkon'};
+    let ct = 'Nyitott/fedett rész: igen, '+sideNames[g('canopySide').value]+', '+g('canopyWidth').value+'×'+g('canopyLength').value+' cm';
+    ct += ', magasság: '+(g('canopyHeightMode').value==='level' ? 'szintbe fut a garázzsal (eltolt gerincvonal)' : 'folyamatosan lejt tovább');
+    ct += ', hátsó fal: '+wallTypeNames[g('canopyBackWall').value];
+    if(g('canopyBackWall').value!=='none') ct += ' ('+colorLabel('colorCanopyBack')+')';
+    ct += ', oldalsó fal: '+wallTypeNames[g('canopySideWall').value];
+    if(g('canopySideWall').value!=='none') ct += ' ('+colorLabel('colorCanopySide')+')';
+    extras.push(ct);
+  }
+  if(g('notchYes').checked){
+    const notchSideNames={'left':'bal','right':'jobb'};
+    extras.push('Előtető: igen, '+notchSideNames[g('notchSide').value]+' sarkon, szélesség '+g('notchWidth').value+' cm, mélység '+g('notchDepth').value+' cm (az előtető fala teli falként szolgál)');
+  }
+  const w1=+g('win8060').value||0, w4=+g('win50150').value||0, wo=+g('winOpening').value||0, sky=+g('skylight').value||0;
+  const wallNames = {'front':'elülső fal','back':'hátsó fal','left':'bal oldalfal','right':'jobb oldalfal','canopy':'oldaltető oldalfala','notch':'előtető fala'};
+  const cornerNames = {'left':'bal saroktól','right':'jobb saroktól'};
+  function unitPositionsTxt(qty, prefix){
+    const lines=[];
+    for(let i=0;i<qty;i++){
+      const wEl=g(prefix+'Wall'+i), cEl=g(prefix+'Corner'+i), dEl=g(prefix+'Distance'+i);
+      if(!wEl||!cEl||!dEl) continue;
+      lines.push((i+1)+'. db – fal: '+wallNames[wEl.value]+', '+dEl.value+' cm a '+cornerNames[cEl.value]);
+    }
+    return lines;
+  }
+  if(w1) extras.push('Bukó ablak 80×60: '+w1+' db\n    '+unitPositionsTxt(w1,'win8060').join('\n    '));
+  if(w4) extras.push('Fix ablak 150×50: '+w4+' db\n    '+unitPositionsTxt(w4,'win50150').join('\n    '));
+  if(wo) extras.push('Ablaknyílás: '+wo+' db\n    '+unitPositionsTxt(wo,'winOpening').join('\n    '));
+  if(sky) extras.push('Ablakbetét / bevilágító (60×27 cm): '+sky+' db\n    '+unitPositionsTxt(sky,'skylight').join('\n    '));
+
+  if(w1+w4>0) extras.push('Ablak színe: '+colorLabel('colorWindow'));
+
+  let gateTxt='Nincs';
+  if(state.gateType!=='none'){
+    gateTxt = g('gateCount').value+' db '+(state.gateType==='uchylna'?'Billenő kapu':'Kétszárnyú kapu')+
+      ', méret: '+g('gateWidth').value+'×'+g('gateHeight').value+' cm, minta: '+g('gatePattern').value+', szín: '+colorLabel('colorGate');
+    if(g('automation').checked) gateTxt += ', automatika: '+g('automationQty').value+' db';
+    const gPosMode = g('gatePositionMode').value;
+    if(gPosMode==='custom'){
+      const cnt = parseInt(g('gateCount').value)||1;
+      const posTxts = [];
+      for(let i=0;i<cnt;i++){
+        const cEl=g('gateCustomCorner'+i), dEl=g('gateCustomDistance'+i);
+        if(cEl&&dEl) posTxts.push((cnt>1?(i+1)+'. kapu: ':'')+dEl.value+' cm a '+(cEl.value==='left'?'bal':'jobb')+' faltól');
+      }
+      gateTxt += ', elhelyezés: egyéni ('+posTxts.join('; ')+')';
+    } else {
+      gateTxt += ', elhelyezés: automatikus, egyenletesen elosztva';
+    }
+    if(g('gateLightYes').checked){
+      const arrNames={'sides':'kapu két oldalán, egy szinten','left-stack':'kapu bal oldalán, egymás alatt','right-stack':'kapu jobb oldalán, egymás alatt'};
+      gateTxt += ', bevilágító: '+g('gateLightQty').value+' db/kapu, '+arrNames[g('gateLightArrangement').value];
+    }
+  }
+
+  let doorTxt='Nincs';
+  if(g('personalDoorYes').checked){
+    const doorCount = parseInt(g('personalDoorCount').value)||0;
+    doorTxt = doorCount+' db, '+g('personalDoorSize').value+' cm, minta: '+g('personalDoorPattern').value+', szín: '+colorLabel('colorDoor')+'\n    '+
+      unitPositionsTxt(doorCount,'personalDoor').map((line,i)=>{
+        const hEl=g('personalDoorHandle'+i);
+        return line+(hEl? ', kilincs: '+(hEl.value==='left'?'bal oldalt':'jobb oldalt') : '');
+      }).join('\n    ');
+  }
+
+  return `ÚJ GARÁZS IGÉNY – POL-BRAM
+===========================
+Ügyfél: ${g('custName').value||'—'}
+Telefon: ${g('custPhone').value||'—'}
+E-mail: ${g('custEmail').value||'—'}
+Cím: ${g('custZip').value||'—'} ${g('custCity').value||'—'}, ${g('custAddress').value||'—'}
+Áfás számla igénye: ${g('custInvoice').value==='igen'?'igen':'nem'}${g('custInvoice').value==='igen' ? ('\n  Cégnév: '+(g('custCompanyName').value||'—')+'\n  Közösségi adószám: '+(g('custCompanyVat').value||'—')+'\n  Cég címe: '+(g('custCompanyAddress').value||'—')+'\n  Szállítási cím: '+(g('custCompanyShipping').value||'megegyezik a cég címével')) : ''}
+
+GARÁZS ADATAI
+-------------
+Tetőtípus: ${roofNames[g('roofType').value]}${(g('roofType').value==='spad jobbra'||g('roofType').value==='spad balra') ? (g('ridgeShift').checked ? ' (eltolt gerincvonal – egy szinten fut a magasság)' : ' (nincs eltolt gerincvonal – a magasság az egyik oldalon alacsonyabb)') : ''}${(+g('width').value>600 && !(g('roofType').value==='spad jobbra'||g('roofType').value==='spad balra')) ? ' — 6 m feletti szélesség miatt eltolt gerincvonal (Przesunięta kalenica) kötelező' : ''}
+Szerkezet típusa: ${structureNames[g('structureType').value]}
+Oldalfalak lemezmintázata: ${g('wallPattern').value}
+Méret: ${g('width').value} × ${g('length').value} cm, oldalmagasság: ${g('height').value}${(g('roofType').value==='spad jobbra'||g('roofType').value==='spad balra') ? ('\nFolyóméter: '+g('folyometer').value+' fm') : ''}
+
+SZÍNEK
+------
+Tető: ${colorLabel('colorRoof')}
+Tetőszegély: ${colorLabel('colorRoofTrim')}
+Oldalfal: ${colorLabel('colorWall')}
+Oldalfal szegély: ${colorLabel('colorWallTrim')}
+
+KAPU: ${gateTxt}
+SZEMÉLYI BEJÁRÓ: ${doorTxt}
+
+KIEGÉSZÍTŐK
+-----------
+${extras.length? extras.join('\n') : 'Nincs egyéb kiegészítő'}
+
+MEGJEGYZÉS
+----------
+${g('custNote').value||'—'}
+
+(Ez az igény nem tartalmaz árat – az árajánlatot munkatársunk külön e-mailben küldi.)`;
+}
+
+document.getElementById('previewBtn').addEventListener('click', ()=>{
+  const box = document.getElementById('preview');
+  box.textContent = buildSummary();
+  box.style.display='block';
+});
+document.getElementById('submitBtn').addEventListener('click', ()=>{
+  if(!document.getElementById('gdprConsent').checked){
+    alert('Kérjük, fogadja el az adatvédelmi nyilatkozatot a beküldés előtt.');
+    return;
+  }
+  // Minden jelenleg releváns (látható) szín mezőnél kötelező a tényleges választás
+  const requiredColorFields = ['colorRoof','colorRoofTrim','colorWall','colorWallTrim'];
+  if(state.gateType!=='none') requiredColorFields.push('colorGate');
+  const winQtySum = (parseInt(document.getElementById('win8060').value)||0)+(parseInt(document.getElementById('win50150').value)||0);
+  if(winQtySum>0) requiredColorFields.push('colorWindow');
+  if(document.getElementById('personalDoorYes').checked) requiredColorFields.push('colorDoor');
+  if(document.getElementById('gutterYes').checked) requiredColorFields.push('gutterColor');
+  if(document.getElementById('canopyYes').checked){
+    if(document.getElementById('canopyBackWall').value!=='none') requiredColorFields.push('colorCanopyBack');
+    if(document.getElementById('canopySideWall').value!=='none') requiredColorFields.push('colorCanopySide');
+  }
+  const missingColors = requiredColorFields.filter(id=>{
+    const el = document.getElementById(id);
+    return !el || !el.value;
+  });
+  if(missingColors.length){
+    alert('Kérjük, válassza ki az összes érintett elem színét (Szín szekció), mielőtt beküldi az igényt — jelenleg még nincs mindegyik kiválasztva.');
+    return;
+  }
+  const {wallLength, wallUsed, wallIntervals} = computeWallUsage();
+  const wBuild = parseFloat(document.getElementById('width').value)||0;
+  const lBuild = parseFloat(document.getElementById('length').value)||0;
+  const boundsRef = {front:wBuild, back:wBuild, left:lBuild, right:lBuild, canopy:wallLength.canopy, notch:wallLength.notch};
+  const overflowed = Object.keys(wallLength).some(k=>wallLength[k]>0 && wallUsed[k]>wallLength[k]);
+  let overlapped = false, outOfBounds = false;
+  Object.keys(wallIntervals).forEach(k=>{
+    const items = wallIntervals[k];
+    for(let i=0;i<items.length;i++){
+      if(items[i].name!=='előtető' && (items[i].start<-0.5 || items[i].end>boundsRef[k]+0.5)) outOfBounds = true;
+      for(let j=i+1;j<items.length;j++){
+        const overlap = Math.min(items[i].end, items[j].end) - Math.max(items[i].start, items[j].start);
+        const tolerance = (items[i].name.includes('kapu') && items[j].name.includes('kapu')) ? 50 : 0;
+        if(overlap > tolerance) overlapped = true;
+      }
+    }
+  });
+  if(overflowed || overlapped || outOfBounds){
+    alert('A vörös figyelmeztető doboz szerint egy vagy több falon nem fér el minden kért elem, két elem egymásra futna, vagy valami túlnyúlik a garázs méretén. Kérjük, módosítsa az elhelyezést, mielőtt beküldi az igényt.');
+    return;
+  }
+  const summary = buildSummary();
+  const sketchSvg = document.getElementById('sketch') ? document.getElementById('sketch').outerHTML : '';
+  const payload = {
+    name: document.getElementById('custName').value || '',
+    phone: document.getElementById('custPhone').value || '',
+    email: document.getElementById('custEmail').value || '',
+    zip: document.getElementById('custZip').value || '',
+    city: document.getElementById('custCity').value || '',
+    address: document.getElementById('custAddress').value || '',
+    formData: captureFormState(),
+    summaryText: summary,
+    sketchSvg: sketchSvg,
+  };
+
+  const submitBtnEl = document.getElementById('submitBtn');
+  submitBtnEl.disabled = true;
+  submitBtnEl.textContent = 'Küldés...';
+
+  fetch(BACKEND_URL + '/public/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+    .then(res => {
+      if (!res.ok) throw new Error('Szerverhiba történt.');
+      return res.json();
+    })
+    .then(() => {
+      document.getElementById('thankYouModal').style.display = 'flex';
+    })
+    .catch(err => {
+      alert('Hiba történt a beküldés közben, kérjük próbálja meg újra, vagy hívjon minket telefonon. (' + err.message + ')');
+    })
+    .finally(() => {
+      submitBtnEl.disabled = false;
+      submitBtnEl.textContent = 'Igényem elküldése';
+    });
+});
+
+onGateTypeChange();
+updateCanopyColorVisibility();
+refreshPositionUnits();
+refreshAll();
+</script>
+</body>
+</html>
