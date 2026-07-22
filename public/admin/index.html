@@ -32,6 +32,8 @@
     <div class="tabs-row">
       <button class="tab-btn active" id="tabCustomers" onclick="switchTab('customers')">Ügyfelek</button>
       <button class="tab-btn" id="tabTypes" onclick="switchTab('types')">Típusgarázsok</button>
+      <button class="tab-btn" id="tabEmails" onclick="switchTab('emails')">Email sablonok</button>
+      <button class="tab-btn" id="tabPricing" onclick="switchTab('pricing')">Árazás</button>
     </div>
 
     <div id="customersView">
@@ -50,6 +52,34 @@
         <a class="btn-main" href="type-editor.html" style="text-decoration:none;display:inline-block;width:auto">+ Új típusgarázs</a>
       </div>
       <div class="types-grid" id="typesGrid"></div>
+    </div>
+
+    <div id="emailsView" style="display:none">
+      <div id="emailTemplateList"></div>
+      <div id="emailTemplateEditor" style="display:none;margin-top:20px;background:#fff;padding:20px;border-radius:6px">
+        <label style="display:block;font-size:0.8rem;color:var(--graphite-soft);margin-bottom:4px">Tárgy</label>
+        <input type="text" id="emailSubjectInput" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;margin-bottom:14px">
+        <label style="display:block;font-size:0.8rem;color:var(--graphite-soft);margin-bottom:4px">
+          HTML tartalom — használható változók a sablon nevénél feltüntetve, pl. {{name}}
+        </label>
+        <textarea id="emailBodyInput" style="width:100%;min-height:300px;font-family:monospace;font-size:0.8rem;padding:10px;border:1px solid var(--line);border-radius:4px"></textarea>
+        <div class="btn-row">
+          <button class="btn-main" onclick="saveEmailTemplate()">Mentés</button>
+          <button class="btn-secondary" onclick="document.getElementById('emailTemplateEditor').style.display='none'">Mégse</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pricingView" style="display:none">
+      <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px;margin-bottom:20px">
+        <h3>Kalkulátor Excel feltöltése</h3>
+        <p class="hint">Ha a rendszer rosszul számol ki valamit, töltsd fel a helyes (aktuális) kalkulátor Excel-t —
+        a rendszer megpróbálja kiolvasni belőle az árakat, és jóváhagyás után ezeket fogja használni legközelebb.</p>
+        <input type="file" id="pricingExcelFile" accept=".xlsx,.xlsm,.xls">
+        <button class="btn-main" onclick="uploadPricingExcel()">Feltöltés és elemzés</button>
+        <button class="btn-ghost" onclick="resetPricingConfig()">Visszaállítás alapértékekre</button>
+      </div>
+      <div id="pricingPreview"></div>
     </div>
   </main>
 </div>

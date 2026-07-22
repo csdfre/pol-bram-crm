@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
 const db = require('../../db');
 const requireAuth = require('../middleware/requireAuth');
 const { calculateQuote } = require('../services/pricing');
@@ -76,7 +77,7 @@ router.post('/customers/:id/calculate', (req, res) => {
 });
 
 // ---------------------------------------------------------------
-// Ajánlat kiküldése az ügyfélnek
+// Ajánlat kiküldése az ügyfélnek — csak egy végösszeg (áfa igény szerint nettó/bruttó), tételezés nélkül
 // ---------------------------------------------------------------
 router.post('/customers/:id/send-offer', async (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
@@ -84,8 +85,9 @@ router.post('/customers/:id/send-offer', async (req, res) => {
   if (!c.price_breakdown) return res.status(400).json({ error: 'Előbb számolja ki az árat.' });
 
   const quote = JSON.parse(c.price_breakdown);
+  const priceText = `${quote.displayTotal.toLocaleString('hu-HU')} Ft (${quote.displayLabel})`;
   try {
-    await email.sendOffer(c, quote);
+    await email.sendOffer(c, priceText);
     db.prepare('UPDATE customers SET status=?, updated_at=? WHERE id=?')
       .run('ajanlat_kikuldve', new Date().toISOString(), c.id);
     logStatus(c.id, 'ajanlat_kikuldve', 'Ajánlat kiküldve az ügyfélnek');
@@ -97,25 +99,31 @@ router.post('/customers/:id/send-offer', async (req, res) => {
 });
 
 // ---------------------------------------------------------------
-// Megrendelőlap kiküldése a lengyel kolléganőnek (PL PDF)
+// Megrendelőlap-folyamat indítása: link kiküldése a lengyel kolléganőnek (ő tekinti át/javítja, majd hagyja jóvá)
 // ---------------------------------------------------------------
 router.post('/customers/:id/send-order-form-colleague', async (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Nem található.' });
-  const quote = c.price_breakdown ? JSON.parse(c.price_breakdown) : null;
 
   try {
-    const pdfBuffer = await generateOrderFormPdf(c, quote, 'pl');
-    await email.sendOrderFormToColleague(c, pdfBuffer);
+    let token = c.colleague_token;
+    if (!token) {
+      token = uuidv4();
+      db.prepare('UPDATE customers SET colleague_token=? WHERE id=?').run(token, c.id);
+      c.colleague_token = token;
+    }
+    await email.sendOrderFormToColleague(c);
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Hiba a lengyel megrendelőlap küldése közben: ' + err.message });
+    res.status(500).json({ error: 'Hiba a kolléganőnek szóló e-mail küldése közben: ' + err.message });
   }
 });
 
 // ---------------------------------------------------------------
-// Végleges megrendelőlap kiküldése az ügyfélnek (HU PDF)
+// Végleges megrendelőlap kézi (újra-)küldése az ügyfélnek (HU PDF) — normál esetben ezt a
+// kolléganő jóváhagyása indítja automatikusan (lásd /public/colleague/:token/approve), ez a gomb
+// csak tartalék / kézi újraküldésre szolgál.
 // ---------------------------------------------------------------
 router.post('/customers/:id/send-order-form-customer', async (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
@@ -127,7 +135,7 @@ router.post('/customers/:id/send-order-form-customer', async (req, res) => {
     await email.sendFinalOrderFormToCustomer(c, pdfBuffer);
     db.prepare('UPDATE customers SET status=?, updated_at=? WHERE id=?')
       .run('megrendelolap_kikuldve', new Date().toISOString(), c.id);
-    logStatus(c.id, 'megrendelolap_kikuldve', 'Megrendelőlap kiküldve az ügyfélnek');
+    logStatus(c.id, 'megrendelolap_kikuldve', 'Megrendelőlap kiküldve az ügyfélnek (kézi)');
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -201,5 +209,24 @@ function logStatus(customerId, status, note) {
   db.prepare('INSERT INTO status_log (customer_id, status, changed_at, note) VALUES (?, ?, ?, ?)')
     .run(customerId, status, new Date().toISOString(), note || '');
 }
+
+// ---------------------------------------------------------------
+// Email sablonok kezelése
+// ---------------------------------------------------------------
+router.get('/email-templates', (req, res) => {
+  const rows = db.prepare('SELECT key, label, subject, updated_at FROM email_templates ORDER BY label ASC').all();
+  res.json(rows);
+});
+router.get('/email-templates/:key', (req, res) => {
+  const t = db.prepare('SELECT * FROM email_templates WHERE key = ?').get(req.params.key);
+  if (!t) return res.status(404).json({ error: 'Nem található.' });
+  res.json(t);
+});
+router.put('/email-templates/:key', (req, res) => {
+  const { subject, html_body } = req.body;
+  db.prepare('UPDATE email_templates SET subject=?, html_body=?, updated_at=? WHERE key=?')
+    .run(subject, html_body, new Date().toISOString(), req.params.key);
+  res.json({ ok: true });
+});
 
 module.exports = router;

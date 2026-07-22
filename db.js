@@ -63,6 +63,34 @@ CREATE TABLE IF NOT EXISTS status_log (
   note TEXT,
   FOREIGN KEY(customer_id) REFERENCES customers(id)
 );
+
+CREATE TABLE IF NOT EXISTS email_templates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  key TEXT UNIQUE NOT NULL,
+  label TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  html_body TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pricing_config (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  config_key TEXT UNIQUE NOT NULL,
+  config_json TEXT NOT NULL,
+  source_file TEXT,
+  updated_at TEXT NOT NULL
+);
 `);
+
+// Meglévő customers táblához hiányzó oszlopok pótlása (ha korábbi verzióból frissítünk)
+const customerCols = db.prepare("PRAGMA table_info(customers)").all().map(c => c.name);
+function addColIfMissing(name, def){
+  if(!customerCols.includes(name)) db.exec(`ALTER TABLE customers ADD COLUMN ${name} ${def}`);
+}
+addColIfMissing('colleague_token', 'TEXT');
+addColIfMissing('colleague_approved', 'INTEGER DEFAULT 0');
+addColIfMissing('modify_request_text', 'TEXT');
+addColIfMissing('modify_request_at', 'TEXT');
+addColIfMissing('vat_requested', 'INTEGER DEFAULT 0');
 
 module.exports = db;

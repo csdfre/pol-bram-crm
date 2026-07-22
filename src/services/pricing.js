@@ -14,9 +14,37 @@
  */
 
 const PLN_TO_HUF = parseFloat(process.env.PLN_TO_HUF_RATE) || (100 / 1.2036); // ≈ 83.08 Ft / zł
+const VAT_RATE = parseFloat(process.env.VAT_RATE) || 0.27; // magyar áfa, alapértelmezett 27%
+
+let dbRef = null;
+function getDb(){
+  if(!dbRef) dbRef = require('../../db');
+  return dbRef;
+}
+// Ha a backoffice-ban feltöltött Excel alapján van mentett felülírás, azt EGYESÍTJÜK (nem cseréljük le teljesen)
+// a hardcode-olt alapértékekkel — így egy részleges/hiányos felülírás sem tör el semmit.
+function deepMerge(base, override){
+  if(!override) return base;
+  const result = Array.isArray(base) ? [...base] : { ...base };
+  Object.keys(override).forEach(k=>{
+    if(override[k] && typeof override[k]==='object' && !Array.isArray(override[k]) && base[k] && typeof base[k]==='object'){
+      result[k] = deepMerge(base[k], override[k]);
+    } else {
+      result[k] = override[k];
+    }
+  });
+  return result;
+}
+function loadOverride(key, fallback){
+  try{
+    const row = getDb().prepare('SELECT config_json FROM pricing_config WHERE config_key = ?').get(key);
+    if(row) return deepMerge(fallback, JSON.parse(row.config_json));
+  } catch(e){ /* nincs felülírás — mehet az alapérték */ }
+  return fallback;
+}
 
 // --- Alap szerkezeti ár (zł / folyóméter) bracket x tetőtípus x anyag szerint ---
-const BASE_PRICE_TABLE = {
+const BASE_PRICE_TABLE_DEFAULT = {
   typowy:  { dwuspad:{OC:258,RAL:300,DREW:321}, spad_tyl:{OC:232,RAL:269,DREW:290}, spad_przod:{OC:264,RAL:305,DREW:326}, spad_bok:{OC:253,RAL:290,DREW:310} },
   mala:    { dwuspad:{OC:394,RAL:447,DREW:477}, spad_tyl:{OC:347,RAL:395,DREW:435}, spad_przod:{OC:389,RAL:442,DREW:472}, spad_bok:{OC:373,RAL:426,DREW:456} },
   srednia: { dwuspad:{OC:526,RAL:589,DREW:610}, spad_tyl:{OC:473,RAL:531,DREW:552}, spad_przod:{OC:531,RAL:594,DREW:615}, spad_bok:{OC:510,RAL:568,DREW:589} },
@@ -24,7 +52,7 @@ const BASE_PRICE_TABLE = {
 };
 
 // --- Kiegészítők árai (zł) ---
-const ADDON = {
+const ADDON_DEFAULT = {
   gateSwingPerMb: { OC:173, RAL:205, DREW:283 },     // billenő kapu, zł/fm
   gateDoublePerPc: { OC:350, RAL:450, DREW:550 },    // kétszárnyú kapu, zł/db
   automation: 1000,                                   // zł/db
@@ -73,6 +101,8 @@ function round50(v) {
 function calculateQuote(formData) {
   const lines = [];
   const warnings = [];
+  const BASE_PRICE_TABLE = loadOverride('base_price_table', BASE_PRICE_TABLE_DEFAULT);
+  const ADDON = loadOverride('addon', ADDON_DEFAULT);
 
   const widthCm = parseFloat(formData.width) || 0;
   const lengthCm = parseFloat(formData.length) || 0;
@@ -196,11 +226,18 @@ function calculateQuote(formData) {
     lines.push(line('Kerekítés (50 zł-ra)', roundedPLN - subtotalPLN));
   }
 
-  const totalHUF = Math.round(roundedPLN * PLN_TO_HUF / 100) * 100;
+  const totalHUF = Math.round(roundedPLN * PLN_TO_HUF / 100) * 100; // ez a nettó összeg
+  const totalHUFGross = Math.round(totalHUF * (1 + VAT_RATE) / 100) * 100;
+  const vatRequested = !!(formData.custInvoice === 'igen' || formData.vat_requested);
 
   return {
     totalPLN: roundedPLN,
-    totalHUF,
+    totalHUF,        // nettó
+    totalHUFGross,   // bruttó (nettó + áfa)
+    vatRate: VAT_RATE,
+    vatRequested,
+    displayTotal: vatRequested ? totalHUF : totalHUFGross,
+    displayLabel: vatRequested ? 'nettó' : 'bruttó',
     exchangeRate: PLN_TO_HUF,
     lines: lines.map(l => ({ label: l.label, pln: Math.round(l.pln), huf: Math.round(l.pln * PLN_TO_HUF) })),
     warnings,

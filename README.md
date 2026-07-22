@@ -134,3 +134,30 @@ mostantól **a backoffice-ban** hozzátok létre és szerkesztitek — nem a kó
   a teljes konfigurációt (méret, tető, szín, kapu, ablakok, stb. — ugyanaz a felület, mint az ügyfél-oldalon)
 - **Mentés** — ezután azonnal megjelenik az ügyfél-oldali listában is
 - Meglévő típus szerkesztéséhez/törléséhez: a "Típusgarázsok" listában a kártyán lévő gombok
+
+## 9. Email sablonok szerkesztése
+
+Backoffice → **"Email sablonok"** fül — minden kiküldött automatikus email HTML-je itt szerkeszthető.
+Használható változók sablononként (pl. `{{name}}`, `{{price}}`, `{{acceptUrl}}`) — ezek a sablon szövegében látszanak.
+
+## 10. Árazás — Excel-alapú felülírás
+
+Ha a rendszer rosszul számol ki valamit: Backoffice → **"Árazás"** fül → töltsd fel az aktuális kalkulátor Excel-t.
+A rendszer megpróbálja címkék alapján kiolvasni belőle az árakat (négyzetméter-kategóriák, tetőtípusok, anyagok,
+kiegészítők), és megmutatja, mit talált / mit nem. **Csak jóváhagyás után** kerül tényleges használatba —
+ha valamit nem talált, ott a korábbi/alapérték marad érvényben (nem törli, csak kiegészíti).
+
+**Fontos:** ez címke-alapú, "legjobb próbálkozás" elemzés, nem garantált 100%-os pontosságú — a jóváhagyás előtt
+mindig érdemes átnézni a kiolvasott számokat.
+
+## 11. Megrendelőlap-folyamat (frissített, valós menete)
+
+1. Backoffice-ban: **"Ár kiszámítása"** → **"Ajánlat kiküldése"** (csak egy végösszeg megy ki, áfa-igény szerint nettó/bruttó)
+2. Ügyfél elfogadja (email-es gomb) → státusz: "Ajánlat elfogadva"
+3. Backoffice-ban: **"Link küldése a kolléganőnek"** — ő egy lengyel nyelvű, nyomtatható, szerkeszthető oldalt kap,
+   ahol látja az árat is, javíthat rajta, és feltöltheti az előlegszámlát
+4. Amikor a kolléganő **jóváhagyja**: automatikusan kimegy a végleges, magyar nyelvű, PDF-es megrendelőlap az ügyfélnek
+   — benne két gombbal: **"Elfogadom"** vagy **"Módosítást szeretnék"**
+5. Ha módosítást kér: egy rövid felület jelenik meg neki, ahol leírhatja mit szeretne — ez emailben értesíti
+   mind titeket, mind a kolléganőt
+6. Ha a kolléganő feltölti az előlegszámlát: az is automatikusan kimegy az ügyfélnek

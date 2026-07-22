@@ -129,8 +129,8 @@ function renderModal() {
     <h3>Folyamat</h3>
     <div class="btn-row">
       <button class="btn-main" onclick="sendOffer()">Ajánlat kiküldése</button>
-      <button class="btn-secondary" onclick="sendOrderFormColleague()">Megrendelőlap küldése a kolléganőnek (PL)</button>
-      <button class="btn-secondary" onclick="sendOrderFormCustomer()">Végleges megrendelőlap küldése ügyfélnek (HU)</button>
+      <button class="btn-secondary" onclick="sendOrderFormColleague()">Link küldése a kolléganőnek (jóváhagyásra)</button>
+      <button class="btn-secondary" onclick="sendOrderFormCustomer()">Megrendelőlap kézi (újra)küldése ügyfélnek</button>
     </div>
 
     <div class="field-row" style="margin-top:10px">
@@ -160,15 +160,17 @@ function renderModal() {
       <div>${(c.complaint_files || []).map(f => `<img src="${f}">`).join('')}</div>
     </div>` : ''}
     ${c.satisfaction_rating ? `<p style="margin-top:14px">Elégedettségi értékelés: <strong>${c.satisfaction_rating} / 5 ⭐</strong></p>` : ''}
+    ${c.colleague_approved ? `<p style="margin-top:10px;color:var(--accept)">✓ A kolléganő jóváhagyta a megrendelőlapot.</p>` : ''}
+    ${c.modify_request_text ? `<div class="complaint-box" style="border-color:#454C54;background:#f4f5f6"><h3 style="margin-top:0;color:#454C54">Ügyfél módosítást kért (${new Date(c.modify_request_at).toLocaleString('hu-HU')})</h3><p>${esc(c.modify_request_text)}</p></div>` : ''}
   `;
   document.getElementById('modalContent').innerHTML = html;
 }
 
 function renderQuoteTable(quote) {
-  return `<table class="price-table">
-    ${quote.lines.map(l => `<tr><td>${esc(l.label)}</td><td style="text-align:right">${l.huf.toLocaleString('hu-HU')} Ft</td></tr>`).join('')}
-    <tr class="total-row"><td>Végösszeg</td><td style="text-align:right">${quote.totalHUF.toLocaleString('hu-HU')} Ft</td></tr>
-  </table>`;
+  return `<div class="price-box">
+    <div style="font-size:1.5rem;font-weight:700">${quote.displayTotal.toLocaleString('hu-HU')} Ft</div>
+    <div style="font-size:0.85rem;color:#7a828a;text-transform:uppercase;letter-spacing:.03em">${quote.displayLabel}${quote.vatRequested ? ' — áfás számla igénye alapján' : ' — nincs áfás számla igénye'}</div>
+  </div>`;
 }
 
 async function saveCustomer() {
@@ -256,11 +258,16 @@ async function setStatusManually() {
 }
 
 function switchTab(tab){
-  document.getElementById('tabCustomers').classList.toggle('active', tab==='customers');
-  document.getElementById('tabTypes').classList.toggle('active', tab==='types');
+  ['Customers','Types','Emails','Pricing'].forEach(t=>{
+    document.getElementById('tab'+t).classList.toggle('active', tab===t.toLowerCase());
+  });
   document.getElementById('customersView').style.display = tab==='customers' ? 'block' : 'none';
   document.getElementById('typesView').style.display = tab==='types' ? 'block' : 'none';
+  document.getElementById('emailsView').style.display = tab==='emails' ? 'block' : 'none';
+  document.getElementById('pricingView').style.display = tab==='pricing' ? 'block' : 'none';
   if(tab==='types') loadGarageTypes();
+  if(tab==='emails') loadEmailTemplates();
+  if(tab==='pricing') loadPricingConfig();
 }
 
 async function loadGarageTypes(){
@@ -286,6 +293,89 @@ async function deleteGarageType(id){
   if(!confirm('Biztosan törli ezt a típusgarázst?')) return;
   await api('/admin/garage-types/'+id, { method: 'DELETE' });
   loadGarageTypes();
+}
+
+// --- Email sablonok ---
+let currentTemplateKey = null;
+async function loadEmailTemplates(){
+  const rows = await api('/admin/email-templates');
+  const box = document.getElementById('emailTemplateList');
+  box.innerHTML = `<table id="customerTable"><thead><tr><th>Sablon</th><th>Tárgy</th><th>Utolsó módosítás</th><th></th></tr></thead><tbody>
+    ${rows.map(t=>`<tr>
+      <td>${esc(t.label)}</td>
+      <td>${esc(t.subject)}</td>
+      <td>${new Date(t.updated_at).toLocaleString('hu-HU')}</td>
+      <td><button class="link-btn" onclick="editEmailTemplate('${t.key}')">Szerkesztés</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+async function editEmailTemplate(key){
+  const t = await api('/admin/email-templates/'+key);
+  currentTemplateKey = key;
+  document.getElementById('emailSubjectInput').value = t.subject;
+  document.getElementById('emailBodyInput').value = t.html_body;
+  document.getElementById('emailTemplateEditor').style.display = 'block';
+}
+async function saveEmailTemplate(){
+  const subject = document.getElementById('emailSubjectInput').value;
+  const html_body = document.getElementById('emailBodyInput').value;
+  await api('/admin/email-templates/'+currentTemplateKey, { method:'PUT', body: JSON.stringify({ subject, html_body }) });
+  alert('Sablon elmentve.');
+  document.getElementById('emailTemplateEditor').style.display = 'none';
+  loadEmailTemplates();
+}
+
+// --- Árazás ---
+async function loadPricingConfig(){
+  const data = await api('/admin/pricing/current');
+  const box = document.getElementById('pricingPreview');
+  const hasOverride = data.basePriceTable || data.addon;
+  box.innerHTML = hasOverride
+    ? `<div class="preset-panel" style="background:#fff;padding:16px;border-radius:6px">
+        <strong>Jelenleg érvényben lévő felülírás</strong> ${data.basePriceTable && data.basePriceTable._meta ? '(forrás: '+esc(data.basePriceTable._meta.source||'')+', '+new Date(data.basePriceTable._meta.updated_at).toLocaleString('hu-HU')+')' : ''}
+        <pre style="font-size:0.75rem;background:#fafbfb;padding:10px;border-radius:4px;max-height:300px;overflow:auto">${esc(JSON.stringify(data, null, 2))}</pre>
+      </div>`
+    : `<p style="color:#7a828a">Jelenleg a beépített alapértékek vannak használatban, nincs feltöltött felülírás.</p>`;
+}
+async function uploadPricingExcel(){
+  const fileInput = document.getElementById('pricingExcelFile');
+  if(!fileInput.files[0]) return alert('Válasszon fájlt.');
+  const form = new FormData();
+  form.append('file', fileInput.files[0]);
+  const res = await fetch('/api/admin/pricing/upload-excel', { method:'POST', body: form });
+  const data = await res.json();
+  if(!res.ok) return alert('Hiba: '+data.error);
+  renderPricingReview(data);
+}
+let lastParsedPricing = null;
+let lastParsedFilename = null;
+function renderPricingReview(data){
+  lastParsedPricing = data.parsed;
+  lastParsedFilename = data.filename;
+  const p = data.parsed;
+  const box = document.getElementById('pricingPreview');
+  box.innerHTML = `
+    <div class="preset-panel" style="background:#fff;padding:16px;border-radius:6px">
+      <h3>Elemzés eredménye: ${esc(data.filename)}</h3>
+      <p class="hint">Ellenőrizd az alábbi kiolvasott értékeket, mielőtt jóváhagyod! Amit a rendszer nem talált meg, azt a "Nem talált tételek" lista mutatja — ott a régi/alapérték marad érvényben.</p>
+      <p><strong>Megtalált tételek:</strong> ${p.foundKeys.length} db</p>
+      <p><strong>Nem talált tételek:</strong> ${p.missingKeys.length ? p.missingKeys.map(esc).join(', ') : 'nincs'}</p>
+      <pre style="font-size:0.75rem;background:#fafbfb;padding:10px;border-radius:4px;max-height:300px;overflow:auto">${esc(JSON.stringify(p, null, 2))}</pre>
+      <div class="btn-row">
+        <button class="btn-main" onclick="applyPricingConfig()">Jóváhagyás és mentés</button>
+      </div>
+    </div>`;
+}
+async function applyPricingConfig(){
+  const p = lastParsedPricing;
+  await api('/admin/pricing/apply', { method:'POST', body: JSON.stringify({ basePriceTable: p.basePriceTable, addon: p.addon, filename: lastParsedFilename }) });
+  alert('Árazás frissítve.');
+  loadPricingConfig();
+}
+async function resetPricingConfig(){
+  if(!confirm('Biztosan visszaállítod az alapértelmezett árakat?')) return;
+  await api('/admin/pricing/reset', { method:'POST' });
+  loadPricingConfig();
 }
 
 checkSession();
