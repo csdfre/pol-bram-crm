@@ -241,9 +241,21 @@ router.post('/modify-offer/:token/save', (req, res) => {
   const merged = { ...JSON.parse(c.form_data || '{}'), ...(formData || {}) };
   if (merged.__gateType) merged.gateType = merged.__gateType; // szinkronban tartjuk a két kulcsot
   const quote = calculateQuote(merged);
-  db.prepare('UPDATE customers SET form_data=?, price_huf=?, price_breakdown=?, updated_at=? WHERE id=?')
-    .run(JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), new Date().toISOString(), c.id);
+  const now = new Date().toISOString();
+  db.prepare('UPDATE customers SET form_data=?, price_huf=?, price_breakdown=?, customer_edited_at=?, updated_at=? WHERE id=?')
+    .run(JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), now, now, c.id);
   logStatus(c.id, c.status, 'Ügyfél módosította az ajánlat tételeit, ár újraszámolva');
+
+  if (process.env.ADMIN_NOTIFY_EMAIL) {
+    const notifyHtml = `<div style="font-family:Arial,sans-serif">
+      <h3>Ügyfél módosította a saját ajánlatát</h3>
+      <p><strong>${escapeHtml(c.name)}</strong> (${escapeHtml(c.email)}) módosított a garázs beállításain — az új ár: ${quote.displayTotal.toLocaleString('hu-HU')} Ft (${quote.displayLabel}).</p>
+      <p>Nézd meg a backoffice-ban a részleteket.</p>
+    </div>`;
+    email.sendMail({ to: process.env.ADMIN_NOTIFY_EMAIL, subject: 'Ügyfél módosított egy ajánlatot – ' + c.name, html: notifyHtml })
+      .catch(err => console.error('Admin értesítő email hiba:', err));
+  }
+
   res.json({ ok: true, quote });
 });
 

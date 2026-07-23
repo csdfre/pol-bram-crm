@@ -26,7 +26,7 @@ const invoiceUpload = multer({
 // ---------------------------------------------------------------
 router.get('/customers', (req, res) => {
   const rows = db.prepare(`
-    SELECT id, created_at, status, name, address, zip, city, phone, email, price_huf
+    SELECT id, created_at, status, name, address, zip, city, phone, email, price_huf, customer_edited_at
     FROM customers ORDER BY updated_at DESC
   `).all();
   res.json(rows);
@@ -38,6 +38,9 @@ router.get('/customers', (req, res) => {
 router.get('/customers/:id', (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Nem található.' });
+  if (c.customer_edited_at) {
+    db.prepare('UPDATE customers SET customer_edited_at = NULL WHERE id = ?').run(req.params.id);
+  }
   res.json({
     ...c,
     form_data: JSON.parse(c.form_data || '{}'),
@@ -111,14 +114,24 @@ router.get('/customers/:id/editor', (req, res) => {
     </div>
 
     <div class="price-card">
-      <div class="amount" id="priceAmount">${quote ? quote.displayTotal.toLocaleString('hu-HU') : '—'} Ft</div>
+      <div class="amount-row" style="display:flex;align-items:center;justify-content:center;gap:8px">
+        <input type="number" id="priceAmount" value="${quote ? quote.displayTotal : 0}" style="width:220px;background:#fff;border:1px solid #C7D0D6;color:#20242A;font-size:22px;font-weight:700;text-align:center;border-radius:6px;padding:4px 8px">
+        <span style="font-size:16px;color:#454C54">Ft</span>
+      </div>
       <div class="label">${quote ? (quote.displayLabel||'').toUpperCase() : ''}</div>
+      <button onclick="savePrice()" style="margin-top:10px;font-size:0.8rem">Ár mentése (ez nem küld emailt)</button>
     </div>
 
     <button onclick="saveChanges()">Mentés és újraszámolás</button>
     <div id="statusMsg" style="margin-top:14px;font-weight:bold"></div>
   </div>
   <script>
+    async function savePrice(){
+      const total = parseFloat(document.getElementById('priceAmount').value) || 0;
+      const res = await fetch(window.location.pathname.replace('/editor','')+'/update-price', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ total }) });
+      const data = await res.json();
+      document.getElementById('statusMsg').textContent = res.ok ? 'Ár elmentve.' : 'Hiba: '+data.error;
+    }
     async function saveChanges(){
       const formData = {};
       document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
@@ -143,6 +156,19 @@ router.get('/customers/:id/editor', (req, res) => {
     }
   </script>
   </body></html>`);
+});
+
+router.post('/customers/:id/update-price', (req, res) => {
+  const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Nem található.' });
+  const newTotal = parseInt(req.body.total);
+  if (!newTotal || newTotal <= 0) return res.status(400).json({ error: 'Érvénytelen összeg.' });
+  const quote = c.price_breakdown ? JSON.parse(c.price_breakdown) : {};
+  quote.displayTotal = newTotal;
+  quote.manuallyEdited = true;
+  db.prepare('UPDATE customers SET price_huf=?, price_breakdown=?, updated_at=? WHERE id=?')
+    .run(newTotal, JSON.stringify(quote), new Date().toISOString(), c.id);
+  res.json({ ok: true });
 });
 
 router.post('/customers/:id/update-form-data', (req, res) => {

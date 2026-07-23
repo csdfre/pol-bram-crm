@@ -130,6 +130,13 @@ function patternName(p, lang){
   if(!p) return '—';
   return (PATTERN_NAMES[p] && PATTERN_NAMES[p][lang]) || p;
 }
+function buildOptions(dict, lang){
+  return Object.entries(dict).map(([code, names]) => [code, names[lang] || code]);
+}
+const COLOR_OPTIONS = { hu: buildOptions(COLOR_NAMES,'hu'), pl: buildOptions(COLOR_NAMES,'pl') };
+const ROOF_OPTIONS_FULL = { hu: buildOptions(ROOF_NAMES,'hu'), pl: buildOptions(ROOF_NAMES,'pl') };
+const STRUCTURE_OPTIONS = { hu: buildOptions(STRUCTURE_NAMES,'hu'), pl: buildOptions(STRUCTURE_NAMES,'pl') };
+const PATTERN_OPTIONS = { hu: buildOptions(PATTERN_NAMES,'hu'), pl: buildOptions(PATTERN_NAMES,'pl') };
 const WALL_NAMES = {
   front: { hu: 'elülső fal', pl: 'ściana przednia' },
   back: { hu: 'hátsó fal', pl: 'ściana tylna' },
@@ -211,16 +218,16 @@ function buildOrderFields(fd, lang, includeEmpty){
       E(L('width'), (fd.canopyWidth||'—')+' cm', 'canopyWidth', fd.canopyWidth, 'number'),
       E(L('length'), (fd.canopyLength||'—')+' cm', 'canopyLength', fd.canopyLength, 'number'),
       E(L('backWallCover'), fd.canopyBackWall==='solid'?{hu:'Teli fal',pl:'Ściana pełna'}[lang]:fd.canopyBackWall==='lamella'?{hu:'Lamellás',pl:'Lamelowa'}[lang]:VALUE_NONE[lang], 'canopyBackWall', fd.canopyBackWall),
-      E(L('backWallColor'), colorName(fd.colorCanopyBack, lang), 'colorCanopyBack', fd.colorCanopyBack),
+      ESEL(L('backWallColor'), 'colorCanopyBack', fd.colorCanopyBack||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorCanopyBack, lang)),
       E(L('sideWallCover'), fd.canopySideWall==='solid'?{hu:'Teli fal',pl:'Ściana pełna'}[lang]:fd.canopySideWall==='lamella'?{hu:'Lamellás',pl:'Lamelowa'}[lang]:VALUE_NONE[lang], 'canopySideWall', fd.canopySideWall),
-      E(L('sideWallColor'), colorName(fd.colorCanopySide, lang), 'colorCanopySide', fd.colorCanopySide),
+      ESEL(L('sideWallColor'), 'colorCanopySide', fd.colorCanopySide||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorCanopySide, lang)),
     ]});
   }
 
   sections.push({ section: S('roof'), items: [
-    E(L('roofType'), (ROOF_NAMES[fd.roofType] && ROOF_NAMES[fd.roofType][lang]) || fd.roofType || '—', 'roofType', fd.roofType),
-    E(L('roofColor'), colorName(fd.colorRoof, lang), 'colorRoof', fd.colorRoof),
-    E(L('roofTrimColor'), colorName(fd.colorRoofTrim, lang), 'colorRoofTrim', fd.colorRoofTrim),
+    ESEL(L('roofType'), 'roofType', fd.roofType||'dwuspad', ROOF_OPTIONS_FULL[lang], (ROOF_NAMES[fd.roofType] && ROOF_NAMES[fd.roofType][lang]) || fd.roofType || '—'),
+    ESEL(L('roofColor'), 'colorRoof', fd.colorRoof||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorRoof, lang)),
+    ESEL(L('roofTrimColor'), 'colorRoofTrim', fd.colorRoofTrim||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorRoofTrim, lang)),
   ]});
 
   if(gateType!=='none' || includeEmpty){
@@ -229,8 +236,8 @@ function buildOrderFields(fd, lang, includeEmpty){
       E(lang==='pl'?'Ilość bram (szt.)':'Kapuk száma (db)', gateCount||1, 'gateCount', gateCount||1, 'number'),
       E(L('gateWidth'), (fd.gateWidth||'300')+' cm', 'gateWidth', fd.gateWidth||300, 'number'),
       E(L('gateHeight'), (fd.gateHeight||'185')+' cm', 'gateHeight', fd.gateHeight||185, 'number'),
-      E(L('gateColor'), colorName(fd.colorGate||'RAL9005', lang), 'colorGate', fd.colorGate||'RAL9005'),
-      E(L('gatePattern'), patternName(fd.gatePattern||'Széles vízszintes', lang), 'gatePattern', fd.gatePattern||'Széles vízszintes'),
+      ESEL(L('gateColor'), 'colorGate', fd.colorGate||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorGate||'RAL9005', lang)),
+      ESEL(L('gatePattern'), 'gatePattern', fd.gatePattern||'Széles vízszintes', PATTERN_OPTIONS[lang], patternName(fd.gatePattern||'Széles vízszintes', lang)),
       ECHECK(lang==='pl'?'Automatyka':'Automatika kérése', 'automation', !!fd.automation, fd.automation ? YES[lang] : VALUE_NONE[lang]),
       E(lang==='pl'?'Ilość automatyki (szt.)':'Automatika darabszáma (db)', fd.automationQty||1, 'automationQty', fd.automationQty||1, 'number'),
     ];
@@ -238,13 +245,13 @@ function buildOrderFields(fd, lang, includeEmpty){
   }
 
   sections.push({ section: S('structure'), items: [
-    E(L('structureType'), (STRUCTURE_NAMES[fd.structureType] && STRUCTURE_NAMES[fd.structureType][lang]) || fd.structureType || '—', 'structureType', fd.structureType),
+    ESEL(L('structureType'), 'structureType', fd.structureType||'szogvas', STRUCTURE_OPTIONS[lang], (STRUCTURE_NAMES[fd.structureType] && STRUCTURE_NAMES[fd.structureType][lang]) || fd.structureType || '—'),
   ]});
 
   sections.push({ section: S('walls'), items: [
-    E(L('wallPattern'), patternName(fd.wallPattern, lang), 'wallPattern', fd.wallPattern),
-    E(L('wallColor'), colorName(fd.colorWall, lang), 'colorWall', fd.colorWall),
-    E(L('wallTrimColor'), colorName(fd.colorWallTrim, lang), 'colorWallTrim', fd.colorWallTrim),
+    ESEL(L('wallPattern'), 'wallPattern', fd.wallPattern||'T7 – vízszintes', PATTERN_OPTIONS[lang], patternName(fd.wallPattern, lang)),
+    ESEL(L('wallColor'), 'colorWall', fd.colorWall||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorWall, lang)),
+    ESEL(L('wallTrimColor'), 'colorWallTrim', fd.colorWallTrim||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorWallTrim, lang)),
   ]});
 
   if(personalDoorCount>0 || includeEmpty){
@@ -252,8 +259,8 @@ function buildOrderFields(fd, lang, includeEmpty){
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'personalDoorYes', !!fd.personalDoorYes, fd.personalDoorYes ? YES[lang] : VALUE_NONE[lang]),
       E(L('doorCount'), personalDoorCount||1, 'personalDoorCount', personalDoorCount||1, 'number'),
       E(L('doorSize'), fd.personalDoorSize||'90x200', 'personalDoorSize', fd.personalDoorSize||'90x200'),
-      E(L('doorColor'), colorName(fd.colorDoor||'RAL9005', lang), 'colorDoor', fd.colorDoor||'RAL9005'),
-      E(L('doorPattern'), patternName(fd.personalDoorPattern||'Széles vízszintes', lang), 'personalDoorPattern', fd.personalDoorPattern||'Széles vízszintes'),
+      ESEL(L('doorColor'), 'colorDoor', fd.colorDoor||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorDoor||'RAL9005', lang)),
+      ESEL(L('doorPattern'), 'personalDoorPattern', fd.personalDoorPattern||'Széles vízszintes', PATTERN_OPTIONS[lang], patternName(fd.personalDoorPattern||'Széles vízszintes', lang)),
       ...placementRows('personalDoor', Math.max(personalDoorCount,1)),
     ]});
   }
@@ -261,7 +268,7 @@ function buildOrderFields(fd, lang, includeEmpty){
   if(win8060Count>0 || includeEmpty){
     sections.push({ section: S('window'), items: [
       E(L('windowCount'), win8060Count, 'win8060', win8060Count, 'number'),
-      E(L('windowColor'), colorName(fd.colorWindow||'RAL9005', lang), 'colorWindow', fd.colorWindow||'RAL9005'),
+      ESEL(L('windowColor'), 'colorWindow', fd.colorWindow||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorWindow||'RAL9005', lang)),
       ...placementRows('win8060', Math.max(win8060Count,1)),
     ]});
   }
@@ -269,7 +276,7 @@ function buildOrderFields(fd, lang, includeEmpty){
   if(fd.gutterYes || includeEmpty){
     sections.push({ section: S('gutter'), items: [
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'gutterYes', !!fd.gutterYes, fd.gutterYes ? YES[lang] : VALUE_NONE[lang]),
-      E(L('gutterColor'), colorName(fd.gutterColor||'RAL9005', lang), 'gutterColor', fd.gutterColor||'RAL9005'),
+      ESEL(L('gutterColor'), 'gutterColor', fd.gutterColor||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.gutterColor||'RAL9005', lang)),
     ]});
   }
 
@@ -330,7 +337,8 @@ function lightenSketchSvg(svg){
   return out;
 }
 
-// A rajzba beégetett magyar feliratokat lengyelre fordítja (a pontos cm-értékek változatlanok maradnak)
+// A rajzba beégetett magyar feliratokat lengyelre fordítja (a pontos cm-értékek változatlanok maradnak),
+// és kicsit csökkenti a betűméretet, mert a lengyel szövegek jellemzően hosszabbak.
 function translateSketchToPolish(svg){
   if(!svg) return svg;
   let out = svg;
@@ -341,6 +349,8 @@ function translateSketchToPolish(svg){
   out = out.replace(/>ajtó (\d+cm)</g, '>drzwi $1<');
   out = out.replace(/>nyílás (\d+cm)</g, '>otwór $1<');
   out = out.replace(/(\d+)\s?cm a (bal|jobb) saroktól/g, (m, num, side) => `${num} cm od ${side==='bal'?'lewego':'prawego'} rogu`);
+  out = out.replace(/font-size="7\.5"/g, 'font-size="6.3"');
+  out = out.replace(/font-size="9"/g, 'font-size="7.5"');
   return out;
 }
 function prepareColleagueSketch(svg){

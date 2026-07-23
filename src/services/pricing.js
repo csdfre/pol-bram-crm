@@ -245,7 +245,7 @@ function calculateQuote(formData) {
   // Válaszfal
   if (formData.wallYes) {
     const wallLenM = parseFloat(formData.wallLength) || 0;
-    if (wallLenM > 0) lines.push(line(`Válaszfal (${wallLenM} fm)`, ADDON.dividerWallPerMb * wallLenM));
+    if (wallLenM > 0) lines.push(line(`Válaszfal (${wallLenM} fm)`, ADDON.dividerWallPerMb * wallLenM * (1 + heightPct)));
   }
 
   // Oldaltető / előtető falak (durva közelítés: hossz alapján, ha van megadva)

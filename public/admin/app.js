@@ -73,7 +73,7 @@ async function loadCustomers() {
   const tbody = document.getElementById('customerTableBody');
   tbody.innerHTML = rows.map(r => `
     <tr>
-      <td>${esc(r.name)}</td>
+      <td>${esc(r.name)} ${r.customer_edited_at ? `<span title="Az ügyfél módosította az adatait" style="background:#F2B705;color:#20242A;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:6px">MÓDOSÍTOTT</span>` : ''}</td>
       <td>${esc(r.zip)} ${esc(r.city)}, ${esc(r.address)}</td>
       <td>${esc(r.phone)}</td>
       <td>${esc(r.email)}</td>
