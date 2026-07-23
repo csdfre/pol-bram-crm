@@ -68,8 +68,13 @@ async function checkSession() {
   }
 }
 
+let allCustomers = [];
 async function loadCustomers() {
-  const rows = await api('/admin/customers');
+  allCustomers = await api('/admin/customers');
+  renderCustomerTable(allCustomers);
+}
+
+function renderCustomerTable(rows) {
   const tbody = document.getElementById('customerTableBody');
   tbody.innerHTML = rows.map(r => `
     <tr>
@@ -81,7 +86,14 @@ async function loadCustomers() {
       <td><span class="status-pill status-${r.status}">${STATUS_LABELS[r.status] || r.status}</span></td>
       <td><button class="link-btn" onclick="openDetail(${r.id})">Megnyitás</button></td>
     </tr>
-  `).join('');
+  `).join('') || '<tr><td colspan="7" style="color:#7a828a;text-align:center">Nincs találat.</td></tr>';
+}
+
+function filterCustomers() {
+  const q = document.getElementById('customerSearchInput').value.trim().toLowerCase();
+  if (!q) { renderCustomerTable(allCustomers); return; }
+  const filtered = allCustomers.filter(r => (r.name || '').toLowerCase().includes(q));
+  renderCustomerTable(filtered);
 }
 
 function esc(s) {
@@ -185,8 +197,63 @@ function renderModal() {
     ${c.colleague_approved ? `<p style="margin-top:10px;color:var(--accept)">✓ A kolléganő jóváhagyta a megrendelőlapot.</p>` : ''}
     ${c.modify_request_text ? `<div class="complaint-box" style="border-color:#454C54;background:#f4f5f6"><h3 style="margin-top:0;color:#454C54">Ügyfél módosítást kért (${new Date(c.modify_request_at).toLocaleString('hu-HU')})</h3><p>${esc(c.modify_request_text)}</p></div>` : ''}
     ${c.reject_reason ? `<div class="complaint-box" style="border-color:#8a8a8a;background:#f0f0f0"><h3 style="margin-top:0;color:#555">Ügyfél elutasította az ajánlatot (${new Date(c.reject_at).toLocaleString('hu-HU')})</h3><p>${esc(c.reject_reason)}</p></div>` : ''}
+
+    <hr>
+    <h3>Email levelezés</h3>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="loadEmailThread()">Levelezés betöltése</button>
+    </div>
+    <div id="emailThreadBox"></div>
+    <div style="margin-top:14px">
+      <label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Válasz tárgya</label>
+      <input type="text" id="replySubject" value="Re: Pol-Bram" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:4px;margin-bottom:8px">
+      <label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Válasz szövege</label>
+      <textarea id="replyMessage" style="width:100%;min-height:100px;padding:8px;border:1px solid var(--line);border-radius:4px"></textarea>
+      <button class="btn-main" style="margin-top:8px" onclick="sendReplyEmail()">Válasz küldése</button>
+      <div id="replyStatus" style="margin-top:6px;font-size:0.85rem"></div>
+    </div>
   `;
   document.getElementById('modalContent').innerHTML = html;
+}
+
+async function loadEmailThread(){
+  const box = document.getElementById('emailThreadBox');
+  box.innerHTML = '<p style="color:#7a828a;font-size:0.85rem">Betöltés...</p>';
+  try {
+    const messages = await api(`/admin/customers/${currentCustomer.id}/emails`);
+    if(!messages.length){
+      box.innerHTML = '<p style="color:#7a828a;font-size:0.85rem">Nincs még levelezés ezzel az email-címmel.</p>';
+      return;
+    }
+    box.innerHTML = messages.map(m => `
+      <div style="border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:8px;background:${m.direction==='sent'?'#fafbfb':'#fff7e0'}">
+        <div style="font-size:0.72rem;color:#7a828a;margin-bottom:4px">
+          <strong>${m.direction==='sent' ? 'Mi küldtük' : 'Ügyféltől érkezett'}</strong> — ${new Date(m.date).toLocaleString('hu-HU')} — ${esc(m.subject)}
+        </div>
+        <div style="font-size:0.85rem;white-space:pre-wrap;max-height:150px;overflow:auto">${esc(m.text).slice(0,1500)}</div>
+      </div>
+    `).join('');
+  } catch(e){
+    box.innerHTML = `<p style="color:#b23a3a;font-size:0.85rem">Hiba: ${esc(e.message)}</p>`;
+  }
+}
+
+async function sendReplyEmail(){
+  const subject = document.getElementById('replySubject').value;
+  const message = document.getElementById('replyMessage').value;
+  if(!message.trim()) return alert('Írj be egy üzenetet.');
+  const statusEl = document.getElementById('replyStatus');
+  statusEl.textContent = 'Küldés...';
+  try {
+    await api(`/admin/customers/${currentCustomer.id}/reply-email`, { method:'POST', body: JSON.stringify({ subject, message }) });
+    statusEl.textContent = 'Elküldve.';
+    statusEl.style.color = 'var(--accept)';
+    document.getElementById('replyMessage').value = '';
+    loadEmailThread();
+  } catch(e){
+    statusEl.textContent = 'Hiba: '+e.message;
+    statusEl.style.color = '#b23a3a';
+  }
 }
 
 function renderQuoteTable(quote) {

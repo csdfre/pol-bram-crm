@@ -403,6 +403,8 @@ function colleaguePage(c){
   const fd = JSON.parse(c.form_data || '{}');
   const quote = c.price_breakdown ? JSON.parse(c.price_breakdown) : null;
   const sections = buildOrderFields(fd, 'pl', true);
+  const companySection = sections.find(s => s.items.some(it => it.key === 'custCompanyName'));
+  const otherSections = sections.filter(s => !s.items.some(it => it.key === 'custCompanyName'));
   const lightSketch = c.sketch_svg ? prepareColleagueSketch(c.sketch_svg) : '';
 
   return `<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><title>Zamówienie – ${escapeHtml(c.name)}</title>
@@ -450,11 +452,12 @@ function colleaguePage(c){
     </div>
 
     ${fd.truckParkingDistance ? `<p style="background:#fff7e0;border:1px solid #F2B705;padding:8px 12px;border-radius:4px;font-size:0.85rem"><strong>Parkowanie ciężarówki przy miejscu montażu:</strong> ${escapeHtml(fd.truckParkingDistance)}</p>` : ''}
+    ${companySection ? editableSectionHtml(companySection) : ''}
     ${lightSketch ? `<div class="sketch">${lightSketch}</div>` : ''}
 
     <div class="two-col">
-      <div>${sections.slice(0, Math.ceil(sections.length/2)).map(editableSectionHtml).join('')}</div>
-      <div>${sections.slice(Math.ceil(sections.length/2)).map(editableSectionHtml).join('')}</div>
+      <div>${otherSections.slice(0, Math.ceil(otherSections.length/2)).map(editableSectionHtml).join('')}</div>
+      <div>${otherSections.slice(Math.ceil(otherSections.length/2)).map(editableSectionHtml).join('')}</div>
     </div>
 
     <div class="price-card">

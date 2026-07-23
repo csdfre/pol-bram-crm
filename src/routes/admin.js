@@ -409,4 +409,36 @@ router.post('/email-templates/:key/reset', (req, res) => {
   res.json({ ok: true, subject: def.subject, html_body: def.html_body });
 });
 
+// ---------------------------------------------------------------
+// Az ügyféllel folytatott email-levelezés lekérése (IMAP-on keresztül) + válasz küldése
+// ---------------------------------------------------------------
+router.get('/customers/:id/emails', async (req, res) => {
+  const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Nem található.' });
+  if (!c.email) return res.status(400).json({ error: 'Az ügyfélnek nincs email címe.' });
+  try {
+    const { fetchConversation } = require('../services/imapService');
+    const messages = await fetchConversation(c.email);
+    res.json(messages);
+  } catch (err) {
+    console.error('IMAP levelezés-lekérési hiba:', err);
+    res.status(500).json({ error: 'Nem sikerült lekérni a levelezést: ' + err.message });
+  }
+});
+
+router.post('/customers/:id/reply-email', async (req, res) => {
+  const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Nem található.' });
+  const { subject, message } = req.body;
+  if (!message || !message.trim()) return res.status(400).json({ error: 'A levél szövege nem lehet üres.' });
+  try {
+    const html = `<div style="font-family:Arial,sans-serif;white-space:pre-wrap">${message.replace(/[&<>"']/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch]))}</div>`;
+    await email.sendMail({ to: c.email, subject: subject || 'Re: Pol-Bram', html });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Válasz-email küldési hiba:', err);
+    res.status(500).json({ error: 'Nem sikerült elküldeni a választ: ' + err.message });
+  }
+});
+
 module.exports = router;

@@ -38,6 +38,9 @@
     </div>
 
     <div id="customersView">
+      <div style="margin-bottom:14px">
+        <input type="text" id="customerSearchInput" placeholder="Keresés név alapján..." oninput="filterCustomers()" style="width:100%;max-width:320px;padding:10px 14px;border:1px solid var(--line);border-radius:4px;font-size:0.9rem">
+      </div>
       <table id="customerTable">
         <thead>
           <tr>

@@ -21,17 +21,27 @@ const DEFAULT_TEMPLATES = [
     label: 'Árajánlat kiküldése az ügyfélnek',
     subject: 'Egyedi árajánlata elkészült – Pol-Bram',
     html_body: `<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#f4f5f6">
-  <div style="background:#20242A;padding:22px 26px;border-bottom:4px solid #F2B705;display:flex;align-items:center;justify-content:space-between">
-    <span style="color:#fff;font-size:18px;font-weight:bold;text-transform:uppercase;letter-spacing:0.03em">Árajánlat</span>
-    {{logoHtml}}
-  </div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#20242A;border-bottom:4px solid #F2B705">
+    <tr>
+      <td style="padding:22px 26px;color:#fff;font-size:18px;font-weight:bold;text-transform:uppercase;letter-spacing:0.03em;vertical-align:middle">Árajánlat</td>
+      <td style="padding:22px 26px;text-align:right;vertical-align:middle">{{logoHtml}}</td>
+    </tr>
+  </table>
 
   <div style="background:#fff;padding:26px 30px 10px">
     <p style="font-size:15px">Kedves {{name}}!</p>
     <p style="font-size:15px;color:#454C54">Az Ön által kért garázs egyedi árajánlata alább található.</p>
   </div>
 
-  <div style="background:#fff;padding:0 30px 26px">
+  <div style="background:#fafbfb;padding:26px 30px;border-top:1px solid #e6e8ea;border-bottom:1px solid #e6e8ea">
+    {{detailsHtml}}
+  </div>
+
+  <div style="background:#fff;padding:26px 30px 0">
+    {{sketchHtml}}
+  </div>
+
+  <div style="background:#fff;padding:10px 30px 26px">
     <div style="background:#F2B705;color:#20242A;border-radius:8px;padding:22px;text-align:center">
       <div style="font-size:28px;font-weight:700">{{price}}</div>
     </div>
@@ -43,15 +53,7 @@ const DEFAULT_TEMPLATES = [
       <a href="{{rejectUrl}}" style="background:#b23a3a;color:#fff;text-decoration:none;padding:13px 22px;border-radius:4px;font-weight:bold;display:inline-block;margin:4px">Elutasítom</a>
     </p>
     <p style="font-size:0.85em;color:#7a828a;text-align:center">Ha kérdése van az ajánlattal kapcsolatban, egyszerűen válaszoljon erre az e-mailre.</p>
-  </div>
-
-  <div style="background:#fafbfb;padding:26px 30px;border-top:1px solid #e6e8ea;border-bottom:1px solid #e6e8ea">
-    {{detailsHtml}}
-  </div>
-
-  <div style="background:#fff;padding:26px 30px">
-    {{sketchHtml}}
-    <p style="text-align:center;margin-top:20px">Üdvözlettel,<br>Pol-Bram csapata</p>
+    <p style="text-align:center">Üdvözlettel,<br>Pol-Bram csapata</p>
   </div>
 </div>`,
   },

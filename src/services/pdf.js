@@ -74,6 +74,7 @@ const SECTION_LABELS = {
   window: { hu: 'Bukó ablak (80×60)', pl: 'Okno uchylne (80×60)' },
   gutter: { hu: 'Ereszcsatorna', pl: 'Rynna' },
   felt: { hu: 'Páralecsapódás-gátló filc', pl: 'Filc antykondensacyjny' },
+  company: { hu: 'Cégadatok (áfás számlához)', pl: 'Dane firmy (do faktury VAT)' },
 };
 const FIELD_LABELS = {
   width: { hu: 'Szélesség', pl: 'Szerokość' },
@@ -325,6 +326,17 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
   if(fd.feltYes || includeEmpty){
     sections.push({ section: S('felt'), items: [
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'feltYes', !!fd.feltYes, fd.feltYes ? YES[lang] : VALUE_NONE[lang]),
+    ]});
+  }
+
+  if(fd.custInvoice === 'igen' || includeEmpty){
+    const invoiceOptions = { hu: [['nem','Nem'],['igen','Igen']], pl: [['nem','Nie'],['igen','Tak']] };
+    sections.push({ section: S('company'), items: [
+      ESEL(lang==='pl'?'Potrzebna faktura VAT':'Áfás számlát igényel', 'custInvoice', fd.custInvoice||'nem', invoiceOptions[lang], fd.custInvoice==='igen' ? YES[lang] : VALUE_NONE[lang]),
+      E(lang==='pl'?'Nazwa firmy':'Cégnév', fd.custCompanyName||'—', 'custCompanyName', fd.custCompanyName),
+      E(lang==='pl'?'NIP UE':'Közösségi adószám', fd.custCompanyVat||'—', 'custCompanyVat', fd.custCompanyVat),
+      E(lang==='pl'?'Adres firmy':'Cég címe', fd.custCompanyAddress||'—', 'custCompanyAddress', fd.custCompanyAddress),
+      E(lang==='pl'?'Adres dostawy (jeśli inny)':'Szállítási cím (ha eltér)', fd.custCompanyShipping||'—', 'custCompanyShipping', fd.custCompanyShipping),
     ]});
   }
 
