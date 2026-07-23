@@ -1,124 +1,110 @@
 /**
- * Excel-kalkulátor beolvasó — a feltöltött .xlsm/.xlsx fájlból megpróbálja kiolvasni
- * az árazási táblát és a kiegészítők árait, felismerhető (lengyel) címkék alapján.
+ * Excel-kalkulátor beolvasó — a "Garaż_kalkulator_wegry.xlsm" (vagy azonos elrendezésű) fájl
+ * PONTOS cellahivatkozásai alapján olvassa ki az árakat (nem találgatással/címke-kereséssel,
+ * mert az korábban megbízhatatlannak bizonyult a valós fájlon).
  *
- * FONTOS: ez egy címke-alapú, "legjobb próbálkozás" elemzés, nem garantált 1:1 leképezés —
- * a feltöltés után a backoffice-ban MINDIG mutassuk meg az admin számára az összehasonlítást
- * (régi vs. új érték), és csak jóváhagyás után mentsük el ténylegesen.
+ * FONTOS: ha a fájl elrendezése (melyik lapon, melyik sorban/oszlopban vannak az adatok)
+ * jelentősen megváltozik a jövőben, ezt a cellatérképet is frissíteni kell.
  */
 const XLSX = require('xlsx');
 
-const BRACKET_LABELS = {
-  typowy: ['garaż typowy', 'typowy'],
-  mala: ['mała hala', 'mala hala'],
-  srednia: ['średnia hala', 'srednia hala'],
-  duza: ['duża hala', 'duza hala'],
+function getSheet(wb, name){
+  return wb.Sheets[name] || null;
+}
+function cellNum(ws, addr){
+  const cell = ws[addr];
+  if(!cell) return null;
+  const v = cell.v;
+  return (typeof v === 'number') ? v : (typeof v === 'string' && !isNaN(parseFloat(v)) ? parseFloat(v) : null);
+}
+
+// A "Cennik Garaż" munkalap pontos cellatérképe
+const BASE_TABLE_MAP = {
+  typowy:  { spad_tyl: 4,  spad_bok: 5,  dwuspad: 6,  spad_przod: 7  },
+  mala:    { spad_tyl: 11, spad_bok: 12, dwuspad: 13, spad_przod: 14 },
+  srednia: { spad_tyl: 18, spad_bok: 19, dwuspad: 20, spad_przod: 21 },
+  duza:    { spad_tyl: 25, spad_bok: 26, dwuspad: 27, spad_przod: 28 },
 };
-const ROOF_LABELS = {
-  dwuspad: ['dwuspad'],
-  spad_tyl: ['spad tył', 'spad tyl'],
-  spad_przod: ['spad przód', 'spad przod'],
-  spad_bok: ['spad bok'],
+// Oszlopok: C=OC, D=RAL, E=DREW (mindegyik bracketnél ugyanígy)
+const MATERIAL_COLS = { OC: 'C', RAL: 'D', DREW: 'E' };
+
+const ADDON_CELL_MAP = {
+  gateSwingPerMb:          { OC: 'F40', RAL: 'D40', DREW: 'E40' },
+  automation:              { single: 'D42' }, // "ZWYKŁY" / normál
+  gateDoublePerPc:         { OC: 'F44', RAL: 'D44', DREW: 'E44' },
+  skylight:                { single: 'D46' }, // Świetlik
+  doorProfil:              { OC: 'F50', RAL: 'D50', DREW: 'E50' }, // Furtka na profilu
+  window8060:              { single: 'D51' }, // Okno 80/60
+  window150x50:            { single: 'F51' }, // Okno 120/100
+  windowOpening:           { single: 'D52' }, // Otwór okienny
+  gutterStripPerMb:        { single: 'D54' }, // Pas rynnowy
+  gutterCompletePerMb:     { single: 'D56' }, // Orynnowanie komplet
+  dividerWallPerMb:        { single: 'D58' }, // Ściana działowa
+  supportPole:             { single: 'D59' }, // Słup podporowy
+  canopyPanelRoofRAL:      { single: 'D61' }, // Zadaszenie panelowe RAL
+  canopyPanelRoofDREW:     { single: 'E61' },
+  canopyOpenPerM2:         { single: 'D63' }, // Zadaszenie otwarte
+  canopySheetRoofPerMb:    { single: 'D65' }, // Zadaszenie oblachowane
+  canopySolidWallPerMb:    { single: 'G65' }, // Sciana oblachowana
+  feltPerM2:               { single: 'D67' }, // Filc na dach
+  structureZartprofilPerMb:{ single: 'D69' }, // Mnożnik konstrukcji profilowej
 };
-const MATERIAL_LABELS = { OC: ['oc'], RAL: ['ral'], DREW: ['drew'] };
-
-const ADDON_LABELS = {
-  automation: ['automatyka'],
-  windowOpening: ['otwór okienny', 'otwor okienny'],
-  skylight: ['świetlik', 'swietlik'],
-  gutterPerMb: ['rynna'],
-  feltPerM2: ['filc'],
-  dividerWallPerMb: ['ściana działowa', 'sciana dzialowa'],
-  structureZartprofilPerMb: ['mnożnik konstrukcji profilowej', 'mnoznik konstrukcji profilowej'],
-  window8060: ['okno', '80/60'],
-  window150x50: ['120/100'],
-};
-
-function normalize(s){
-  return String(s || '').toLowerCase().trim();
-}
-
-function cellsToGrid(worksheet){
-  return XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-}
-
-function findFirstNumberNear(grid, r, c, radius=4){
-  // Jobbra és lefelé keresünk a legközelebbi számértékig, a megadott sugárban
-  for(let dc=1; dc<=radius; dc++){
-    const v = grid[r] && grid[r][c+dc];
-    if(typeof v === 'number') return v;
-  }
-  for(let dr=1; dr<=radius; dr++){
-    const v = grid[r+dr] && grid[r+dr][c];
-    if(typeof v === 'number') return v;
-  }
-  return null;
-}
-
-function findLabelCell(grid, labels){
-  for(let r=0;r<grid.length;r++){
-    for(let c=0;c<(grid[r]?grid[r].length:0);c++){
-      const v = normalize(grid[r][c]);
-      if(labels.some(l => v.includes(l))) return { r, c };
-    }
-  }
-  return null;
-}
 
 function parseWorkbook(buffer){
   const wb = XLSX.read(buffer, { type: 'buffer' });
+  const ws = getSheet(wb, 'Cennik Garaż');
   const result = { basePriceTable: {}, addon: {}, foundKeys: [], missingKeys: [] };
 
-  // Minden munkalapot egy közös rácsba fésülünk (a legtöbb ilyen kalkulátor egy lapon van, de több lapot is átnézünk)
-  let combinedGrid = [];
-  wb.SheetNames.forEach(name=>{
-    const grid = cellsToGrid(wb.Sheets[name]);
-    combinedGrid = combinedGrid.concat(grid);
-  });
+  if(!ws){
+    result.missingKeys.push('sheet:Cennik Garaż (nem található ilyen nevű munkalap a fájlban)');
+    return result;
+  }
 
-  // --- Alap árazási tábla: bracket x tetőtípus x anyag ---
-  Object.keys(BRACKET_LABELS).forEach(bracketKey=>{
-    const bracketCell = findLabelCell(combinedGrid, BRACKET_LABELS[bracketKey]);
-    if(!bracketCell) { result.missingKeys.push('bracket:'+bracketKey); return; }
+  // --- Alap árazási tábla ---
+  Object.entries(BASE_TABLE_MAP).forEach(([bracketKey, roofRows])=>{
     result.basePriceTable[bracketKey] = {};
-    Object.keys(ROOF_LABELS).forEach(roofKey=>{
-      // A tetőtípus címkéjét a bracket cellája környékén (kb. 15 soron belül) keressük
-      let roofCell = null;
-      for(let r=bracketCell.r; r<Math.min(bracketCell.r+15, combinedGrid.length); r++){
-        for(let c=0;c<(combinedGrid[r]?combinedGrid[r].length:0);c++){
-          const v = normalize(combinedGrid[r][c]);
-          if(ROOF_LABELS[roofKey].some(l=>v.includes(l))){ roofCell = {r,c}; break; }
-        }
-        if(roofCell) break;
-      }
-      if(!roofCell) return;
-      result.basePriceTable[bracketKey][roofKey] = {};
-      Object.keys(MATERIAL_LABELS).forEach(matKey=>{
-        // Az anyag (OC/RAL/DREW) fejlécét a roofCell sorában/közelében keressük, majd az alatta lévő számot vesszük
-        for(let c=Math.max(0,roofCell.c-2); c<roofCell.c+8; c++){
-          const v = normalize(combinedGrid[roofCell.r] ? combinedGrid[roofCell.r][c] : '');
-          if(MATERIAL_LABELS[matKey].some(l=>v===l || v.includes(l))){
-            const num = findFirstNumberNear(combinedGrid, roofCell.r, c, 3);
-            if(num!=null) result.basePriceTable[bracketKey][roofKey][matKey] = num;
-          }
-        }
+    Object.entries(roofRows).forEach(([roofKey, row])=>{
+      const entry = {};
+      Object.entries(MATERIAL_COLS).forEach(([matKey, col])=>{
+        const val = cellNum(ws, col+row);
+        if(val!=null) entry[matKey] = val;
       });
-      if(Object.keys(result.basePriceTable[bracketKey][roofKey]).length===0){
-        delete result.basePriceTable[bracketKey][roofKey];
-      } else {
+      if(Object.keys(entry).length>0){
+        result.basePriceTable[bracketKey][roofKey] = entry;
         result.foundKeys.push(`${bracketKey}.${roofKey}`);
+      } else {
+        result.missingKeys.push(`${bracketKey}.${roofKey}`);
       }
     });
   });
 
   // --- Kiegészítők ---
-  Object.keys(ADDON_LABELS).forEach(addonKey=>{
-    const cell = findLabelCell(combinedGrid, ADDON_LABELS[addonKey]);
-    if(!cell){ result.missingKeys.push('addon:'+addonKey); return; }
-    const num = findFirstNumberNear(combinedGrid, cell.r, cell.c, 5);
-    if(num!=null){ result.addon[addonKey] = num; result.foundKeys.push('addon:'+addonKey); }
-    else result.missingKeys.push('addon:'+addonKey);
+  Object.entries(ADDON_CELL_MAP).forEach(([addonKey, cells])=>{
+    if(cells.single){
+      const val = cellNum(ws, cells.single);
+      if(val!=null){ result.addon[addonKey] = val; result.foundKeys.push('addon:'+addonKey); }
+      else result.missingKeys.push('addon:'+addonKey);
+    } else {
+      const entry = {};
+      Object.entries(cells).forEach(([matKey, addr])=>{
+        const val = cellNum(ws, addr);
+        if(val!=null) entry[matKey] = val;
+      });
+      if(Object.keys(entry).length>0){ result.addon[addonKey] = entry; result.foundKeys.push('addon:'+addonKey); }
+      else result.missingKeys.push('addon:'+addonKey);
+    }
   });
+
+  // A gutterPerMb-t (amit a jelenlegi árazó motor ténylegesen használ) a "komplett" és "csík" értékek
+  // átlagaként adjuk meg, amíg a rendszer nem különbözteti meg a kétféle ereszcsatorna-típust.
+  if(result.addon.gutterStripPerMb!=null && result.addon.gutterCompletePerMb!=null){
+    result.addon.gutterPerMb = Math.round((result.addon.gutterStripPerMb + result.addon.gutterCompletePerMb)/2);
+    result.foundKeys.push('addon:gutterPerMb (átlagolt)');
+  }
+  // canopyLamellaWallPerMb-re nincs egyértelmű megfelelő tétel ebben a fájlban — ha nem találjuk, a régi/alapérték marad
+  if(result.addon.canopyPanelRoofRAL!=null){
+    result.addon.canopySolidWallPerMb = result.addon.canopySolidWallPerMb; // változatlan, csak jelezzük, hogy külön van panel-tető ár is
+  }
 
   return result;
 }
