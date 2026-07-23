@@ -21,17 +21,28 @@ const DEFAULT_TEMPLATES = [
     label: 'Árajánlat kiküldése az ügyfélnek',
     subject: 'Egyedi árajánlata elkészült – Pol-Bram',
     html_body: `<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#f4f5f6">
-  <div style="background:#20242A;padding:22px 26px;border-bottom:4px solid #F2B705;text-align:center">
+  <div style="background:#20242A;padding:22px 26px;border-bottom:4px solid #F2B705;display:flex;align-items:center;justify-content:space-between">
+    <span style="color:#fff;font-size:18px;font-weight:bold;text-transform:uppercase;letter-spacing:0.03em">Árajánlat</span>
     {{logoHtml}}
   </div>
 
-  <div style="background:#fff;padding:26px 30px">
+  <div style="background:#fff;padding:26px 30px 10px">
     <p style="font-size:15px">Kedves {{name}}!</p>
     <p style="font-size:15px;color:#454C54">Az Ön által kért garázs egyedi árajánlata alább található.</p>
   </div>
 
   <div style="background:#fff;padding:0 30px 26px">
-    {{sketchHtml}}
+    <div style="background:#F2B705;color:#20242A;border-radius:8px;padding:22px;text-align:center">
+      <div style="font-size:28px;font-weight:700">{{price}}</div>
+    </div>
+    {{cashNoteHtml}}
+
+    <p style="text-align:center;margin:24px 0 10px">
+      <a href="{{acceptUrl}}" style="background:#2F6B4F;color:#fff;text-decoration:none;padding:13px 22px;border-radius:4px;font-weight:bold;display:inline-block;margin:4px">Ajánlat elfogadása</a>
+      <a href="{{modifyUrl}}" style="background:#454C54;color:#fff;text-decoration:none;padding:13px 22px;border-radius:4px;font-weight:bold;display:inline-block;margin:4px">Módosítást szeretnék</a>
+      <a href="{{rejectUrl}}" style="background:#b23a3a;color:#fff;text-decoration:none;padding:13px 22px;border-radius:4px;font-weight:bold;display:inline-block;margin:4px">Elutasítom</a>
+    </p>
+    <p style="font-size:0.85em;color:#7a828a;text-align:center">Ha kérdése van az ajánlattal kapcsolatban, egyszerűen válaszoljon erre az e-mailre.</p>
   </div>
 
   <div style="background:#fafbfb;padding:26px 30px;border-top:1px solid #e6e8ea;border-bottom:1px solid #e6e8ea">
@@ -39,18 +50,8 @@ const DEFAULT_TEMPLATES = [
   </div>
 
   <div style="background:#fff;padding:26px 30px">
-    <div style="background:linear-gradient(135deg,#20242A,#2c333b);color:#fff;border-radius:8px;padding:22px;text-align:center">
-      <div style="font-size:28px;font-weight:700">{{price}}</div>
-    </div>
-
-    <p style="text-align:center;margin:28px 0 10px">
-      <a href="{{acceptUrl}}" style="background:#2F6B4F;color:#fff;text-decoration:none;padding:13px 22px;border-radius:4px;font-weight:bold;display:inline-block;margin:4px">Ajánlat elfogadása</a>
-      <a href="{{modifyUrl}}" style="background:#454C54;color:#fff;text-decoration:none;padding:13px 22px;border-radius:4px;font-weight:bold;display:inline-block;margin:4px">Módosítást szeretnék</a>
-      <a href="{{rejectUrl}}" style="background:#b23a3a;color:#fff;text-decoration:none;padding:13px 22px;border-radius:4px;font-weight:bold;display:inline-block;margin:4px">Elutasítom</a>
-    </p>
-
-    <p style="font-size:0.85em;color:#7a828a;text-align:center">Ha kérdése van az ajánlattal kapcsolatban, egyszerűen válaszoljon erre az e-mailre.</p>
-    <p style="text-align:center">Üdvözlettel,<br>Pol-Bram csapata</p>
+    {{sketchHtml}}
+    <p style="text-align:center;margin-top:20px">Üdvözlettel,<br>Pol-Bram csapata</p>
   </div>
 </div>`,
   },

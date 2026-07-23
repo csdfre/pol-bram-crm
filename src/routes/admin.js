@@ -70,9 +70,13 @@ router.get('/customers/:id/editor', (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
   if (!c) return res.status(404).send('Nem található.');
   const fd = JSON.parse(c.form_data || '{}');
+  const prevFd = c.pre_edit_form_data ? JSON.parse(c.pre_edit_form_data) : null;
   const quote = c.price_breakdown ? JSON.parse(c.price_breakdown) : null;
-  const sections = buildOrderFields(fd, 'hu', true);
+  const sections = buildOrderFields(fd, 'hu', true, prevFd);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  if (c.pre_edit_form_data) {
+    db.prepare('UPDATE customers SET pre_edit_form_data = NULL WHERE id = ?').run(req.params.id);
+  }
 
   res.send(`<!DOCTYPE html><html lang="hu"><head><meta charset="UTF-8"><title>Adatok szerkesztése – ${esc(c.name)}</title>
   <style>
@@ -97,6 +101,7 @@ router.get('/customers/:id/editor', (req, res) => {
   </style></head><body>
   <div class="box">
     <h2>Adatok szerkesztése — ${esc(c.name)}</h2>
+    ${prevFd ? `<div style="background:#fff7e0;border:1px solid #F2B705;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:0.85rem"><strong>Az ügyfél módosított néhány adatot.</strong> A sárga kerettel jelölt mezők azok, amik az ügyfél szerkesztése előtti állapothoz képest megváltoztak.</div>` : ''}
     <div class="cust-grid">
       <div><span class="l">Név</span><input id="f_name" value="${esc(c.name)}"></div>
       <div><span class="l">Telefon</span><input id="f_phone" value="${esc(c.phone)}"></div>
@@ -225,7 +230,13 @@ router.post('/customers/:id/send-offer', async (req, res) => {
         console.error('Rajz PNG generálási hiba (email):', sketchErr);
       }
     }
-    await email.sendOffer(c, priceText, { detailsHtml, sketchBuffer, logoBuffer });
+    const isPrivateIndividual = fd.custInvoice !== 'igen';
+    let cashNoteHtml = '';
+    if (isPrivateIndividual) {
+      const discountedTotal = Math.round(quote.displayTotal * 0.85 / 100) * 100;
+      cashNoteHtml = `<p style="text-align:center;font-size:0.8em;color:#7a828a;margin-top:10px">Készpénzes fizetés esetén <strong>15% kedvezményt</strong> tudunk biztosítani a teljes összegből (kizárólag magánszemélyek részére). Kedvezményes végösszeg: <strong>${discountedTotal.toLocaleString('hu-HU')} Ft</strong>.</p>`;
+    }
+    await email.sendOffer(c, priceText, { detailsHtml, sketchBuffer, logoBuffer, cashNoteHtml });
     db.prepare('UPDATE customers SET status=?, offer_sent_at=?, reminder_sent_at=NULL, updated_at=? WHERE id=?')
       .run('ajanlat_kikuldve', new Date().toISOString(), new Date().toISOString(), c.id);
     logStatus(c.id, 'ajanlat_kikuldve', 'Ajánlat kiküldve az ügyfélnek');

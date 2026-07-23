@@ -242,8 +242,12 @@ router.post('/modify-offer/:token/save', (req, res) => {
   if (merged.__gateType) merged.gateType = merged.__gateType; // szinkronban tartjuk a két kulcsot
   const quote = calculateQuote(merged);
   const now = new Date().toISOString();
-  db.prepare('UPDATE customers SET form_data=?, price_huf=?, price_breakdown=?, customer_edited_at=?, updated_at=? WHERE id=?')
-    .run(JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), now, now, c.id);
+  // Csak akkor mentjük el "az admin által utoljára látott állapotot", ha még nincs elmentve —
+  // így ha az ügyfél többször is módosít, mielőtt az admin megnézné, mindig az EREDETI
+  // (admin által utoljára ismert) állapothoz képest látszik, mi változott.
+  const preEditData = c.pre_edit_form_data || c.form_data;
+  db.prepare('UPDATE customers SET form_data=?, price_huf=?, price_breakdown=?, customer_edited_at=?, pre_edit_form_data=?, updated_at=? WHERE id=?')
+    .run(JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), now, preEditData, now, c.id);
   logStatus(c.id, c.status, 'Ügyfél módosította az ajánlat tételeit, ár újraszámolva');
 
   if (process.env.ADMIN_NOTIFY_EMAIL) {

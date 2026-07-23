@@ -125,6 +125,8 @@ const COLOR_NAMES = {
   WALNUT: { hu: 'Dió', pl: 'Orzech' },
   WINCH: { hu: 'Winchester', pl: 'Winchester' },
   GOLDOAK: { hu: 'Arany tölgy', pl: 'Złoty dąb' },
+  GRAFIT: { hu: 'Grafit', pl: 'Grafit' },
+  BARNA: { hu: 'Barna', pl: 'Brązowy' },
 };
 function colorName(code, lang){
   if(!code) return VALUE_NONE[lang];
@@ -160,6 +162,14 @@ function buildOptions(dict, lang){
   return Object.entries(dict).map(([code, names]) => [code, names[lang] || code]);
 }
 const COLOR_OPTIONS = { hu: buildOptions(COLOR_NAMES,'hu'), pl: buildOptions(COLOR_NAMES,'pl') };
+// Az ablak és az ereszcsatorna csak egy szűkített szín-választékot kínál (ugyanaz, mint az ügyfél-oldali formon)
+const WINDOW_COLOR_CODES = ['RAL9005','RAL7016-M','RAL9010','WALNUT','GOLDOAK','WINCH'];
+const GUTTER_COLOR_CODES = ['GRAFIT','BARNA'];
+function filterOptions(fullOptions, codes){
+  return fullOptions.filter(([code]) => codes.includes(code));
+}
+const WINDOW_COLOR_OPTIONS = { hu: filterOptions(COLOR_OPTIONS.hu, WINDOW_COLOR_CODES), pl: filterOptions(COLOR_OPTIONS.pl, WINDOW_COLOR_CODES) };
+const GUTTER_COLOR_OPTIONS = { hu: filterOptions(COLOR_OPTIONS.hu, GUTTER_COLOR_CODES), pl: filterOptions(COLOR_OPTIONS.pl, GUTTER_COLOR_CODES) };
 const ROOF_OPTIONS_FULL = { hu: buildOptions(ROOF_NAMES,'hu'), pl: buildOptions(ROOF_NAMES,'pl') };
 const STRUCTURE_OPTIONS = { hu: buildOptions(STRUCTURE_NAMES,'hu'), pl: buildOptions(STRUCTURE_NAMES,'pl') };
 const PATTERN_OPTIONS = { hu: buildOptions(PATTERN_NAMES,'hu'), pl: buildOptions(PATTERN_NAMES,'pl') };
@@ -206,18 +216,24 @@ const GATE_TYPE_OPTIONS = {
   pl: [['none','Brak'],['uchylna','Uchylna'],['dwuskrz','Dwuskrzydłowa']],
 };
 
-function buildOrderFields(fd, lang, includeEmpty){
+function buildOrderFields(fd, lang, includeEmpty, prevFd){
   const gateType = fd.__gateType || fd.gateType || 'none';
   const gateCount = parseInt(fd.gateCount)||0;
   const personalDoorCount = fd.personalDoorYes ? (parseInt(fd.personalDoorCount)||0) : 0;
   const win8060Count = parseInt(fd.win8060)||0;
   const L = (key) => (FIELD_LABELS[key] && FIELD_LABELS[key][lang]) || key;
   const S = (key) => (SECTION_LABELS[key] && SECTION_LABELS[key][lang]) || key;
+  const isChanged = (key) => {
+    if (!prevFd || !key) return false;
+    const a = fd[key]===undefined || fd[key]===null ? '' : String(fd[key]);
+    const b = prevFd[key]===undefined || prevFd[key]===null ? '' : String(prevFd[key]);
+    return a !== b;
+  };
   // item formátum: { label, value (megjelenített szöveg), key (form_data kulcs, vagy null ha nem szerkeszthető),
-  //                   raw (nyers érték), type: 'text'|'number'|'select'|'checkbox', options }
-  const E = (label, display, key, raw, type) => ({ label, value: display, key: key||null, raw: raw!==undefined?raw:display, type: type||'text' });
-  const ESEL = (label, key, raw, options, display) => ({ label, value: display!==undefined?display:raw, key, raw, type:'select', options });
-  const ECHECK = (label, key, checked, display) => ({ label, value: display, key, raw: checked, type:'checkbox' });
+  //                   raw (nyers érték), type: 'text'|'number'|'select'|'checkbox', options, changed }
+  const E = (label, display, key, raw, type) => ({ label, value: display, key: key||null, raw: raw!==undefined?raw:display, type: type||'text', changed: isChanged(key) });
+  const ESEL = (label, key, raw, options, display) => ({ label, value: display!==undefined?display:raw, key, raw, type:'select', options, changed: isChanged(key) });
+  const ECHECK = (label, key, checked, display) => ({ label, value: display, key, raw: checked, type:'checkbox', changed: isChanged(key) });
 
   function placementRows(prefix, count, labelPrefix){
     const rows = [];
@@ -294,7 +310,7 @@ function buildOrderFields(fd, lang, includeEmpty){
   if(win8060Count>0 || includeEmpty){
     sections.push({ section: S('window'), items: [
       E(L('windowCount'), win8060Count, 'win8060', win8060Count, 'number'),
-      ESEL(L('windowColor'), 'colorWindow', fd.colorWindow||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorWindow||'RAL9005', lang)),
+      ESEL(L('windowColor'), 'colorWindow', fd.colorWindow||'RAL9005', WINDOW_COLOR_OPTIONS[lang], colorName(fd.colorWindow||'RAL9005', lang)),
       ...placementRows('win8060', Math.max(win8060Count,1)),
     ]});
   }
@@ -302,7 +318,7 @@ function buildOrderFields(fd, lang, includeEmpty){
   if(fd.gutterYes || includeEmpty){
     sections.push({ section: S('gutter'), items: [
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'gutterYes', !!fd.gutterYes, fd.gutterYes ? YES[lang] : VALUE_NONE[lang]),
-      ESEL(L('gutterColor'), 'gutterColor', fd.gutterColor||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.gutterColor||'RAL9005', lang)),
+      ESEL(L('gutterColor'), 'gutterColor', fd.gutterColor||'GRAFIT', GUTTER_COLOR_OPTIONS[lang], colorName(fd.gutterColor||'GRAFIT', lang)),
     ]});
   }
 
@@ -348,7 +364,9 @@ function editableSectionHtml(s){
           control = `<input type="${it.type==='number'?'number':'text'}" data-key="${escapeHtml(it.key)}" value="${escapeHtml(it.raw)}" style="width:100%;padding:4px 6px;border:1px solid #C7D0D6;border-radius:3px;font-size:11px">`;
         }
       }
-      return `<tr><td class="label">${escapeHtml(it.label)}</td><td>${control}</td></tr>`;
+      const changedStyle = it.changed ? 'background:#fff7e0;box-shadow:inset 3px 0 0 #F2B705' : '';
+      const changedBadge = it.changed ? '<span style="background:#F2B705;color:#20242A;font-size:9px;font-weight:bold;padding:1px 5px;border-radius:8px;margin-left:6px">MÓDOSULT</span>' : '';
+      return `<tr style="${changedStyle}"><td class="label">${escapeHtml(it.label)}${changedBadge}</td><td>${control}</td></tr>`;
     }).join('')}</table>
   </div>`;
 }
