@@ -27,6 +27,27 @@ async function renderHtmlToPdf(html) {
   }
 }
 
+// Az SVG-rajzot valódi PNG képpé alakítja (fehér háttérrel) — az email-kliensek ugyanis
+// nagyon megbízhatatlanul (vagy egyáltalán nem) jelenítik meg az élő SVG-t.
+async function renderSketchToPngDataUri(svgString){
+  if(!svgString) return null;
+  const lightSvg = lightenSketchSvg(svgString);
+  const browser = await getBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.setViewport({ width: 640, height: 480 });
+    await page.setContent(`<!DOCTYPE html><html><head><style>
+      body{margin:0;background:#fff;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;}
+      svg{width:100%;height:auto;max-width:600px;}
+    </style></head><body>${lightSvg}</body></html>`, { waitUntil: 'networkidle0' });
+    const el = await page.$('body');
+    const buffer = await el.screenshot({ type: 'png' });
+    return `data:image/png;base64,${buffer.toString('base64')}`;
+  } finally {
+    await page.close();
+  }
+}
+
 function escapeHtml(str) {
   return String(str == null ? '' : str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -493,4 +514,4 @@ async function generateOrderFormPdf(customer, quote, lang) {
   return renderHtmlToPdf(html);
 }
 
-module.exports = { generateOrderFormPdf, orderFormHtml, buildOrderFields, sectionHtml, editableSectionHtml, lightenSketchSvg, translateSketchToPolish, prepareColleagueSketch, priceCardHtml };
+module.exports = { generateOrderFormPdf, orderFormHtml, buildOrderFields, sectionHtml, editableSectionHtml, lightenSketchSvg, translateSketchToPolish, prepareColleagueSketch, priceCardHtml, renderSketchToPngDataUri, LOGO_B64 };

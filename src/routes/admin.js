@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../../db');
 const requireAuth = require('../middleware/requireAuth');
 const { calculateQuote } = require('../services/pricing');
-const { generateOrderFormPdf, buildOrderFields, sectionHtml, editableSectionHtml } = require('../services/pdf');
+const { generateOrderFormPdf, buildOrderFields, sectionHtml, editableSectionHtml, renderSketchToPngDataUri, LOGO_B64 } = require('../services/pdf');
 const email = require('../services/email');
 
 const router = express.Router();
@@ -216,8 +216,17 @@ router.post('/customers/:id/send-offer', async (req, res) => {
     const fd = JSON.parse(c.form_data || '{}');
     const sections = buildOrderFields(fd, 'hu');
     const detailsHtml = `<div>${sections.map(sectionHtml).join('')}</div>`;
-    const sketchHtml = c.sketch_svg ? `<div style="background:#161A1E;border-radius:8px;padding:14px;text-align:center;margin:16px 0">${c.sketch_svg}</div>` : '';
-    await email.sendOffer(c, priceText, { detailsHtml, sketchHtml });
+    const logoHtml = `<img src="data:image/png;base64,${LOGO_B64}" alt="Pol-Bram" style="height:32px;background:#fff;padding:6px 10px;border-radius:4px">`;
+    let sketchHtml = '';
+    if (c.sketch_svg) {
+      try {
+        const pngDataUri = await renderSketchToPngDataUri(c.sketch_svg);
+        sketchHtml = `<div style="border:1px solid #e6e8ea;border-radius:8px;padding:10px;text-align:center;margin:16px 0"><img src="${pngDataUri}" alt="Felülnézeti vázlat" style="max-width:100%;height:auto"></div>`;
+      } catch (sketchErr) {
+        console.error('Rajz PNG generálási hiba (email):', sketchErr);
+      }
+    }
+    await email.sendOffer(c, priceText, { detailsHtml, sketchHtml, logoHtml });
     db.prepare('UPDATE customers SET status=?, offer_sent_at=?, reminder_sent_at=NULL, updated_at=? WHERE id=?')
       .run('ajanlat_kikuldve', new Date().toISOString(), new Date().toISOString(), c.id);
     logStatus(c.id, 'ajanlat_kikuldve', 'Ajánlat kiküldve az ügyfélnek');

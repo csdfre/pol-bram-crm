@@ -34,6 +34,7 @@ async function sendOffer(customer, priceText, extra) {
     acceptUrl, modifyUrl, rejectUrl,
     detailsHtml: (extra && extra.detailsHtml) || '',
     sketchHtml: (extra && extra.sketchHtml) || '',
+    logoHtml: (extra && extra.logoHtml) || '',
   });
   return sendMail({ to: customer.email, subject, html });
 }
