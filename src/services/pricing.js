@@ -61,14 +61,15 @@ const ADDON_DEFAULT = {
   window150x50: 1000, // Okno 120/100 tétel alapján
   windowOpening: 100,
   skylight: 200,       // Świetlik / ablakbetét-bevilágító, zł/db
-  gutterPerMb: 55,     // átlagos (csík/komplett között), zł/fm
+  gutterPerMb: 80,     // Orynnowanie komplet, zł/fm
   feltPerM2: 20,       // páralecsapódásgátló filc, zł/m² (tetőfelület)
   dividerWallPerMb: 180,
   structureZartprofilPerMb: 65,
   gateWidthDeviationFlat: 500,       // ha a kapu szélessége eltér a 300 cm alaptól
   gateWideT7SurchargeFlat: 500,      // T7 vízszintes hátra/előre lejtő tetőnél
-  canopySolidWallPerMb: 140,         // oldaltető/előtető teli fala, zł/fm (közelítés)
-  canopyLamellaWallPerMb: 100,       // lamellás fal, zł/fm (közelítés)
+  canopySolidWallPerMb: 140,         // oldaltető/előtető teli fala (Sciana oblachowana), zł/fm
+  canopyLamellaWallPerMb: { OC: 200, RAL: 250, DREW: 350 }, // "Zadaszenie panelowe" — lamellás/panel fal, zł/fm
+  canopyRoofOpenPerM2: 150,          // Oldaltető/nyitott-fedett rész TETEJE (Zadaszenie otwarte), zł/m²
 };
 
 // --- Magasságfelár tábla (excess cm -> felár %) ---
@@ -147,9 +148,9 @@ function calculateQuote(formData) {
   const basePrice = perimeterMb * basePerMb * (1 + heightPct);
   lines.push(line(`Alapszerkezet (${perimeterMb.toFixed(1)} fm × ${basePerMb} zł/fm${heightPct ? ` + ${(heightPct * 100).toFixed(0)}% magasságfelár` : ''})`, basePrice));
 
-  // Szerkezet típusa (zárt profil felár)
+  // Szerkezet típusa (zárt profil felár) — terület (m²) alapján, magasságfelárral együtt
   if (formData.structureType === 'zartprofil') {
-    const v = perimeterMb * ADDON.structureZartprofilPerMb;
+    const v = m2 * ADDON.structureZartprofilPerMb * (1 + heightPct);
     lines.push(line('Horganyzott zárt profil felár', v));
   }
 
@@ -161,12 +162,18 @@ function calculateQuote(formData) {
     const count = Math.max(1, parseInt(formData.gateCount) || 1);
     const gateColor = materialFromColor(formData.colorGate);
 
+    const gateBaseline = effectiveGateType === 'uchylna' ? 185 : 200;
+    const gateExcessCm = Math.max(0, gh - gateBaseline);
+    const gateHeightPct = heightSurchargePct(gateExcessCm);
+
     if (effectiveGateType === 'uchylna') {
       const v = (gw / 100) * ADDON.gateSwingPerMb[gateColor] * count;
       lines.push(line(`Billenő kapu ×${count} (${gw} cm)`, v));
+      if (gateHeightPct > 0) lines.push(line(`Kapu magasságfelár (+${gateExcessCm}cm)`, v * gateHeightPct));
     } else {
       const v = ADDON.gateDoublePerPc[gateColor] * count;
       lines.push(line(`Kétszárnyú kapu ×${count}`, v));
+      if (gateHeightPct > 0) lines.push(line(`Kapu magasságfelár (+${gateExcessCm}cm)`, v * gateHeightPct));
     }
 
     if (gw !== 300) {
@@ -196,7 +203,7 @@ function calculateQuote(formData) {
   if (win8060 > 0) lines.push(line(`Bukó ablak 80×60 ×${win8060}`, ADDON.window8060 * win8060));
 
   const win50150 = parseInt(formData.win50150) || 0;
-  if (win50150 > 0) lines.push(line(`Fix ablak 150×50 ×${win50150}`, ADDON.window150x50 * win50150));
+  if (win50150 > 0) lines.push(line(`Fix ablak 50×150 ×${win50150}`, ADDON.window150x50 * win50150));
 
   const winOpening = parseInt(formData.winOpening) || 0;
   if (winOpening > 0) lines.push(line(`Ablaknyílás ×${winOpening}`, ADDON.windowOpening * winOpening));
@@ -211,12 +218,28 @@ function calculateQuote(formData) {
 
   // Ereszcsatorna
   if (formData.gutterYes) {
-    lines.push(line('Ereszcsatorna', ADDON.gutterPerMb * perimeterMb));
+    const heightM = heightCm / 100;
+    let gutterMbEquivalent = 0;
+    if (roofKey === 'spad_tyl' || roofKey === 'spad_przod') {
+      gutterMbEquivalent = widthM + heightM + Math.floor(widthM / 7) * heightM;
+    } else if (roofKey === 'dwuspad') {
+      gutterMbEquivalent = 2 * lengthM + 2 * heightM + 2 * Math.floor(lengthM / 7) * heightM;
+    } else { // spad_bok
+      gutterMbEquivalent = lengthM + heightM + Math.floor(lengthM / 7) * heightM;
+    }
+    const gutterCost = Math.floor(gutterMbEquivalent * ADDON.gutterPerMb);
+    lines.push(line('Ereszcsatorna', gutterCost));
   }
 
-  // Páralecsapódásgátló filc (tetőfelület alapján, közelítőleg = alapterület)
+  // Páralecsapódásgátló filc (a garázs tetőfelülete + az oldaltető teteje, ha van)
   if (formData.feltYes) {
-    lines.push(line('Páralecsapódás-gátló filc', ADDON.feltPerM2 * m2));
+    let feltArea = m2;
+    if (formData.canopyYes) {
+      const cW = (parseFloat(formData.canopyWidth) || 0) / 100;
+      const cL = (parseFloat(formData.canopyLength) || 0) / 100;
+      feltArea += cW * cL;
+    }
+    lines.push(line(`Páralecsapódás-gátló filc (${feltArea.toFixed(1)} m²)`, ADDON.feltPerM2 * feltArea));
   }
 
   // Válaszfal
@@ -228,10 +251,19 @@ function calculateQuote(formData) {
   // Oldaltető / előtető falak (durva közelítés: hossz alapján, ha van megadva)
   if (formData.canopyYes) {
     const canopyLenM = (parseFloat(formData.canopyLength) || 0) / 100;
-    if (formData.canopyBackWall === 'solid') lines.push(line('Oldaltető hátsó fala (teli)', ADDON.canopySolidWallPerMb * canopyLenM));
-    if (formData.canopyBackWall === 'lamella') lines.push(line('Oldaltető hátsó fala (lamellás)', ADDON.canopyLamellaWallPerMb * canopyLenM));
-    if (formData.canopySideWall === 'solid') lines.push(line('Oldaltető oldalfala (teli)', ADDON.canopySolidWallPerMb * canopyLenM));
-    if (formData.canopySideWall === 'lamella') lines.push(line('Oldaltető oldalfala (lamellás)', ADDON.canopyLamellaWallPerMb * canopyLenM));
+    const canopyWidthM = (parseFloat(formData.canopyWidth) || 0) / 100;
+    const lamellaRateBack = ADDON.canopyLamellaWallPerMb[materialFromColor(formData.colorCanopyBack)] || ADDON.canopyLamellaWallPerMb.RAL;
+    const lamellaRateSide = ADDON.canopyLamellaWallPerMb[materialFromColor(formData.colorCanopySide)] || ADDON.canopyLamellaWallPerMb.RAL;
+    if (formData.canopyBackWall === 'solid') lines.push(line('Oldaltető hátsó fala (teli)', ADDON.canopySolidWallPerMb * canopyLenM * (1 + heightPct)));
+    if (formData.canopyBackWall === 'lamella') lines.push(line('Oldaltető hátsó fala (lamellás)', lamellaRateBack * canopyLenM * (1 + heightPct)));
+    if (formData.canopySideWall === 'solid') lines.push(line('Oldaltető oldalfala (teli)', ADDON.canopySolidWallPerMb * canopyWidthM * (1 + heightPct)));
+    if (formData.canopySideWall === 'lamella') lines.push(line('Oldaltető oldalfala (lamellás)', lamellaRateSide * canopyWidthM * (1 + heightPct)));
+    if (canopyWidthM > 0 && canopyLenM > 0) {
+      lines.push(line(`Oldaltető tetőfedése (${(canopyWidthM*canopyLenM).toFixed(1)} m²)`, ADDON.canopyRoofOpenPerM2 * canopyWidthM * canopyLenM));
+    }
+  }
+  if (formData.ridgeShift) {
+    lines.push(line('Eltolt gerincvonal (szintbe futó magasság)', basePrice * 0.1));
   }
 
   const subtotalPLN = lines.reduce((s, l) => s + l.pln, 0);
@@ -242,7 +274,9 @@ function calculateQuote(formData) {
   }
 
   const discountPercent = loadScalarOverride('discount_percent', DISCOUNT_PERCENT_DEFAULT);
-  const discountedPLN = roundedPLN * (1 - discountPercent/100);
+  // FONTOS: a valós Excel-kalkulátorban ellenőrizve (N16/N18/N20 cellák tényleges értékei alapján)
+  // a "Rabat" mező a végösszeget NÖVELI, nem csökkenti (pl. -10% Rabat → alapár × 1,10).
+  const discountedPLN = roundedPLN * (1 + discountPercent/100);
 
   const totalHUFRaw = discountedPLN * PLN_TO_HUF; // ez a nettó összeg (kedvezmény után), kerekítés előtt
   const totalHUF = roundUpTo10000(totalHUFRaw); // felfelé kerekítve, hogy az utolsó 4 számjegy 0 legyen

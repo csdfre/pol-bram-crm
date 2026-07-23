@@ -402,7 +402,7 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
           <div class="qty-line"><div class="lbl">Bukó ablak 80×60 (db)<small class="hint" style="margin:0">≈41 500 Ft/db</small></div><input type="number" id="win8060" value="0" min="0"></div>
           <div class="toggle-extra" id="win8060PosField"><div id="win8060PosList"></div></div>
 
-          <div class="qty-line"><div class="lbl">Fix ablak 150×50 (db)<small class="hint" style="margin:0">≈83 100 Ft/db</small></div><input type="number" id="win50150" value="0" min="0"></div>
+          <div class="qty-line"><div class="lbl">Fix ablak 50×150 (db)<small class="hint" style="margin:0">≈83 100 Ft/db</small></div><input type="number" id="win50150" value="0" min="0"></div>
           <div class="toggle-extra" id="win50150PosField"><div id="win50150PosList"></div></div>
 
           <div class="qty-line"><div class="lbl">Ablaknyílás (keret nélkül, db)<small class="hint" style="margin:0">≈8 300 Ft/db</small></div><input type="number" id="winOpening" value="0" min="0"></div>
@@ -1722,7 +1722,7 @@ function buildSummary(){
     return lines;
   }
   if(w1) extras.push('Bukó ablak 80×60: '+w1+' db\n    '+unitPositionsTxt(w1,'win8060').join('\n    '));
-  if(w4) extras.push('Fix ablak 150×50: '+w4+' db\n    '+unitPositionsTxt(w4,'win50150').join('\n    '));
+  if(w4) extras.push('Fix ablak 50×150: '+w4+' db\n    '+unitPositionsTxt(w4,'win50150').join('\n    '));
   if(wo) extras.push('Ablaknyílás: '+wo+' db\n    '+unitPositionsTxt(wo,'winOpening').join('\n    '));
   if(sky) extras.push('Ablakbetét / bevilágító (60×27 cm): '+sky+' db\n    '+unitPositionsTxt(sky,'skylight').join('\n    '));
 
