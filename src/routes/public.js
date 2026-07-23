@@ -49,7 +49,7 @@ router.get('/garage-types/:id', (req, res) => {
 // ---------------------------------------------------------------
 router.post('/submit', async (req, res) => {
   try {
-    const { name, phone, email: custEmail, zip, city, address, formData, summaryText, sketchSvg } = req.body;
+    const { name, phone, email: custEmail, zip, city, address, formData, summaryText, sketchSvg, garageTypeUsed } = req.body;
 
     if (!custEmail) return res.status(400).json({ error: 'Hiányzik az e-mail cím.' });
 
@@ -61,11 +61,11 @@ router.post('/submit', async (req, res) => {
     const info = db.prepare(`
       INSERT INTO customers
         (created_at, updated_at, status, name, phone, email, zip, city, address, form_data, summary_text, sketch_svg,
-         accept_token, satisfaction_token, complaint_token)
-      VALUES (?, ?, 'ajanlatra_var', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         accept_token, satisfaction_token, complaint_token, garage_type_used)
+      VALUES (?, ?, 'ajanlatra_var', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(now, now, name, phone, custEmail, zip, city, address,
       JSON.stringify(formData || {}), summaryText || '', sketchSvg || '',
-      acceptToken, satisfactionToken, complaintToken);
+      acceptToken, satisfactionToken, complaintToken, garageTypeUsed || null);
 
     logStatus(info.lastInsertRowid, 'ajanlatra_var', 'Igény beérkezett');
 
@@ -433,6 +433,7 @@ function colleaguePage(c){
       <div><span class="l">Adres (ulica, nr domu)</span><input id="f_address" value="${escapeHtml(c.address)}"></div>
     </div>
 
+    ${fd.truckParkingDistance ? `<p style="background:#fff7e0;border:1px solid #F2B705;padding:8px 12px;border-radius:4px;font-size:0.85rem"><strong>Parkowanie ciężarówki przy miejscu montażu:</strong> ${escapeHtml(fd.truckParkingDistance)}</p>` : ''}
     ${lightSketch ? `<div class="sketch">${lightSketch}</div>` : ''}
 
     <div class="two-col">

@@ -34,6 +34,7 @@
       <button class="tab-btn" id="tabTypes" onclick="switchTab('types')">Típusgarázsok</button>
       <button class="tab-btn" id="tabEmails" onclick="switchTab('emails')">Email sablonok</button>
       <button class="tab-btn" id="tabPricing" onclick="switchTab('pricing')">Árazás</button>
+      <button class="tab-btn" id="tabStats" onclick="switchTab('stats')">Statisztika</button>
     </div>
 
     <div id="customersView">
@@ -72,6 +73,17 @@
 
     <div id="pricingView" style="display:none">
       <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px;margin-bottom:20px">
+        <h3>Rabat (kedvezmény)</h3>
+        <p class="hint">Minden árajánlatra automatikusan alkalmazott kedvezmény, mielőtt a végösszeg kiszámolódik. 1 és 10% között állítható.</p>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="number" id="discountPercentInput" min="1" max="10" step="1" style="width:80px;padding:8px;border:1px solid var(--line);border-radius:4px">
+          <span>%</span>
+          <button class="btn-main" onclick="saveDiscountPercent()">Mentés</button>
+        </div>
+        <div id="discountStatus" style="margin-top:8px;font-size:0.85rem;color:var(--accept)"></div>
+      </div>
+
+      <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px;margin-bottom:20px">
         <h3>Kalkulátor Excel feltöltése</h3>
         <p class="hint">Ha a rendszer rosszul számol ki valamit, töltsd fel a helyes (aktuális) kalkulátor Excel-t —
         a rendszer megpróbálja kiolvasni belőle az árakat, és jóváhagyás után ezeket fogja használni legközelebb.</p>
@@ -80,6 +92,20 @@
         <button class="btn-ghost" onclick="resetPricingConfig()">Visszaállítás alapértékekre</button>
       </div>
       <div id="pricingPreview"></div>
+    </div>
+
+    <div id="statsView" style="display:none">
+      <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px;margin-bottom:20px">
+        <h3>Időszak</h3>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:end">
+          <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Ettől</label><input type="date" id="statsFrom"></div>
+          <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Eddig</label><input type="date" id="statsTo"></div>
+          <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Vagy válassz hónapot</label><input type="month" id="statsMonth"></div>
+          <button class="btn-main" onclick="loadStats()">Lekérdezés</button>
+        </div>
+      </div>
+      <div id="statsSummary"></div>
+      <div id="statsByStatusResult" style="margin-top:16px"></div>
     </div>
   </main>
 </div>

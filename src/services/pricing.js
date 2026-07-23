@@ -90,8 +90,23 @@ function heightSurchargePct(excessCm) {
   return 1.0;
 }
 
+function loadScalarOverride(key, fallback){
+  try{
+    const row = getDb().prepare('SELECT config_json FROM pricing_config WHERE config_key = ?').get(key);
+    if(row){
+      const val = JSON.parse(row.config_json);
+      return (typeof val === 'number') ? val : fallback;
+    }
+  } catch(e){ /* nincs felülírás */ }
+  return fallback;
+}
+const DISCOUNT_PERCENT_DEFAULT = 10; // Rabat — alapértelmezetten -10%, a backoffice Árazás fülén 1-10% között állítható
+
 function round50(v) {
   return Math.ceil(v / 50) * 50;
+}
+function roundUpTo10000(v){
+  return Math.ceil(v/10000)*10000;
 }
 
 /**
@@ -226,14 +241,19 @@ function calculateQuote(formData) {
     lines.push(line('Kerekítés (50 zł-ra)', roundedPLN - subtotalPLN));
   }
 
-  const totalHUF = Math.round(roundedPLN * PLN_TO_HUF / 100) * 100; // ez a nettó összeg
-  const totalHUFGross = Math.round(totalHUF * (1 + VAT_RATE) / 100) * 100;
+  const discountPercent = loadScalarOverride('discount_percent', DISCOUNT_PERCENT_DEFAULT);
+  const discountedPLN = roundedPLN * (1 - discountPercent/100);
+
+  const totalHUFRaw = discountedPLN * PLN_TO_HUF; // ez a nettó összeg (kedvezmény után), kerekítés előtt
+  const totalHUF = roundUpTo10000(totalHUFRaw); // felfelé kerekítve, hogy az utolsó 4 számjegy 0 legyen
+  const totalHUFGross = roundUpTo10000(totalHUF * (1 + VAT_RATE));
   const vatRequested = !!(formData.custInvoice === 'igen' || formData.vat_requested);
 
   return {
     totalPLN: roundedPLN,
-    totalHUF,        // nettó
-    totalHUFGross,   // bruttó (nettó + áfa)
+    totalHUF,        // nettó (kedvezménnyel, felfelé kerekítve)
+    totalHUFGross,   // bruttó (nettó + áfa, felfelé kerekítve)
+    discountPercent,
     vatRate: VAT_RATE,
     vatRequested,
     displayTotal: vatRequested ? totalHUF : totalHUFGross,
@@ -262,4 +282,4 @@ function parseHeightCm(heightVal) {
   return isNaN(n) ? 213 : n;
 }
 
-module.exports = { calculateQuote };
+module.exports = { calculateQuote, loadScalarOverride, DISCOUNT_PERCENT_DEFAULT };

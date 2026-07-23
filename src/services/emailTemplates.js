@@ -48,6 +48,28 @@ const DEFAULT_TEMPLATES = [
 </div>`,
   },
   {
+    key: 'offer_reminder',
+    label: 'Emlékeztető az ajánlatra (automatikus vagy kézi)',
+    subject: 'Emlékeztető: várjuk visszajelzését az árajánlatra – Pol-Bram',
+    html_body: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
+  <h2 style="color:#20242A">Még várjuk visszajelzését</h2>
+  <p>Kedves {{name}}!</p>
+  <p>Nemrég küldtük Önnek a garázs egyedi árajánlatát, de még nem érkezett róla visszajelzés.
+  Szeretnénk emlékeztetni, hogy az ajánlat továbbra is érvényes — bármikor elfogadhatja,
+  módosítást kérhet rajta, vagy jelezheti, ha mégsem tart rá igényt.</p>
+  <p style="font-size:1.4rem;font-weight:bold;text-align:center;background:#fafbfb;border:1px solid #e0e3e5;border-radius:6px;padding:16px">
+    {{price}}
+  </p>
+  <p style="text-align:center;margin:26px 0">
+    <a href="{{acceptUrl}}" style="background:#2F6B4F;color:#fff;text-decoration:none;padding:13px 22px;border-radius:4px;font-weight:bold;display:inline-block;margin:4px">Ajánlat elfogadása</a>
+    <a href="{{modifyUrl}}" style="background:#454C54;color:#fff;text-decoration:none;padding:13px 22px;border-radius:4px;font-weight:bold;display:inline-block;margin:4px">Módosítást szeretnék</a>
+    <a href="{{rejectUrl}}" style="background:#b23a3a;color:#fff;text-decoration:none;padding:13px 22px;border-radius:4px;font-weight:bold;display:inline-block;margin:4px">Elutasítom</a>
+  </p>
+  <p style="font-size:0.85em;color:#7a828a">Ha kérdése van, egyszerűen válaszoljon erre az e-mailre.</p>
+  <p>Üdvözlettel,<br>Pol-Bram csapata</p>
+</div>`,
+  },
+  {
     key: 'order_form_colleague',
     label: 'Megrendelőlap a kolléganőnek (lengyel, jóváhagyásra)',
     subject: 'Nowe zamówienie do weryfikacji – {{name}}',

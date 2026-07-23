@@ -3,5 +3,7 @@ node_modules/
 data/*.sqlite*
 uploads/invoices/*
 uploads/complaints/*
+uploads/garage-types/*
 !uploads/invoices/.gitkeep
 !uploads/complaints/.gitkeep
+!uploads/garage-types/.gitkeep

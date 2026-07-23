@@ -38,6 +38,16 @@ async function sendOffer(customer, priceText, extra) {
   return sendMail({ to: customer.email, subject, html });
 }
 
+async function sendOfferReminder(customer, priceText) {
+  const acceptUrl = `${process.env.BASE_URL}/public/accept-offer/${customer.accept_token}`;
+  const modifyUrl = `${process.env.BASE_URL}/public/modify-offer/${customer.accept_token}`;
+  const rejectUrl = `${process.env.BASE_URL}/public/reject-offer/${customer.accept_token}`;
+  const { subject, html } = renderTemplate('offer_reminder', {
+    name: customer.name || '', price: priceText, acceptUrl, modifyUrl, rejectUrl,
+  });
+  return sendMail({ to: customer.email, subject, html });
+}
+
 async function sendOrderFormToColleague(customer) {
   const colleagueUrl = `${process.env.BASE_URL}/public/colleague/${customer.colleague_token}`;
   const { subject, html } = renderTemplate('order_form_colleague', { name: customer.name || '', colleagueUrl });
@@ -77,6 +87,7 @@ module.exports = {
   sendMail,
   sendInquiryReceived,
   sendOffer,
+  sendOfferReminder,
   sendOrderFormToColleague,
   sendFinalOrderFormToCustomer,
   sendAdvanceInvoice,

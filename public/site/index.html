@@ -148,6 +148,7 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
       <select id="presetSelect">
         <option value="">— Egyedi összeállítás —</option>
       </select>
+      <button class="btn-ghost" id="mirrorBtn" type="button" style="width:auto;margin:0;padding:8px 16px">↔ Tükörkép (jobbról balra / balról jobbra)</button>
     </div>
     <div class="preset-gallery" id="presetGallery"></div>
   </div>
@@ -507,6 +508,10 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
           <label class="field"><span>Irányítószám</span><input type="text" id="custZip" placeholder="2000"></label>
           <label class="field"><span>Város</span><input type="text" id="custCity" placeholder="Szentendre"></label>
           <label class="field"><span>Szállítási cím</span><input type="text" id="custAddress" placeholder="utca, házszám"></label>
+          <label class="field" style="grid-column:1/-1"><span>Milyen közel tud leparkolni egy kisebb teherautó a telepítés helyszínéhez?</span>
+            <input type="text" id="truckParkingDistance" placeholder="pl. közvetlenül a telek elé, vagy kb. 20 méterre, egy szűk utcában">
+            <small class="hint" style="margin:2px 0 0">Ez segít a szállítást megszervezni — kérjük, minél pontosabban írja le.</small>
+          </label>
           <label class="field"><span>Áfás számlát igényel?</span>
             <select id="custInvoice"><option value="nem">Nem</option><option value="igen">Igen</option></select>
           </label>
@@ -759,6 +764,24 @@ function applyFormState(data){
   resyncAllColorFields();
   refreshAll();
 }
+
+// ---------------------------------------------------------------
+// TÜKRÖZÉS — az összes bal/jobb irányú beállítást megfordítja, minden más adat megmarad
+// ---------------------------------------------------------------
+function mirrorCurrentConfig(){
+  const flipLR = (v) => v==='left' ? 'right' : (v==='right' ? 'left' : v);
+  const data = captureFormState();
+  Object.keys(data).forEach(key=>{
+    const isCornerLike = /Corner\d*$/.test(key) || /Handle\d*$/.test(key) ||
+      key==='canopySide' || key==='notchSide' || key==='wallCorner' || key==='gateCorner';
+    const isWallLR = /Wall\d*$/.test(key) && (data[key]==='left' || data[key]==='right');
+    if(isCornerLike || isWallLR){
+      data[key] = flipLR(data[key]);
+    }
+  });
+  applyFormState(data);
+}
+document.getElementById('mirrorBtn').addEventListener('click', mirrorCurrentConfig);
 
 // STATE / CHOICE GROUP
 // ---------------------------------------------------------------
@@ -1514,6 +1537,59 @@ function checkMandatoryWall(){
   }
 }
 
+function updateMissingDataIndicators(){
+  const requiredFields = [
+    {id:'colorRoof', required: true},
+    {id:'colorRoofTrim', required: true},
+    {id:'colorWall', required: true},
+    {id:'colorWallTrim', required: true},
+    {id:'colorGate', required: state.gateType!=='none'},
+    {id:'colorWindow', required: ((parseInt(document.getElementById('win8060').value)||0)+(parseInt(document.getElementById('win50150').value)||0)) > 0},
+    {id:'colorDoor', required: document.getElementById('personalDoorYes').checked},
+    {id:'gutterColor', required: document.getElementById('gutterYes').checked},
+    {id:'colorCanopyBack', required: document.getElementById('canopyYes').checked && document.getElementById('canopyBackWall').value!=='none'},
+    {id:'colorCanopySide', required: document.getElementById('canopyYes').checked && document.getElementById('canopySideWall').value!=='none'},
+  ];
+  requiredFields.forEach(({id,required})=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const label = el.closest('label');
+    const labelSpan = label ? label.querySelector('span.color-label') : null;
+    if(!labelSpan) return;
+    let flag = labelSpan.querySelector('.missing-flag');
+    const isMissing = required && !el.value;
+    if(isMissing && !flag){
+      flag = document.createElement('span');
+      flag.className = 'missing-flag';
+      flag.style.cssText = 'color:#b23a3a;font-weight:bold;margin-left:8px;font-size:0.85em;';
+      flag.textContent = '⚠ kötelező';
+      labelSpan.appendChild(flag);
+    } else if(!isMissing && flag){
+      flag.remove();
+    }
+  });
+
+  // A szekció fejlécén (summary) is jelezzük piros felkiáltójellel, ha bármi hiányzik alatta
+  const missingCount = requiredFields.filter(({id,required})=>{
+    const el = document.getElementById(id);
+    return el && required && !el.value;
+  }).length;
+  const colorSummary = document.querySelector('details.section summary .num')
+    ? [...document.querySelectorAll('details.section summary')].find(s=>s.textContent.includes('Szín'))
+    : null;
+  if(colorSummary){
+    let flag = colorSummary.querySelector('.missing-flag-summary');
+    if(missingCount>0 && !flag){
+      flag = document.createElement('span');
+      flag.className = 'missing-flag-summary';
+      flag.style.cssText = 'color:#b23a3a;font-weight:bold;margin-left:8px;';
+      colorSummary.appendChild(flag);
+    }
+    if(flag) flag.textContent = missingCount>0 ? `⚠ ${missingCount} hiányzó szín` : '';
+    if(missingCount===0 && flag) flag.remove();
+  }
+}
+
 function refreshAll(){
   updateHeightDisplay();
   updateColorVisibility();
@@ -1579,6 +1655,7 @@ function refreshAll(){
   checkMandatoryWall();
   validateWalls();
   renderSketch();
+  updateMissingDataIndicators();
 }
 document.querySelectorAll('input,select').forEach(el=>{
   el.addEventListener('input', refreshAll);

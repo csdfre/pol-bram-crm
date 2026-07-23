@@ -161,3 +161,49 @@ mindig érdemes átnézni a kiolvasott számokat.
 5. Ha módosítást kér: egy rövid felület jelenik meg neki, ahol leírhatja mit szeretne — ez emailben értesíti
    mind titeket, mind a kolléganőt
 6. Ha a kolléganő feltölti az előlegszámlát: az is automatikusan kimegy az ügyfélnek
+
+## 12. Emlékeztető email (ha 5 napig nincs válasz az ajánlatra)
+
+Ha kiküldtétek az árajánlatot, és az ügyfél **5 napon belül nem reagál** (nem fogadja el, nem utasítja el, nem kér módosítást),
+a rendszer **automatikusan küld egy emlékeztető emailt** neki.
+
+- A napok száma állítható: `.env` → `REMINDER_AFTER_DAYS` (alapértelmezett: 5)
+- A backoffice-ban bármikor kézzel is kiküldhető: az ügyfél adatlapján **"Emlékeztető küldése"** gomb
+- Egy ügyfélnek **csak egyszer** megy ki az automatikus emlékeztető (amíg újra ki nem küldöd az ajánlatot, ami visszaállítja a számlálót)
+
+**Fontos, ha Render ingyenes (elalvó) csomagot használtok:** a beépített napi ütemező csak akkor fut le, ha a szerver éppen fut —
+ha a szerver "alszik", kimaradhat egy nap. Ezért van egy tartalék, kulccsal védett végpont is:
+
+```
+GET https://a-ti-domained.hu/cron/check-reminders?key=A_TE_CRON_SECRET_ÉRTÉKED
+```
+
+Ezt egy **ingyenes külső cron-szolgáltatással** (pl. [cron-job.org](https://cron-job.org)) állítsd be, hogy naponta egyszer
+(vagy akár óránként) meghívja — ez a hívás egyszerre **felébreszti** a szervert (ha aludt) és **lefuttatja az ellenőrzést**.
+A `CRON_SECRET` értékét te választod meg (bármilyen hosszú, véletlenszerű szöveg) — ezt add meg a `.env`-ben,
+és ugyanezt írd be a külső cron-szolgáltatás URL-jébe is.
+
+## 13. Fontos: adatbiztonság frissítéskor
+
+Amikor új funkciókat kapsz tőlem (frissített kód), és feltöltöd GitHub-ra majd újra deploy-olod a Renderen:
+
+- **A már mentett típusgarázsok, ügyféladatok, feltöltött képek/számlák NEM vesznek el.**
+- Ennek az az oka, hogy az adatbázis (`data/garage-crm.sqlite`) és a feltöltött fájlok (`uploads/`) **nincsenek benne a kódban** —
+  ezeket a `.gitignore` kifejezetten kizárja a GitHub-feltöltésből, és a Renderen egy külön, állandó ("Persistent Disk")
+  tárhelyen élnek, amit a kód-frissítés/deploy **nem érint**.
+- Tehát nyugodtan felülírhatod a kódfájlokat (server.js, src/, public/, stb.) — a `data/` és `uploads/` mappák
+  tartalma a szerveren marad, változatlanul.
+
+**Amire viszont figyelj:** ha valaha manuálisan törölnéd a Renderen a Persistent Disk-et, vagy létrehoznál egy
+teljesen új szolgáltatást (nem csak újra deploy-olnál a meglévőt), akkor igen, elveszne az adat — de a normál
+"feltöltöm az új kódot → Manual Deploy" folyamat ezt sosem érinti.
+
+## 14. Statisztika oldal
+
+Backoffice → **"Statisztika"** fül:
+
+- Kiküldött / megrendelt / elutasított / válasz nélküli ajánlatok száma
+- Átlag megrendelési érték (nettó)
+- Típusgarázsok vs. egyedi összeállítások megoszlása
+- Bármelyik státuszhoz tartozó ügyfelek listázása
+- Időszak szerint szűrhető: szabad dátum-intervallum (Ettől–Eddig), vagy egy konkrét hónap kiválasztása

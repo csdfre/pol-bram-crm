@@ -108,6 +108,7 @@ function renderModal() {
       <div><label>Város</label><input id="f_city" value="${esc(c.city)}"></div>
       <div><label>Cím</label><input id="f_address" value="${esc(c.address)}"></div>
     </div>
+    ${c.form_data && c.form_data.truckParkingDistance ? `<p style="background:#fff7e0;border:1px solid #f2b705;padding:8px 12px;border-radius:4px;font-size:0.85rem"><strong>Teherautó-parkolás a telepítés helyszínén:</strong> ${esc(c.form_data.truckParkingDistance)}</p>` : ''}
     <label>Összefoglaló / garázs adatai (szabadon szerkeszthető)</label>
     <textarea id="f_summary" style="width:100%;min-height:160px;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;padding:8px;border:1px solid var(--line);border-radius:4px">${esc(c.summary_text)}</textarea>
 
@@ -121,18 +122,31 @@ function renderModal() {
     <h3>Árszámítás</h3>
     <div class="btn-row">
       <button class="btn-main" onclick="calculateQuote()">Ár kiszámítása</button>
+      <button class="btn-secondary" onclick="editOrderData()">Adatok szerkesztése (mint a kolléganőnek)</button>
     </div>
     <div id="quoteBox">
       ${quote ? renderQuoteTable(quote) : '<p style="color:#7a828a;font-size:0.85rem">Még nincs kiszámolva.</p>'}
+    </div>
+
+    <div style="margin-top:12px;padding:12px;border:1px dashed var(--line);border-radius:6px">
+      <label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:6px">
+        Ha ennél a konkrét megrendelésnél rosszul számol valamit a séma, itt is feltöltheted a helyes kalkulátor Excel-t —
+        ez a teljes árazást (mindenkinél) frissíti, és ennek a megrendelésnek az árát is azonnal újraszámolja.
+      </label>
+      <input type="file" id="orderPricingExcelFile" accept=".xlsx,.xlsm,.xls">
+      <button class="btn-secondary" onclick="uploadOrderPricingExcel()">Feltöltés és elemzés</button>
+      <div id="orderPricingPreview"></div>
     </div>
 
     <hr>
     <h3>Folyamat</h3>
     <div class="btn-row">
       <button class="btn-main" onclick="sendOffer()">Ajánlat kiküldése</button>
+      <button class="btn-secondary" onclick="sendReminder()">Emlékeztető küldése</button>
       <button class="btn-secondary" onclick="sendOrderFormColleague()">Link küldése a kolléganőnek (jóváhagyásra)</button>
       <button class="btn-secondary" onclick="sendOrderFormCustomer()">Megrendelőlap kézi (újra)küldése ügyfélnek</button>
     </div>
+    ${c.reminder_sent_at ? `<p style="font-size:0.8rem;color:#7a828a">Emlékeztető kiküldve: ${new Date(c.reminder_sent_at).toLocaleString('hu-HU')}</p>` : ''}
 
     <div class="field-row" style="margin-top:10px">
       <div>
@@ -199,11 +213,49 @@ async function calculateQuote() {
   } catch (e) { alert(e.message); }
 }
 
+function editOrderData(){
+  window.open('/api/admin/customers/'+currentCustomer.id+'/editor', '_blank');
+}
+
+let lastOrderParsedPricing = null;
+let lastOrderParsedFilename = null;
+async function uploadOrderPricingExcel(){
+  const fileInput = document.getElementById('orderPricingExcelFile');
+  if(!fileInput.files[0]) return alert('Válasszon fájlt.');
+  const form = new FormData();
+  form.append('file', fileInput.files[0]);
+  const res = await fetch('/api/admin/pricing/upload-excel', { method:'POST', body: form });
+  const data = await res.json();
+  if(!res.ok) return alert('Hiba: '+data.error);
+  lastOrderParsedPricing = data.parsed;
+  lastOrderParsedFilename = data.filename;
+  const p = data.parsed;
+  document.getElementById('orderPricingPreview').innerHTML = `
+    <p style="font-size:0.8rem;margin-top:8px">Megtalált tételek: ${p.foundKeys.length} db — Nem talált: ${p.missingKeys.length ? esc(p.missingKeys.join(', ')) : 'nincs'}</p>
+    <button class="btn-main" onclick="applyOrderPricingExcel()">Jóváhagyás — teljes árazás frissítése + ennek a rendelésnek az újraszámolása</button>
+  `;
+}
+async function applyOrderPricingExcel(){
+  const p = lastOrderParsedPricing;
+  await api('/admin/pricing/apply', { method:'POST', body: JSON.stringify({ basePriceTable: p.basePriceTable, addon: p.addon, filename: lastOrderParsedFilename }) });
+  await calculateQuote();
+  document.getElementById('orderPricingPreview').innerHTML = '<p style="color:var(--accept);font-size:0.85rem">Árazás frissítve, ez a megrendelés is újraszámolva.</p>';
+}
+
 async function sendOffer() {
   if (!confirm('Biztosan kiküldi az ajánlatot az ügyfélnek?')) return;
   try {
     await api(`/admin/customers/${currentCustomer.id}/send-offer`, { method: 'POST' });
     alert('Ajánlat kiküldve.');
+    openDetail(currentCustomer.id);
+  } catch (e) { alert(e.message); }
+}
+
+async function sendReminder() {
+  if (!confirm('Biztosan kiküld egy emlékeztetőt az ügyfélnek, hogy reagáljon az ajánlatra?')) return;
+  try {
+    await api(`/admin/customers/${currentCustomer.id}/send-reminder`, { method: 'POST' });
+    alert('Emlékeztető kiküldve.');
     openDetail(currentCustomer.id);
   } catch (e) { alert(e.message); }
 }
@@ -260,16 +312,18 @@ async function setStatusManually() {
 }
 
 function switchTab(tab){
-  ['Customers','Types','Emails','Pricing'].forEach(t=>{
+  ['Customers','Types','Emails','Pricing','Stats'].forEach(t=>{
     document.getElementById('tab'+t).classList.toggle('active', tab===t.toLowerCase());
   });
   document.getElementById('customersView').style.display = tab==='customers' ? 'block' : 'none';
   document.getElementById('typesView').style.display = tab==='types' ? 'block' : 'none';
   document.getElementById('emailsView').style.display = tab==='emails' ? 'block' : 'none';
   document.getElementById('pricingView').style.display = tab==='pricing' ? 'block' : 'none';
+  document.getElementById('statsView').style.display = tab==='stats' ? 'block' : 'none';
   if(tab==='types') loadGarageTypes();
   if(tab==='emails') loadEmailTemplates();
   if(tab==='pricing') loadPricingConfig();
+  if(tab==='stats') loadStats();
 }
 
 async function loadGarageTypes(){
@@ -330,6 +384,7 @@ async function saveEmailTemplate(){
 // --- Árazás ---
 async function loadPricingConfig(){
   const data = await api('/admin/pricing/current');
+  document.getElementById('discountPercentInput').value = data.discountPercent;
   const box = document.getElementById('pricingPreview');
   const hasOverride = data.basePriceTable || data.addon;
   box.innerHTML = hasOverride
@@ -338,6 +393,12 @@ async function loadPricingConfig(){
         <pre style="font-size:0.75rem;background:#fafbfb;padding:10px;border-radius:4px;max-height:300px;overflow:auto">${esc(JSON.stringify(data, null, 2))}</pre>
       </div>`
     : `<p style="color:#7a828a">Jelenleg a beépített alapértékek vannak használatban, nincs feltöltött felülírás.</p>`;
+}
+async function saveDiscountPercent(){
+  const val = document.getElementById('discountPercentInput').value;
+  await api('/admin/pricing/discount', { method:'POST', body: JSON.stringify({ percent: val }) });
+  document.getElementById('discountStatus').textContent = 'Mentve.';
+  loadPricingConfig();
 }
 async function uploadPricingExcel(){
   const fileInput = document.getElementById('pricingExcelFile');
@@ -378,6 +439,73 @@ async function resetPricingConfig(){
   if(!confirm('Biztosan visszaállítod az alapértelmezett árakat?')) return;
   await api('/admin/pricing/reset', { method:'POST' });
   loadPricingConfig();
+}
+
+// --- Statisztika ---
+function currentStatsRange(){
+  const month = document.getElementById('statsMonth').value;
+  if(month){
+    const [y,m] = month.split('-').map(Number);
+    const from = `${y}-${String(m).padStart(2,'0')}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const to = `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+    return { from, to };
+  }
+  return { from: document.getElementById('statsFrom').value || '1970-01-01', to: document.getElementById('statsTo').value || '2999-12-31' };
+}
+
+async function loadStats(){
+  const { from, to } = currentStatsRange();
+  const data = await api(`/admin/stats/summary?from=${from}&to=${to}`);
+  const box = document.getElementById('statsSummary');
+  const statOptions = Object.entries(STATUS_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+
+  box.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px">
+      ${statCard('Kiküldött ajánlatok', data.offersSent)}
+      ${statCard('Megrendelt ajánlatok', data.ordered)}
+      ${statCard('Elutasított ajánlatok', data.rejected)}
+      ${statCard('Válasz nélküli ajánlatok', data.noResponse)}
+      ${statCard('Átlag megrendelési érték (nettó)', data.avgOrderValueNet.toLocaleString('hu-HU')+' Ft')}
+    </div>
+
+    <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px;margin-bottom:20px">
+      <h3>Típusgarázsok / egyedi összeállítások megoszlása</h3>
+      <table id="customerTable"><thead><tr><th>Típus</th><th>Darabszám</th></tr></thead><tbody>
+        ${data.typeBreakdown.map(t=>`<tr><td>${esc(t.type_name)}</td><td>${t.c}</td></tr>`).join('')}
+      </tbody></table>
+    </div>
+
+    <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px">
+      <h3>Ügyfelek lekérdezése státusz szerint</h3>
+      <div style="display:flex;gap:10px;align-items:end">
+        <select id="statsStatusSelect" class="status-select">${statOptions}</select>
+        <button class="btn-secondary" onclick="loadStatsByStatus()">Lekérdezés</button>
+      </div>
+    </div>
+  `;
+}
+
+function statCard(label, value){
+  return `<div style="background:#fff;border-radius:6px;padding:16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.05)">
+    <div style="font-size:1.6rem;font-weight:700">${value}</div>
+    <div style="font-size:0.75rem;color:#7a828a;text-transform:uppercase;letter-spacing:.02em;margin-top:4px">${label}</div>
+  </div>`;
+}
+
+async function loadStatsByStatus(){
+  const status = document.getElementById('statsStatusSelect').value;
+  const { from, to } = currentStatsRange();
+  const rows = await api(`/admin/stats/by-status?status=${status}&from=${from}&to=${to}`);
+  const box = document.getElementById('statsByStatusResult');
+  box.innerHTML = `
+    <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px">
+      <h3>${STATUS_LABELS[status]||status} (${rows.length} db)</h3>
+      <table id="customerTable"><thead><tr><th>Név</th><th>E-mail</th><th>Telefon</th><th>Beküldve</th><th>Ár</th></tr></thead><tbody>
+        ${rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td>${new Date(r.created_at).toLocaleString('hu-HU')}</td><td>${r.price_huf?r.price_huf.toLocaleString('hu-HU')+' Ft':'—'}</td></tr>`).join('') || '<tr><td colspan="5" style="color:#7a828a">Nincs találat.</td></tr>'}
+      </tbody></table>
+    </div>
+  `;
 }
 
 checkSession();
