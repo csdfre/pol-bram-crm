@@ -29,7 +29,7 @@ async function renderHtmlToPdf(html) {
 
 // Az SVG-rajzot valódi PNG képpé alakítja (fehér háttérrel) — az email-kliensek ugyanis
 // nagyon megbízhatatlanul (vagy egyáltalán nem) jelenítik meg az élő SVG-t.
-async function renderSketchToPngDataUri(svgString){
+async function renderSketchToPngBuffer(svgString){
   if(!svgString) return null;
   const lightSvg = lightenSketchSvg(svgString);
   const browser = await getBrowser();
@@ -41,11 +41,16 @@ async function renderSketchToPngDataUri(svgString){
       svg{width:100%;height:auto;max-width:600px;}
     </style></head><body>${lightSvg}</body></html>`, { waitUntil: 'networkidle0' });
     const el = await page.$('body');
-    const buffer = await el.screenshot({ type: 'png' });
-    return `data:image/png;base64,${buffer.toString('base64')}`;
+    return await el.screenshot({ type: 'png' });
   } finally {
     await page.close();
   }
+}
+
+async function renderSketchToPngDataUri(svgString){
+  const buffer = await renderSketchToPngBuffer(svgString);
+  if(!buffer) return null;
+  return `data:image/png;base64,${buffer.toString('base64')}`;
 }
 
 function escapeHtml(str) {
@@ -317,6 +322,15 @@ function sectionHtml(s){
   </div>`;
 }
 
+// Email-hez külön verzió — mindent inline stílussal, mert az email-kliensek nagy része
+// nem alkalmazza megbízhatóan a <style>-ban/class-ban megadott CSS-t.
+function sectionHtmlEmail(s){
+  return `<div style="margin-bottom:16px;border:1px solid #e0e3e5;border-radius:6px;overflow:hidden">
+    <div style="background:#454C54;color:#fff;padding:7px 12px;font-size:12px;text-transform:uppercase;letter-spacing:0.03em;font-weight:bold">${escapeHtml(s.section)}</div>
+    <table style="width:100%;border-collapse:collapse;background:#fff">${s.items.map((it,i) => `<tr style="${i>0?'border-top:1px solid #f0f1f2':''}"><td style="padding:6px 12px;color:#7a828a;font-size:11px;text-transform:uppercase;width:40%">${escapeHtml(it.label)}</td><td style="padding:6px 12px;font-size:13px;color:#20242A">${escapeHtml(it.value)}</td></tr>`).join('')}</table>
+  </div>`;
+}
+
 // Szerkeszthető változat a kolléganő / ügyfél felületéhez — ahol van form_data kulcs, a típusnak megfelelő
 // mező jelenik meg (szöveg / szám / legördülő / jelölőnégyzet)
 function editableSectionHtml(s){
@@ -514,4 +528,4 @@ async function generateOrderFormPdf(customer, quote, lang) {
   return renderHtmlToPdf(html);
 }
 
-module.exports = { generateOrderFormPdf, orderFormHtml, buildOrderFields, sectionHtml, editableSectionHtml, lightenSketchSvg, translateSketchToPolish, prepareColleagueSketch, priceCardHtml, renderSketchToPngDataUri, LOGO_B64 };
+module.exports = { generateOrderFormPdf, orderFormHtml, buildOrderFields, sectionHtml, sectionHtmlEmail, editableSectionHtml, lightenSketchSvg, translateSketchToPolish, prepareColleagueSketch, priceCardHtml, renderSketchToPngDataUri, renderSketchToPngBuffer, LOGO_B64 };

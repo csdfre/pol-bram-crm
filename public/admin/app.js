@@ -388,6 +388,15 @@ async function saveEmailTemplate(){
   loadEmailTemplates();
 }
 
+async function resetEmailTemplate(){
+  if(!confirm('Biztosan visszaállítod ezt a sablont a legújabb alapértelmezett verzióra? A jelenlegi egyedi módosítások elvesznek.')) return;
+  const data = await api('/admin/email-templates/'+currentTemplateKey+'/reset', { method:'POST' });
+  document.getElementById('emailSubjectInput').value = data.subject;
+  document.getElementById('emailBodyInput').value = data.html_body;
+  alert('Visszaállítva az alapértelmezett (legújabb) verzióra. Ne felejtsd el újra megnyitni és ellenőrizni.');
+  loadEmailTemplates();
+}
+
 // --- Árazás ---
 async function loadPricingConfig(){
   const data = await api('/admin/pricing/current');

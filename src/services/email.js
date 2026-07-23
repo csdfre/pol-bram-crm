@@ -28,15 +28,26 @@ async function sendOffer(customer, priceText, extra) {
   const acceptUrl = `${process.env.BASE_URL}/public/accept-offer/${customer.accept_token}`;
   const modifyUrl = `${process.env.BASE_URL}/public/modify-offer/${customer.accept_token}`;
   const rejectUrl = `${process.env.BASE_URL}/public/reject-offer/${customer.accept_token}`;
+  const attachments = [];
+  let sketchHtml = '';
+  let logoHtml = '';
+  if (extra && extra.sketchBuffer) {
+    attachments.push({ filename: 'vazlat.png', content: extra.sketchBuffer, cid: 'sketch-image' });
+    sketchHtml = `<div style="border:1px solid #e6e8ea;border-radius:8px;padding:10px;text-align:center;margin:16px 0"><img src="cid:sketch-image" alt="Felülnézeti vázlat" style="max-width:100%;height:auto"></div>`;
+  }
+  if (extra && extra.logoBuffer) {
+    attachments.push({ filename: 'logo.png', content: extra.logoBuffer, cid: 'pol-bram-logo' });
+    logoHtml = `<img src="cid:pol-bram-logo" alt="Pol-Bram" style="height:32px;background:#fff;padding:6px 10px;border-radius:4px">`;
+  }
   const { subject, html } = renderTemplate('offer', {
     name: customer.name || '',
     price: priceText,
     acceptUrl, modifyUrl, rejectUrl,
     detailsHtml: (extra && extra.detailsHtml) || '',
-    sketchHtml: (extra && extra.sketchHtml) || '',
-    logoHtml: (extra && extra.logoHtml) || '',
+    sketchHtml,
+    logoHtml,
   });
-  return sendMail({ to: customer.email, subject, html });
+  return sendMail({ to: customer.email, subject, html, attachments });
 }
 
 async function sendOfferReminder(customer, priceText) {
