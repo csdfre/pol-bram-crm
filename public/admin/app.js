@@ -38,7 +38,14 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   const errEl = document.getElementById('loginError');
   errEl.textContent = '';
   try {
-    const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Hiba történt a bejelentkezés közben.');
     document.getElementById('whoami').textContent = data.username;
     showApp();
   } catch (e) {
