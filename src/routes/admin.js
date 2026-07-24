@@ -125,6 +125,7 @@ router.get('/customers/:id/editor', (req, res) => {
   </style></head><body>
   <div class="box">
     <h2>Adatok szerkesztése — ${esc(c.name)}</h2>
+    <p style="font-size:0.85rem;color:#7a828a;margin-top:-8px;margin-bottom:14px">Választott típus: <strong>${esc(c.garage_type_used || 'Egyedi összeállítás')}</strong></p>
     ${prevFd ? `<div style="background:#fff7e0;border:1px solid #F2B705;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:0.85rem"><strong>Az ügyfél módosított néhány adatot.</strong> A sárga kerettel jelölt mezők azok, amik az ügyfél szerkesztése előtti állapothoz képest megváltoztak.</div>` : ''}
     <div class="cust-grid">
       <div><span class="l">Név</span><input id="f_name" value="${esc(c.name)}"></div>

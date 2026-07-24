@@ -123,6 +123,7 @@ function renderModal() {
   const html = `
     <h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase;margin-bottom:4px">${esc(c.name) || 'Névtelen ügyfél'}</h2>
     <div class="status-pill status-${c.status}">${STATUS_LABELS[c.status] || c.status}</div>
+    <p style="font-size:0.8rem;color:var(--graphite-soft);margin-top:6px">Választott típus: <strong>${esc(c.garage_type_used || 'Egyedi összeállítás')}</strong></p>
 
     <div class="field-row" style="margin-top:16px">
       <div><label>Név</label><input id="f_name" value="${esc(c.name)}"></div>

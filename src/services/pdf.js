@@ -284,7 +284,7 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
       ECHECK(lang==='pl'?'Automatyka':'Automatika kérése', 'automation', !!fd.automation, fd.automation ? YES[lang] : VALUE_NONE[lang]),
       E(lang==='pl'?'Ilość automatyki (szt.)':'Automatika darabszáma (db)', fd.automationQty||1, 'automationQty', fd.automationQty||1, 'number'),
     ];
-    sections.push({ section: S('gate'), items });
+    sections.push({ section: S('gate'), items, isEmpty: gateType==='none' });
   }
 
   sections.push({ section: S('structure'), items: [
@@ -305,7 +305,7 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
       ESEL(L('doorColor'), 'colorDoor', fd.colorDoor||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorDoor||'RAL9005', lang)),
       ESEL(L('doorPattern'), 'personalDoorPattern', fd.personalDoorPattern||'Széles vízszintes', PATTERN_OPTIONS[lang], patternName(fd.personalDoorPattern||'Széles vízszintes', lang)),
       ...placementRows('personalDoor', Math.max(personalDoorCount,1)),
-    ]});
+    ], isEmpty: personalDoorCount===0 });
   }
 
   if(win8060Count>0 || includeEmpty){
@@ -313,23 +313,25 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
       E(L('windowCount'), win8060Count, 'win8060', win8060Count, 'number'),
       ESEL(L('windowColor'), 'colorWindow', fd.colorWindow||'RAL9005', WINDOW_COLOR_OPTIONS[lang], colorName(fd.colorWindow||'RAL9005', lang)),
       ...placementRows('win8060', Math.max(win8060Count,1)),
-    ]});
+    ], isEmpty: win8060Count===0 });
   }
 
   if(fd.gutterYes || includeEmpty){
     sections.push({ section: S('gutter'), items: [
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'gutterYes', !!fd.gutterYes, fd.gutterYes ? YES[lang] : VALUE_NONE[lang]),
       ESEL(L('gutterColor'), 'gutterColor', fd.gutterColor||'GRAFIT', GUTTER_COLOR_OPTIONS[lang], colorName(fd.gutterColor||'GRAFIT', lang)),
-    ]});
+    ], isEmpty: !fd.gutterYes });
   }
 
   if(fd.feltYes || includeEmpty){
     sections.push({ section: S('felt'), items: [
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'feltYes', !!fd.feltYes, fd.feltYes ? YES[lang] : VALUE_NONE[lang]),
-    ]});
+    ], isEmpty: !fd.feltYes });
   }
 
-  if(fd.custInvoice === 'igen' || includeEmpty){
+  // A cégadatok szekció CSAK akkor jelenik meg, ha ténylegesen áfás számlát kértek —
+  // ezt nem terjeszti ki az includeEmpty (nem kell "üresen felkínálni" mindenkinek).
+  if(fd.custInvoice === 'igen'){
     const invoiceOptions = { hu: [['nem','Nem'],['igen','Igen']], pl: [['nem','Nie'],['igen','Tak']] };
     sections.push({ section: S('company'), items: [
       ESEL(lang==='pl'?'Potrzebna faktura VAT':'Áfás számlát igényel', 'custInvoice', fd.custInvoice||'nem', invoiceOptions[lang], fd.custInvoice==='igen' ? YES[lang] : VALUE_NONE[lang]),
@@ -362,9 +364,7 @@ function sectionHtmlEmail(s){
 // Szerkeszthető változat a kolléganő / ügyfél felületéhez — ahol van form_data kulcs, a típusnak megfelelő
 // mező jelenik meg (szöveg / szám / legördülő / jelölőnégyzet)
 function editableSectionHtml(s){
-  return `<div class="section">
-    <h2>${escapeHtml(s.section)}</h2>
-    <table>${s.items.map(it => {
+  const tableHtml = `<table>${s.items.map(it => {
       let control = escapeHtml(it.value);
       if(it.key){
         if(it.type==='select'){
@@ -378,8 +378,21 @@ function editableSectionHtml(s){
       }
       const changedStyle = it.changed ? 'background:#fff7e0;box-shadow:inset 3px 0 0 #F2B705' : '';
       const changedBadge = it.changed ? '<span style="background:#F2B705;color:#20242A;font-size:9px;font-weight:bold;padding:1px 5px;border-radius:8px;margin-left:6px">MÓDOSULT</span>' : '';
-      return `<tr style="${changedStyle}"><td class="label">${escapeHtml(it.label)}${changedBadge}</td><td>${control}</td></tr>`;
-    }).join('')}</table>
+      return `<tr style="${changedStyle}"><td class="label">${escapeHtml(it.label)}</td><td>${control}${changedBadge}</td></tr>`;
+    }).join('')}</table>`;
+
+  if(s.isEmpty){
+    // Nem kért elem — összecsukva jelenik meg, de bármikor kinyitható és hozzáadható
+    return `<details class="section" style="margin-bottom:14px">
+      <summary style="cursor:pointer;list-style:none;background:#e6e8ea;color:#454C54;padding:5px 10px;border-radius:4px;font-size:11.5px;text-transform:uppercase;letter-spacing:0.04em">
+        + ${escapeHtml(s.section)} <span style="font-weight:normal;text-transform:none;letter-spacing:normal">(nincs kérve — kattints a hozzáadáshoz)</span>
+      </summary>
+      ${tableHtml}
+    </details>`;
+  }
+  return `<div class="section">
+    <h2>${escapeHtml(s.section)}</h2>
+    ${tableHtml}
   </div>`;
 }
 

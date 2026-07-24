@@ -363,6 +363,7 @@ function modifyOfferPage(c){
   </style></head><body>
   <div class="box">
     <h2>Ajánlat módosítása — ${escapeHtml(c.name)}</h2>
+    <p style="font-size:0.85rem;color:#7a828a;margin-top:-8px;margin-bottom:14px">Választott típus: <strong>${escapeHtml(c.garage_type_used || 'Egyedi összeállítás')}</strong></p>
     <p style="color:#7a828a">Módosítsa az alábbi tételeket, ha másra van szüksége — az ár automatikusan újraszámolódik.</p>
 
     ${c.sketch_svg ? `<div class="sketch">${c.sketch_svg}</div>` : ''}
@@ -441,6 +442,7 @@ function colleaguePage(c){
   </style></head><body>
   <div class="box">
     <h2>Zamówienie — ${escapeHtml(c.name)}</h2>
+    <p style="font-size:0.85rem;color:#7a828a;margin-top:-8px;margin-bottom:14px">Wybrany model: <strong>${escapeHtml(c.garage_type_used || 'Konfiguracja indywidualna')}</strong></p>
 
     <div class="cust-grid">
       <div><span class="l">Imię i nazwisko</span><input id="f_name" value="${escapeHtml(c.name)}"></div>
