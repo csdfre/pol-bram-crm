@@ -71,7 +71,7 @@ tbody tr:hover{background:#fafbfb;}
 .types-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;}
 .type-card{background:#fff;border:1px solid var(--line);border-radius:6px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05);}
 .type-card .type-thumb{width:100%;height:110px;background:#eef1f2;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-.type-card .type-thumb img{width:100%;height:100%;object-fit:cover;}
+.type-card .type-thumb img{width:100%;height:100%;object-fit:contain;background:#fff;}
 .type-card .type-thumb .no-image{color:var(--graphite-soft);font-size:0.75rem;}
 .type-card .type-body{padding:12px;}
 .type-card h4{font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:0.95rem;margin-bottom:8px;}

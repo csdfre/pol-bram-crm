@@ -66,6 +66,30 @@ router.put('/customers/:id', (req, res) => {
 // ---------------------------------------------------------------
 // Admin oldali teljes adat-szerkesztő (ugyanaz, mint a kolléganőnek, csak bejelentkezéssel védve)
 // ---------------------------------------------------------------
+// ---------------------------------------------------------------
+// Ügyfél/igény törlése
+// ---------------------------------------------------------------
+router.delete('/customers/:id', (req, res) => {
+  db.prepare('DELETE FROM status_log WHERE customer_id = ?').run(req.params.id);
+  const info = db.prepare('DELETE FROM customers WHERE id = ?').run(req.params.id);
+  if (info.changes === 0) return res.status(404).json({ error: 'Nem található.' });
+  res.json({ ok: true });
+});
+
+// ---------------------------------------------------------------
+// Egy ügyfél teljes esemény-története (státuszváltások, megjegyzésekkel)
+// ---------------------------------------------------------------
+router.get('/customers/:id/history', (req, res) => {
+  const rows = db.prepare('SELECT status, changed_at, note FROM status_log WHERE customer_id = ? ORDER BY changed_at DESC').all(req.params.id);
+  res.json(rows);
+});
+
+// A "MÓDOSÍTOTT" jelzés gyors törlése (a lista-elemre kattintva, a teljes adatlap megnyitása nélkül)
+router.post('/customers/:id/dismiss-edited-flag', (req, res) => {
+  db.prepare('UPDATE customers SET customer_edited_at = NULL WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 router.get('/customers/:id/editor', (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
   if (!c) return res.status(404).send('Nem található.');

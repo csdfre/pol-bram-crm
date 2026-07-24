@@ -44,7 +44,7 @@ header.top .tag{font-size:0.78rem;color:var(--graphite-soft);letter-spacing:0.05
 .preset-gallery-card{cursor:pointer;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fafbfb;transition:box-shadow .15s, transform .15s;}
 .preset-gallery-card:hover{box-shadow:0 4px 14px rgba(32,36,42,0.15);transform:translateY(-2px);border-color:var(--signal-deep);}
 .preset-gallery-card .thumb-wrap{position:relative;width:100%;height:90px;overflow:hidden;background:#e4e6e7;}
-.preset-gallery-card .thumb-wrap img{position:absolute;top:50%;left:50%;width:100%;height:100%;object-fit:cover;object-position:center;transform:translate(-50%,-50%);display:block;}
+.preset-gallery-card .thumb-wrap img{position:absolute;top:50%;left:50%;width:100%;height:100%;object-fit:contain;object-position:center;transform:translate(-50%,-50%);display:block;background:#fff;}
 .preset-gallery-card span{display:block;text-align:center;padding:8px 4px;font-family:'Oswald',sans-serif;font-size:0.85rem;letter-spacing:0.02em;text-transform:uppercase;color:var(--graphite);}
 .preset-card label{font-size:0.85rem;color:var(--graphite-soft);white-space:nowrap;}
 .preset-card select{max-width:340px;}
@@ -1254,10 +1254,16 @@ function renderSketch(){
     return p;
   }
   const wallLabelCount = {};
-  function nextLabelOffset(wallVal){
+  const wallLabelPositions = {};
+  function nextLabelOffset(wallVal, posAlongWall){
     const n = wallLabelCount[wallVal] || 0;
     wallLabelCount[wallVal] = n+1;
-    return n;
+    const prevPositions = wallLabelPositions[wallVal] || [];
+    // Ha egy korábbi, ugyanazon a falon lévő felirat pozíciója közel van (kevesebb, mint 70cm),
+    // extra eltolást adunk hozzá, hogy a szövegek ne fussanak össze, még ha az elemek közel is vannak.
+    const closeCount = prevPositions.filter(p => Math.abs(p - posAlongWall) < 70).length;
+    wallLabelPositions[wallVal] = [...prevPositions, posAlongWall];
+    return n + closeCount*2;
   }
   function drawUnits(qty, prefix, color, widthCm, sizeLabel){
     const size = Math.max(4, widthCm*scale);
@@ -1268,8 +1274,8 @@ function renderSketch(){
       const centerDist = dist + widthCm/2; // a megadott távolság az ablak sarkáig (éléig) értendő
       const p = drawMarker(wEl.value, cEl.value, centerDist, color, size);
       const cornerLabel = cEl.value==='left' ? 'bal sarok' : 'jobb sarok';
-      const n = nextLabelOffset(wEl.value);
-      const baseOff = 9 + n*11;
+      const n = nextLabelOffset(wEl.value, centerDist);
+      const baseOff = 9 + n*13;
       if(p.refCorner){
         labelEls += `<line x1="${p.refCorner.x}" y1="${p.refCorner.y}" x2="${p.x}" y2="${p.y}" stroke="#F2B705" stroke-width="0.75" stroke-dasharray="2,2" opacity="0.6"/>
           <circle cx="${p.refCorner.x}" cy="${p.refCorner.y}" r="2" fill="#F2B705" opacity="0.8"/>`;
@@ -1314,13 +1320,13 @@ function renderSketch(){
       const dCenterDist = dDist + doorWidthCm/2; // a megadott távolság az ajtó sarkáig (éléig) értendő, a középpontot ebből számoljuk
       const p = drawMarker(dWall, dCorner, dCenterDist, '#c98a2e', Math.max(4, doorWidthCm*scale));
       const cornerLabel = dCorner==='left' ? 'bal sarok' : 'jobb sarok';
-      const doorN = nextLabelOffset(dWall);
-      const doorOff = 10 + doorN*11;
+      const doorN = nextLabelOffset(dWall, dCenterDist);
+      const doorOff = 10 + doorN*13;
       if(p.refCorner){
         labelEls += `<line x1="${p.refCorner.x}" y1="${p.refCorner.y}" x2="${p.x}" y2="${p.y}" stroke="#F2B705" stroke-width="0.75" stroke-dasharray="2,2" opacity="0.6"/>
           <circle cx="${p.refCorner.x}" cy="${p.refCorner.y}" r="2" fill="#F2B705" opacity="0.8"/>`;
       }
-      labelEls += `<text x="${p.x+(p.horizontal?0:doorOff)}" y="${p.y+(p.horizontal?-doorOff:4)}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${dDist} cm a ${cornerLabel}tól</text>`;
+      labelEls += `<text x="${p.x+(p.horizontal?0:doorOff)}" y="${p.y+(p.horizontal?-doorOff:4)}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${dDist} cm a ${cornerLabel}tól (${document.getElementById('personalDoorSize').value||'90x200'})</text>`;
       const outDir = dWall==='front' ? {x:0,y:1} : dWall==='back' ? {x:0,y:-1} : dWall==='left' ? {x:-1,y:0} : dWall==='right' ? {x:1,y:0} : dWall==='notch' ? {x:0,y:1} : (canopyGeom&&canopyGeom.side==='left'?{x:-1,y:0}:{x:1,y:0});
       const along  = (dWall==='front' || dWall==='back' || dWall==='notch') ? {x:1,y:0} : {x:0,y:1};
       const handle = hEl.value;

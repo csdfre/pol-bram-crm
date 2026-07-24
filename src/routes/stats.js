@@ -56,11 +56,18 @@ router.get('/by-status', (req, res) => {
   if (!status) return res.status(400).json({ error: 'Hiányzik a status paraméter.' });
 
   const rows = db.prepare(`
-    SELECT id, name, email, phone, created_at, price_huf FROM customers
+    SELECT id, name, email, phone, created_at, price_huf, price_breakdown FROM customers
     WHERE status = ? AND created_at >= ? AND created_at <= ?
     ORDER BY created_at DESC
   `).all(status, from, toExclusive);
-  res.json(rows);
+  const result = rows.map(r => {
+    let totalPLN = null;
+    if (r.price_breakdown) {
+      try { totalPLN = JSON.parse(r.price_breakdown).totalPLN; } catch (e) { /* ignore */ }
+    }
+    return { id: r.id, name: r.name, email: r.email, phone: r.phone, created_at: r.created_at, price_huf: r.price_huf, price_pln: totalPLN };
+  });
+  res.json(result);
 });
 
 module.exports = router;

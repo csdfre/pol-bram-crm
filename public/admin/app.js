@@ -78,7 +78,7 @@ function renderCustomerTable(rows) {
   const tbody = document.getElementById('customerTableBody');
   tbody.innerHTML = rows.map(r => `
     <tr>
-      <td>${esc(r.name)} ${r.customer_edited_at ? `<span title="Az ügyfél módosította az adatait" style="background:#F2B705;color:#20242A;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:6px">MÓDOSÍTOTT</span>` : ''}</td>
+      <td>${esc(r.name)} ${r.customer_edited_at ? `<span onclick="event.stopPropagation(); dismissEditedFlag(${r.id})" title="Kattints az eltüntetéshez" style="cursor:pointer;background:#F2B705;color:#20242A;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:6px">MÓDOSÍTOTT ✕</span>` : ''}</td>
       <td>${esc(r.zip)} ${esc(r.city)}, ${esc(r.address)}</td>
       <td>${esc(r.phone)}</td>
       <td>${esc(r.email)}</td>
@@ -87,6 +87,11 @@ function renderCustomerTable(rows) {
       <td><button class="link-btn" onclick="openDetail(${r.id})">Megnyitás</button></td>
     </tr>
   `).join('') || '<tr><td colspan="7" style="color:#7a828a;text-align:center">Nincs találat.</td></tr>';
+}
+
+async function dismissEditedFlag(id){
+  await api('/admin/customers/'+id+'/dismiss-edited-flag', { method:'POST' });
+  loadCustomers();
 }
 
 function filterCustomers() {
@@ -212,8 +217,39 @@ function renderModal() {
       <button class="btn-main" style="margin-top:8px" onclick="sendReplyEmail()">Válasz küldése</button>
       <div id="replyStatus" style="margin-top:6px;font-size:0.85rem"></div>
     </div>
+
+    <hr>
+    <h3>Történet</h3>
+    <div id="historyBox">Betöltés...</div>
+
+    <hr>
+    <button class="btn-ghost" style="border-color:#b23a3a;color:#b23a3a" onclick="deleteCustomer()">Ügyfél / igény törlése</button>
   `;
   document.getElementById('modalContent').innerHTML = html;
+  loadHistory();
+}
+
+async function loadHistory(){
+  const box = document.getElementById('historyBox');
+  try {
+    const rows = await api(`/admin/customers/${currentCustomer.id}/history`);
+    if(!rows.length){ box.innerHTML = '<p style="color:#7a828a;font-size:0.85rem">Nincs még rögzített esemény.</p>'; return; }
+    box.innerHTML = `<ul style="list-style:none;padding:0;margin:0">` + rows.map(r => `
+      <li style="border-left:3px solid var(--signal);padding:6px 12px;margin-bottom:6px;background:#fafbfb;border-radius:0 4px 4px 0">
+        <div style="font-size:0.78rem;color:#7a828a">${new Date(r.changed_at).toLocaleString('hu-HU')}</div>
+        <div style="font-size:0.88rem">${esc(r.note || STATUS_LABELS[r.status] || r.status)}</div>
+      </li>
+    `).join('') + `</ul>`;
+  } catch(e){
+    box.innerHTML = `<p style="color:#b23a3a;font-size:0.85rem">Hiba: ${esc(e.message)}</p>`;
+  }
+}
+
+async function deleteCustomer(){
+  if(!confirm(`Biztosan törlöd "${currentCustomer.name}" igényét? Ez nem vonható vissza, minden adata (rajz, levelezés-hivatkozás, előzmény) elvész.`)) return;
+  await api(`/admin/customers/${currentCustomer.id}`, { method: 'DELETE' });
+  document.getElementById('detailModal').style.display = 'none';
+  loadCustomers();
 }
 
 async function loadEmailThread(){
@@ -576,18 +612,37 @@ function statCard(label, value){
   </div>`;
 }
 
+let lastStatsByStatusRows = [];
 async function loadStatsByStatus(){
   const status = document.getElementById('statsStatusSelect').value;
   const { from, to } = currentStatsRange();
   const rows = await api(`/admin/stats/by-status?status=${status}&from=${from}&to=${to}`);
+  lastStatsByStatusRows = rows;
   const box = document.getElementById('statsByStatusResult');
   box.innerHTML = `
     <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px">
       <h3>${STATUS_LABELS[status]||status} (${rows.length} db)</h3>
-      <table id="customerTable"><thead><tr><th>Név</th><th>E-mail</th><th>Telefon</th><th>Beküldve</th><th>Ár</th></tr></thead><tbody>
-        ${rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td>${new Date(r.created_at).toLocaleString('hu-HU')}</td><td>${r.price_huf?r.price_huf.toLocaleString('hu-HU')+' Ft':'—'}</td></tr>`).join('') || '<tr><td colspan="5" style="color:#7a828a">Nincs találat.</td></tr>'}
-      </tbody></table>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <label style="font-size:0.85rem;color:var(--graphite-soft)">Számított %:</label>
+        <input type="number" id="statsPercentInput" value="100" min="0" max="1000" step="1" style="width:80px;padding:6px;border:1px solid var(--line);border-radius:4px" oninput="renderStatsByStatusTable()">
+        <span style="font-size:0.85rem;color:var(--graphite-soft)">% a nettó összegből</span>
+      </div>
+      <div id="statsByStatusTable"></div>
     </div>
+  `;
+  renderStatsByStatusTable();
+}
+
+function renderStatsByStatusTable(){
+  const pct = parseFloat(document.getElementById('statsPercentInput').value) || 0;
+  const rows = lastStatsByStatusRows;
+  document.getElementById('statsByStatusTable').innerHTML = `
+    <table id="customerTable"><thead><tr><th>Név</th><th>E-mail</th><th>Telefon</th><th>Beküldve</th><th>Nettó (Ft)</th><th>Nettó (zł)</th><th>Számított (${pct}%)</th></tr></thead><tbody>
+      ${rows.map(r=>{
+        const computed = r.price_huf ? Math.round(r.price_huf * pct / 100) : null;
+        return `<tr><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td>${new Date(r.created_at).toLocaleString('hu-HU')}</td><td>${r.price_huf?r.price_huf.toLocaleString('hu-HU')+' Ft':'—'}</td><td>${r.price_pln!=null?r.price_pln.toLocaleString('hu-HU')+' zł':'—'}</td><td>${computed!=null?computed.toLocaleString('hu-HU')+' Ft':'—'}</td></tr>`;
+      }).join('') || '<tr><td colspan="7" style="color:#7a828a">Nincs találat.</td></tr>'}
+    </tbody></table>
   `;
 }
 
