@@ -644,6 +644,7 @@ document.getElementById('canopySideWall').addEventListener('change', updateCanop
 function captureFormState(){
   const data = {};
   document.querySelectorAll('input[id],select[id]').forEach(el=>{
+    if(el.type==='file') return; // fájl-mezők értékét a böngésző biztonsági okból nem is lehet elmenteni/visszaállítani
     if(el.type==='checkbox') data[el.id] = el.checked;
     else data[el.id] = el.value;
   });
@@ -655,7 +656,7 @@ function applyFormState(data){
   Object.keys(data).forEach(id=>{
     if(id==='__gateType') return;
     const el = document.getElementById(id);
-    if(!el) return;
+    if(!el || el.type==='file') return; // fájl-mezőt sosem próbálunk programból beállítani (a böngésző úgyis blokkolná)
     if(el.type==='checkbox') el.checked = data[id]; else el.value = data[id];
   });
   // kapu típus (choice pillek, külön state változó)
@@ -676,7 +677,7 @@ function applyFormState(data){
   Object.keys(data).forEach(id=>{
     if(id==='__gateType') return;
     const el = document.getElementById(id);
-    if(!el) return;
+    if(!el || el.type==='file') return;
     if(el.type==='checkbox') el.checked = data[id]; else el.value = data[id];
   });
   resyncAllColorFields();
