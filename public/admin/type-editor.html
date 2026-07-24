@@ -1719,12 +1719,17 @@ document.getElementById('deleteTypeBtn').addEventListener('click', async ()=>{
   window.location.href = 'index.html';
 });
 
-loadExistingType();
-
-onGateTypeChange();
-updateCanopyColorVisibility();
-refreshPositionUnits();
-refreshAll();
+if(editingTypeId){
+  // Meglévő típus szerkesztése: megvárjuk, míg a mentett adatok teljesen betöltődnek és
+  // alkalmazódnak, mielőtt bármilyen egyéb újraszámolás lefutna — így semmi nem írhatja
+  // felül véletlenül az éppen betöltött értékeket.
+  loadExistingType();
+} else {
+  onGateTypeChange();
+  updateCanopyColorVisibility();
+  refreshPositionUnits();
+  refreshAll();
+}
 </script>
 </body>
 </html>

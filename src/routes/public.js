@@ -10,7 +10,7 @@ const { generateOrderFormPdf, buildOrderFields, sectionHtml, editableSectionHtml
 
 const router = express.Router();
 
-const invoiceUploadDirColleague = path.join(__dirname, '..', '..', 'uploads', 'invoices');
+const invoiceUploadDirColleague = path.join(__dirname, '..', '..', 'data', 'uploads', 'invoices');
 if (!fs.existsSync(invoiceUploadDirColleague)) fs.mkdirSync(invoiceUploadDirColleague, { recursive: true });
 const invoiceUpload = multer({
   storage: multer.diskStorage({
@@ -19,7 +19,7 @@ const invoiceUpload = multer({
   }),
 });
 
-const complaintUploadDir = path.join(__dirname, '..', '..', 'uploads', 'complaints');
+const complaintUploadDir = path.join(__dirname, '..', '..', 'data', 'uploads', 'complaints');
 if (!fs.existsSync(complaintUploadDir)) fs.mkdirSync(complaintUploadDir, { recursive: true });
 
 const upload = multer({

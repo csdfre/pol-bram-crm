@@ -17,7 +17,7 @@ app.use(cookieSession({
 }));
 
 // Statikus fájlok: feltöltött PDF-ek/képek + a backoffice frontend + az ügyfél-oldali igénylő form
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'data', 'uploads')));
 app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 app.use(express.static(path.join(__dirname, 'public', 'site'))); // pl. polbram.hu gyökerén a garázs-igénylő form
 

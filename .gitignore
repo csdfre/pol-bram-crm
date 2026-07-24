@@ -1,9 +1,9 @@
 node_modules/
 .env
 data/*.sqlite*
-uploads/invoices/*
-uploads/complaints/*
-uploads/garage-types/*
-!uploads/invoices/.gitkeep
-!uploads/complaints/.gitkeep
-!uploads/garage-types/.gitkeep
+data/uploads/invoices/*
+data/uploads/complaints/*
+data/uploads/garage-types/*
+!data/uploads/invoices/.gitkeep
+!data/uploads/complaints/.gitkeep
+!data/uploads/garage-types/.gitkeep

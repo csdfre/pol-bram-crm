@@ -12,7 +12,7 @@ const email = require('../services/email');
 const router = express.Router();
 router.use(requireAuth);
 
-const invoiceUploadDir = path.join(__dirname, '..', '..', 'uploads', 'invoices');
+const invoiceUploadDir = path.join(__dirname, '..', '..', 'data', 'uploads', 'invoices');
 if (!fs.existsSync(invoiceUploadDir)) fs.mkdirSync(invoiceUploadDir, { recursive: true });
 const invoiceUpload = multer({
   storage: multer.diskStorage({
