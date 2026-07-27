@@ -157,16 +157,23 @@ router.post('/colleague/:token/render-sketch', async (req, res) => {
   }
 });
 
-router.post('/colleague/:token/save', (req, res) => {
+router.post('/colleague/:token/save', async (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE colleague_token = ?').get(req.params.token);
   if (!c) return res.status(404).json({ error: 'Nieprawidłowy link.' });
   const { name, phone, email: custEmail, zip, city, address, formData } = req.body;
   const merged = { ...JSON.parse(c.form_data || '{}'), ...(formData || {}) };
   if (merged.__gateType) merged.gateType = merged.__gateType; // szinkronban tartjuk a két kulcsot
   const quote = calculateQuote(merged);
-  db.prepare(`UPDATE customers SET name=?, phone=?, email=?, zip=?, city=?, address=?, form_data=?, price_huf=?, price_breakdown=?, updated_at=? WHERE id=?`)
+  let newSketchSvg = c.sketch_svg;
+  try {
+    const { renderLiveSketch } = require('../services/liveSketch');
+    newSketchSvg = await renderLiveSketch(merged);
+  } catch (err) {
+    console.error('Rajz újragenerálási hiba mentéskor (megmarad a régi rajz):', err.message);
+  }
+  db.prepare(`UPDATE customers SET name=?, phone=?, email=?, zip=?, city=?, address=?, form_data=?, price_huf=?, price_breakdown=?, sketch_svg=?, updated_at=? WHERE id=?`)
     .run(name || c.name, phone || c.phone, custEmail || c.email, zip || c.zip, city || c.city, address || c.address,
-      JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), new Date().toISOString(), c.id);
+      JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), newSketchSvg, new Date().toISOString(), c.id);
   res.json({ ok: true, quote });
 });
 
@@ -263,7 +270,7 @@ router.post('/modify-offer/:token/render-sketch', async (req, res) => {
   }
 });
 
-router.post('/modify-offer/:token/save', (req, res) => {
+router.post('/modify-offer/:token/save', async (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE accept_token = ?').get(req.params.token);
   if (!c) return res.status(404).json({ error: 'A hivatkozás nem érvényes.' });
   const { formData } = req.body;
@@ -275,8 +282,15 @@ router.post('/modify-offer/:token/save', (req, res) => {
   // így ha az ügyfél többször is módosít, mielőtt az admin megnézné, mindig az EREDETI
   // (admin által utoljára ismert) állapothoz képest látszik, mi változott.
   const preEditData = c.pre_edit_form_data || c.form_data;
-  db.prepare('UPDATE customers SET form_data=?, price_huf=?, price_breakdown=?, customer_edited_at=?, pre_edit_form_data=?, updated_at=? WHERE id=?')
-    .run(JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), now, preEditData, now, c.id);
+  let newSketchSvg = c.sketch_svg;
+  try {
+    const { renderLiveSketch } = require('../services/liveSketch');
+    newSketchSvg = await renderLiveSketch(merged);
+  } catch (err) {
+    console.error('Rajz újragenerálási hiba mentéskor (megmarad a régi rajz):', err.message);
+  }
+  db.prepare('UPDATE customers SET form_data=?, price_huf=?, price_breakdown=?, customer_edited_at=?, pre_edit_form_data=?, sketch_svg=?, updated_at=? WHERE id=?')
+    .run(JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), now, preEditData, newSketchSvg, now, c.id);
   logStatus(c.id, c.status, 'Ügyfél módosította az ajánlat tételeit, ár újraszámolva');
 
   if (process.env.ADMIN_NOTIFY_EMAIL) {

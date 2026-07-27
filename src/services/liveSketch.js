@@ -32,22 +32,36 @@ function getCustomerFormHtml() {
 async function renderLiveSketch(formData) {
   const browser = await getBrowser();
   const page = await browser.newPage();
+  const pageErrors = [];
   try {
-    // A form saját induló betöltése (típusgarázs-lista lekérése) hibát dobhat, mert nincs valódi backend
-    // mögötte ebben a kontextusban — ezt figyelmen kívül hagyjuk, nem befolyásolja a rajz-motort.
-    page.on('pageerror', () => {});
-    page.on('console', () => {});
-    await page.setContent(getCustomerFormHtml(), { waitUntil: 'domcontentloaded' });
-    await page.evaluate((data) => {
-      if (typeof window.applyFormState === 'function') {
+    page.on('pageerror', (err) => pageErrors.push(err.message));
+    page.on('console', (msg) => { if (msg.type() === 'error') pageErrors.push(msg.text()); });
+    await page.setContent(getCustomerFormHtml(), { waitUntil: 'networkidle0', timeout: 15000 });
+    // Biztosra megyünk, hogy a form saját induló inicializálása (választógombok bekötése, kezdeti rajz) lefutott,
+    // mielőtt a mi adatainkkal felülírnánk — egy rövid várakozás elegendő erre.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const evalResult = await page.evaluate((data) => {
+      try {
+        if (typeof window.applyFormState !== 'function') {
+          return { error: 'applyFormState nem található a form oldalán.' };
+        }
         window.applyFormState(data);
+        if (typeof window.refreshAll === 'function') window.refreshAll();
+        const el = document.getElementById('sketch');
+        return { svg: el ? el.innerHTML : '', hadSketchEl: !!el };
+      } catch (e) {
+        return { error: 'Kliens-oldali hiba: ' + e.message };
       }
     }, formData);
-    const svg = await page.evaluate(() => {
-      const el = document.getElementById('sketch');
-      return el ? el.innerHTML : '';
-    });
-    return svg;
+
+    if (evalResult.error) {
+      throw new Error(evalResult.error + (pageErrors.length ? ' | Oldal hibák: ' + pageErrors.join('; ') : ''));
+    }
+    if (!evalResult.svg) {
+      throw new Error('A rajz üresen tért vissza.' + (pageErrors.length ? ' Oldal hibák: ' + pageErrors.join('; ') : ''));
+    }
+    return evalResult.svg;
   } finally {
     await page.close();
   }

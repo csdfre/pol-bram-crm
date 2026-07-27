@@ -229,18 +229,25 @@ router.post('/customers/:id/update-price', (req, res) => {
   res.json({ ok: true });
 });
 
-router.post('/customers/:id/update-form-data', (req, res) => {
+router.post('/customers/:id/update-form-data', async (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Nem található.' });
   const { name, phone, email: custEmail, zip, city, address, formData } = req.body;
   const merged = { ...JSON.parse(c.form_data || '{}'), ...(formData || {}) };
   if (merged.__gateType) merged.gateType = merged.__gateType;
   const quote = calculateQuote(merged);
+  let newSketchSvg = c.sketch_svg;
+  try {
+    const { renderLiveSketch } = require('../services/liveSketch');
+    newSketchSvg = await renderLiveSketch(merged);
+  } catch (err) {
+    console.error('Rajz újragenerálási hiba mentéskor (megmarad a régi rajz):', err.message);
+  }
   db.prepare(`
-    UPDATE customers SET name=?, phone=?, email=?, zip=?, city=?, address=?, form_data=?, price_huf=?, price_breakdown=?, updated_at=?
+    UPDATE customers SET name=?, phone=?, email=?, zip=?, city=?, address=?, form_data=?, price_huf=?, price_breakdown=?, sketch_svg=?, updated_at=?
     WHERE id=?
   `).run(name || c.name, phone || c.phone, custEmail || c.email, zip || c.zip, city || c.city, address || c.address,
-    JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), new Date().toISOString(), c.id);
+    JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), newSketchSvg, new Date().toISOString(), c.id);
   res.json({ ok: true, quote });
 });
 
