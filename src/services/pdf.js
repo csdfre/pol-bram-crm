@@ -281,10 +281,14 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
       E(L('gateHeight'), (fd.gateHeight||'185')+' cm', 'gateHeight', fd.gateHeight||185, 'number'),
       ESEL(L('gateColor'), 'colorGate', fd.colorGate||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorGate||'RAL9005', lang)),
       ESEL(L('gatePattern'), 'gatePattern', fd.gatePattern||'Széles vízszintes', PATTERN_OPTIONS[lang], patternName(fd.gatePattern||'Széles vízszintes', lang)),
-      ECHECK(lang==='pl'?'Automatyka':'Automatika kérése', 'automation', !!fd.automation, fd.automation ? YES[lang] : VALUE_NONE[lang]),
-      E(lang==='pl'?'Ilość automatyki (szt.)':'Automatika darabszáma (db)', fd.automationQty||1, 'automationQty', fd.automationQty||1, 'number'),
     ];
     sections.push({ section: S('gate'), items, isEmpty: gateType==='none' });
+
+    // Az automatika külön, önmagában összecsukható tétel — csak akkor nyílik nyitva, ha az ügyfél ténylegesen kérte
+    sections.push({ section: lang==='pl'?'Automatyka bramy':'Kapuautomatika', items: [
+      ECHECK(lang==='pl'?'Automatyka':'Automatika kérése', 'automation', !!fd.automation, fd.automation ? YES[lang] : VALUE_NONE[lang]),
+      E(lang==='pl'?'Ilość automatyki (szt.)':'Automatika darabszáma (db)', fd.automationQty||1, 'automationQty', fd.automationQty||1, 'number'),
+    ], isEmpty: !fd.automation });
   }
 
   sections.push({ section: S('structure'), items: [
@@ -297,6 +301,21 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
     ESEL(L('wallColor'), 'colorWall', fd.colorWall||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorWall, lang)),
     ESEL(L('wallTrimColor'), 'colorWallTrim', fd.colorWallTrim||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorWallTrim, lang)),
   ]});
+
+  {
+    const orientOptions = { hu: [['hosszaban','Hosszában (oldalfaltól mérve)'],['keresztben','Keresztben (elülső/hátsó faltól mérve)']],
+                             pl: [['hosszaban','Wzdłuż (od ściany bocznej)'],['keresztben','W poprzek (od ściany przedniej/tylnej)']] };
+    const cornerOptionsWall = fd.wallOrientation==='keresztben'
+      ? { hu: [['front','Elülső faltól'],['back','Hátsó faltól']], pl: [['front','Od ściany przedniej'],['back','Od ściany tylnej']] }
+      : { hu: [['left','Bal oldalfaltól'],['right','Jobb oldalfaltól']], pl: [['left','Od lewej'],['right','Od prawej']] };
+    sections.push({ section: lang==='pl'?'Ściana działowa':'Válaszfal', items: [
+      ECHECK(lang==='pl'?'Potrzebna':'Kérjük', 'wallYes', !!fd.wallYes, fd.wallYes ? YES[lang] : VALUE_NONE[lang]),
+      ESEL(lang==='pl'?'Kierunek':'Iránya', 'wallOrientation', fd.wallOrientation||'hosszaban', orientOptions[lang], (orientOptions[lang].find(o=>o[0]===(fd.wallOrientation||'hosszaban'))||[,fd.wallOrientation])[1]),
+      E(lang==='pl'?'Długość (mb)':'Hossz (fm)', fd.wallLength||0, 'wallLength', fd.wallLength||0, 'number'),
+      ESEL(lang==='pl'?'Mierzone od':'Melyik faltól mérve', 'wallCorner', fd.wallCorner||'left', cornerOptionsWall[lang], (cornerOptionsWall[lang].find(o=>o[0]===(fd.wallCorner||'left'))||[,fd.wallCorner])[1]),
+      E(lang==='pl'?'Odległość (cm)':'Távolság (cm)', fd.wallPosition||0, 'wallPosition', fd.wallPosition||0, 'number'),
+    ], isEmpty: !fd.wallYes });
+  }
 
   if(personalDoorCount>0 || includeEmpty){
     sections.push({ section: S('door'), items: [

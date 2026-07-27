@@ -142,6 +142,21 @@ router.get('/colleague/:token', (req, res) => {
   res.send(colleaguePage(c));
 });
 
+router.post('/colleague/:token/render-sketch', async (req, res) => {
+  const c = db.prepare('SELECT * FROM customers WHERE colleague_token = ?').get(req.params.token);
+  if (!c) return res.status(404).json({ error: 'Nieprawidłowy link.' });
+  try {
+    const { renderLiveSketch } = require('../services/liveSketch');
+    const fd = { ...JSON.parse(c.form_data || '{}'), ...(req.body.formData || {}) };
+    const rawSvg = await renderLiveSketch(fd);
+    const svg = prepareColleagueSketch(rawSvg);
+    res.json({ ok: true, svg });
+  } catch (err) {
+    console.error('Élő rajz-renderelési hiba (kolléganő):', err);
+    res.status(500).json({ error: 'Nem sikerült frissíteni a rajzot: ' + err.message });
+  }
+});
+
 router.post('/colleague/:token/save', (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE colleague_token = ?').get(req.params.token);
   if (!c) return res.status(404).json({ error: 'Nieprawidłowy link.' });
@@ -232,6 +247,20 @@ router.get('/modify-offer/:token', (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE accept_token = ?').get(req.params.token);
   if (!c) return res.status(404).send(simplePage('A hivatkozás nem érvényes.'));
   res.send(modifyOfferPage(c));
+});
+
+router.post('/modify-offer/:token/render-sketch', async (req, res) => {
+  const c = db.prepare('SELECT * FROM customers WHERE accept_token = ?').get(req.params.token);
+  if (!c) return res.status(404).json({ error: 'A hivatkozás nem érvényes.' });
+  try {
+    const { renderLiveSketch } = require('../services/liveSketch');
+    const fd = { ...JSON.parse(c.form_data || '{}'), ...(req.body.formData || {}) };
+    const svg = await renderLiveSketch(fd);
+    res.json({ ok: true, svg });
+  } catch (err) {
+    console.error('Élő rajz-renderelési hiba (ügyfél):', err);
+    res.status(500).json({ error: 'Nem sikerült frissíteni a rajzot: ' + err.message });
+  }
 });
 
 router.post('/modify-offer/:token/save', (req, res) => {
@@ -366,7 +395,10 @@ function modifyOfferPage(c){
     <p style="font-size:0.85rem;color:#7a828a;margin-top:-8px;margin-bottom:14px">Választott típus: <strong>${escapeHtml(c.garage_type_used || 'Egyedi összeállítás')}</strong></p>
     <p style="color:#7a828a">Módosítsa az alábbi tételeket, ha másra van szüksége — az ár automatikusan újraszámolódik.</p>
 
-    ${c.sketch_svg ? `<div class="sketch">${c.sketch_svg}</div>` : ''}
+    <div class="sketch" id="sketchBox">${c.sketch_svg || ''}</div>
+    <div style="text-align:center;margin:-10px 0 16px">
+      <button onclick="refreshSketch()" style="background:#454C54;font-size:0.8rem;padding:6px 14px">↻ Rajz frissítése a jelenlegi adatokkal</button>
+    </div>
 
     <div class="two-col">
       <div>${sections.slice(0, Math.ceil(sections.length/2)).map(editableSectionHtml).join('')}</div>
@@ -384,6 +416,19 @@ function modifyOfferPage(c){
   <script>
     const token = ${JSON.stringify(c.accept_token)};
     function msg(t){ document.getElementById('statusMsg').textContent = t; }
+    async function refreshSketch(){
+      const formData = {};
+      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
+      const box = document.getElementById('sketchBox');
+      box.style.opacity = '0.5';
+      try{
+        const res = await fetch('/public/modify-offer/'+token+'/render-sketch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ formData }) });
+        const data = await res.json();
+        if(res.ok) box.innerHTML = data.svg;
+        else alert('Hiba: '+data.error);
+      } catch(e){ alert('Hiba a rajz frissítése közben: '+e.message); }
+      box.style.opacity = '1';
+    }
     async function saveChanges(){
       const formData = {};
       document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
@@ -455,7 +500,10 @@ function colleaguePage(c){
 
     ${fd.truckParkingDistance ? `<p style="background:#fff7e0;border:1px solid #F2B705;padding:8px 12px;border-radius:4px;font-size:0.85rem"><strong>Parkowanie ciężarówki przy miejscu montażu:</strong> ${escapeHtml(fd.truckParkingDistance)}</p>` : ''}
     ${companySection ? editableSectionHtml(companySection) : ''}
-    ${lightSketch ? `<div class="sketch">${lightSketch}</div>` : ''}
+    <div class="sketch" id="sketchBox">${lightSketch || ''}</div>
+    <div style="text-align:center;margin:-10px 0 16px">
+      <button onclick="refreshSketch()" style="background:#454C54;font-size:0.8rem;padding:6px 14px">↻ Odśwież szkic aktualnymi danymi</button>
+    </div>
 
     <div class="two-col">
       <div>${otherSections.slice(0, Math.ceil(otherSections.length/2)).map(editableSectionHtml).join('')}</div>
@@ -511,6 +559,19 @@ function colleaguePage(c){
       msg(res.ok ? 'Cena zapisana.' : 'Błąd: '+data.error);
     }
     function msg(t){ document.getElementById('statusMsg').textContent = t; }
+    async function refreshSketch(){
+      const formData = {};
+      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
+      const box = document.getElementById('sketchBox');
+      box.style.opacity = '0.5';
+      try{
+        const res = await fetch('/public/colleague/'+token+'/render-sketch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ formData }) });
+        const data = await res.json();
+        if(res.ok) box.innerHTML = data.svg;
+        else alert('Błąd: '+data.error);
+      } catch(e){ alert('Błąd podczas odświeżania szkicu: '+e.message); }
+      box.style.opacity = '1';
+    }
     async function saveData(){
       const formData = {};
       document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });

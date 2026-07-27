@@ -117,6 +117,17 @@ document.getElementById('closeModalBtn').addEventListener('click', () => {
   loadCustomers();
 });
 
+// Ha az "Adatok szerkesztése" oldal egy külön ablakban/fülben nyitva van, és ott mentés történik
+// (ár vagy tételek módosítása), az odaátnyitott oldal ezt a függvényt hívja meg ezen az (opener) ablakon,
+// hogy a jelenleg nyitott ügyfél-adatlap modal is azonnal frissüljön, ne kelljen kézzel újranyitni.
+async function refreshOpenCustomerDetail(){
+  if(!currentCustomer || document.getElementById('detailModal').style.display === 'none') return;
+  try{
+    currentCustomer = await api('/admin/customers/' + currentCustomer.id);
+    renderModal();
+  } catch(e){ /* csendben elnyeljük, ha időközben törlődött vagy egyéb hiba van */ }
+}
+
 function renderModal() {
   const c = currentCustomer;
   const quote = c.price_breakdown;

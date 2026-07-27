@@ -136,7 +136,10 @@ router.get('/customers/:id/editor', (req, res) => {
       <div><span class="l">Cím</span><input id="f_address" value="${esc(c.address)}"></div>
     </div>
 
-    ${c.sketch_svg ? `<div class="sketch">${c.sketch_svg}</div>` : ''}
+    <div class="sketch" id="sketchBox">${c.sketch_svg || ''}</div>
+    <div style="text-align:center;margin:-10px 0 16px">
+      <button onclick="refreshSketch()" style="background:#454C54;font-size:0.8rem;padding:6px 14px">↻ Rajz frissítése a jelenlegi adatokkal</button>
+    </div>
 
     <div class="two-col">
       <div>${sections.slice(0, Math.ceil(sections.length/2)).map(editableSectionHtml).join('')}</div>
@@ -156,11 +159,35 @@ router.get('/customers/:id/editor', (req, res) => {
     <div id="statusMsg" style="margin-top:14px;font-weight:bold"></div>
   </div>
   <script>
+    async function refreshSketch(){
+      const formData = {};
+      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
+      const fullData = Object.assign({}, ${JSON.stringify(fd)}, formData);
+      const box = document.getElementById('sketchBox');
+      box.style.opacity = '0.5';
+      try{
+        const res = await fetch(window.location.pathname.replace('/editor','')+'/render-sketch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ formData: fullData }) });
+        const data = await res.json();
+        if(res.ok) box.innerHTML = data.svg;
+        else alert('Hiba: '+data.error);
+      } catch(e){ alert('Hiba a rajz frissítése közben: '+e.message); }
+      box.style.opacity = '1';
+    }
     async function savePrice(){
       const total = parseFloat(document.getElementById('priceAmount').value) || 0;
       const res = await fetch(window.location.pathname.replace('/editor','')+'/update-price', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ total }) });
       const data = await res.json();
       document.getElementById('statusMsg').textContent = res.ok ? 'Ár elmentve.' : 'Hiba: '+data.error;
+      if(res.ok) notifyOpenerToRefresh();
+    }
+    // Ha ez az oldal egy másik (fő admin) ablakból nyílt meg, szólunk neki, hogy frissítse
+    // a saját felugró ablakában (ügyfél-adatlap modal) megjelenő adatokat is, mentés után.
+    function notifyOpenerToRefresh(){
+      try{
+        if(window.opener && !window.opener.closed && typeof window.opener.refreshOpenCustomerDetail === 'function'){
+          window.opener.refreshOpenCustomerDetail();
+        }
+      } catch(e){ /* más eredetű (cross-origin) ablak esetén csendben elnyeljük */ }
     }
     async function saveChanges(){
       const formData = {};
@@ -179,6 +206,7 @@ router.get('/customers/:id/editor', (req, res) => {
       const msgEl = document.getElementById('statusMsg');
       if(res.ok){
         msgEl.textContent = 'Mentve, ár újraszámolva.';
+        notifyOpenerToRefresh();
         setTimeout(()=>location.reload(), 800);
       } else {
         msgEl.textContent = 'Hiba: '+data.error;
@@ -463,6 +491,17 @@ router.post('/customers/:id/reply-email', async (req, res) => {
   } catch (err) {
     console.error('Válasz-email küldési hiba:', err);
     res.status(500).json({ error: 'Nem sikerült elküldeni a választ: ' + err.message });
+  }
+});
+
+router.post('/customers/:id/render-sketch', async (req, res) => {
+  try {
+    const { renderLiveSketch } = require('../services/liveSketch');
+    const svg = await renderLiveSketch(req.body.formData || {});
+    res.json({ ok: true, svg });
+  } catch (err) {
+    console.error('Élő rajz-renderelési hiba:', err);
+    res.status(500).json({ error: 'Nem sikerült frissíteni a rajzot: ' + err.message });
   }
 });
 
