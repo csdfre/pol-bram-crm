@@ -289,6 +289,7 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
 
   sections.push({ section: S('structure'), items: [
     ESEL(L('structureType'), 'structureType', fd.structureType||'szogvas', STRUCTURE_OPTIONS[lang], (STRUCTURE_NAMES[fd.structureType] && STRUCTURE_NAMES[fd.structureType][lang]) || fd.structureType || '—'),
+    E(lang==='pl'?'Słupy podporowe 3,5m (szt.)':'Tartóoszlop 3,5m (db) — 8m+ hosszúságnál ajánlott', fd.supportPoleQty||0, 'supportPoleQty', fd.supportPoleQty||0, 'number'),
   ]});
 
   sections.push({ section: S('walls'), items: [
@@ -304,6 +305,7 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
       E(L('doorSize'), fd.personalDoorSize||'90x200', 'personalDoorSize', fd.personalDoorSize||'90x200'),
       ESEL(L('doorColor'), 'colorDoor', fd.colorDoor||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorDoor||'RAL9005', lang)),
       ESEL(L('doorPattern'), 'personalDoorPattern', fd.personalDoorPattern||'Széles vízszintes', PATTERN_OPTIONS[lang], patternName(fd.personalDoorPattern||'Széles vízszintes', lang)),
+      E(lang==='pl'?'Dodatkowy zamek (szt.)':'Extra zár (db)', fd.extraLockQty||0, 'extraLockQty', fd.extraLockQty||0, 'number'),
       ...placementRows('personalDoor', Math.max(personalDoorCount,1)),
     ], isEmpty: personalDoorCount===0 });
   }

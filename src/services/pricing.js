@@ -56,6 +56,8 @@ const ADDON_DEFAULT = {
   gateSwingPerMb: { OC:173, RAL:205, DREW:283 },     // billenő kapu, zł/fm
   gateDoublePerPc: { OC:350, RAL:450, DREW:550 },    // kétszárnyú kapu, zł/db
   automation: 1000,                                   // zł/db
+  supportPole: 500,                                   // Słup podporowy 3,5m, zł/db (hosszú, pl. 8m+ garázsoknál ajánlott)
+  extraLock: 70,                                      // Dodatkowy zamek (extra zár a személyi ajtón), zł/db
   doorProfil: { OC:450, RAL:550, DREW:600 },          // személyi ajtó (Furtka/drzwi profil), zł/db
   window8060: 500,
   window150x50: 1000, // Okno 120/100 tétel alapján
@@ -79,16 +81,38 @@ const HEIGHT_SURCHARGE = [
 ];
 
 function bracketOf(m2) {
-  if (m2 <= 50) return 'typowy';
-  if (m2 <= 100) return 'mala';
-  if (m2 <= 200) return 'srednia';
-  return 'duza';
+  // A valós Excel-kalkulátorban (pycel-lel ellenőrizve, sok méret-kombináción) a "pojedynczy" (egyedi)
+  // garázsoknál MINDIG a "typowy" (alap) kategória árai érvényesek, méret-függetlenül — a mala/srednia/duza
+  // kategóriák nem kerülnek ténylegesen alkalmazásra egyedi garázsoknál ebben a fájlban.
+  return 'typowy';
 }
 
 function heightSurchargePct(excessCm) {
   if (excessCm <= 0) return 0;
   for (const [limit, pct] of HEIGHT_SURCHARGE) if (excessCm <= limit) return pct;
   return 1.0;
+}
+
+// A "felár nélküli" (standard) magasság a tetőtípustól és mérettől függ — a "spad tył" (hátrafelé lejtő)
+// tetőnél a hosszúság növekedésével nő az alap-magasság is (5cm-enként 1m hosszúságnövekedésre 5m felett,
+// a valós Excel-kalkulátorban ellenőrizve). A többi tetőtípusnál egyelőre fix 213 cm.
+function standardHeightCm(roofKey, widthM, lengthM) {
+  if (roofKey === 'spad_tyl') {
+    return 213 + Math.max(0, lengthM - 5) * 5;
+  }
+  return 213;
+}
+
+// A magasságfelár %-a KÉTSZINTŰ logikával dől el (a valós Excel-kalkulátorban pontosan ellenőrizve):
+//  1. Ha a VÁLASZTOTT magasság a fix 213cm-hez képest jelentősen (19cm-nél jobban) magasabb,
+//     a fix sávos táblázat (HEIGHT_SURCHARGE) dönt, függetlenül a hossz-függő minimumtól.
+//  2. Egyébként (ha a 213+19cm=232cm-es küszöböt nem lépi túl) a hossz-függő MINIMUMHOZ (baselineCm)
+//     képest nézzük: ha pontosan annyi, nincs felár; ha afölött van, 10%-os felár jár.
+function heightSurchargeCombined(heightCm, baselineCm) {
+  const excessFixed = heightCm - 213;
+  if (excessFixed > 19) return heightSurchargePct(excessFixed);
+  if (heightCm > baselineCm) return 0.10;
+  return 0;
 }
 
 function loadScalarOverride(key, fallback){
@@ -140,10 +164,10 @@ function calculateQuote(formData) {
 
   const basePerMb = (BASE_PRICE_TABLE[bracket][roofKey] || BASE_PRICE_TABLE[bracket].dwuspad)[material];
 
-  // Magasság-felár %
+  // Magasság-felár % — kétszintű logika (lásd heightSurchargeCombined)
   const heightCm = parseHeightCm(formData.height);
-  const excessCm = Math.max(0, heightCm - 213);
-  const heightPct = heightSurchargePct(excessCm);
+  const baselineCm = standardHeightCm(roofKey, widthM, lengthM);
+  const heightPct = heightSurchargeCombined(heightCm, baselineCm);
 
   const basePrice = perimeterMb * basePerMb * (1 + heightPct);
   lines.push(line(`Alapszerkezet (${perimeterMb.toFixed(1)} fm × ${basePerMb} zł/fm${heightPct ? ` + ${(heightPct * 100).toFixed(0)}% magasságfelár` : ''})`, basePrice));
@@ -195,6 +219,10 @@ function calculateQuote(formData) {
     const doorColor = materialFromColor(formData.colorDoor);
     if (count > 0) {
       lines.push(line(`Személyi ajtó ×${count}`, ADDON.doorProfil[doorColor] * count));
+      const extraLockQty = Math.max(0, parseInt(formData.extraLockQty) || 0);
+      if (extraLockQty > 0) {
+        lines.push(line(`Extra zár ×${extraLockQty}`, ADDON.extraLock * extraLockQty));
+      }
     }
   }
 
@@ -217,6 +245,11 @@ function calculateQuote(formData) {
   }
 
   // Ereszcsatorna
+  const supportPoleQty = parseInt(formData.supportPoleQty) || 0;
+  if (supportPoleQty > 0) {
+    lines.push(line(`Tartóoszlop (3,5m) ×${supportPoleQty}`, ADDON.supportPole * supportPoleQty));
+  }
+
   if (formData.gutterYes) {
     const heightM = heightCm / 100;
     let gutterMbEquivalent = 0;
