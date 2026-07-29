@@ -68,6 +68,7 @@ router.post('/submit', async (req, res) => {
       acceptToken, satisfactionToken, complaintToken, garageTypeUsed || null);
 
     logStatus(info.lastInsertRowid, 'ajanlatra_var', 'Igény beérkezett');
+    markStatusAlert(info.lastInsertRowid, 'Új ajánlatkérés érkezett');
 
     // Automatikus visszaigazoló e-mail az ügyfélnek
     email.sendInquiryReceived({ name, email: custEmail }).catch(err => console.error('Email hiba (inquiry received):', err));
@@ -90,6 +91,7 @@ router.get('/accept-offer/:token', (req, res) => {
     db.prepare('UPDATE customers SET status = ?, updated_at = ? WHERE id = ?')
       .run('ajanlat_elfogadva', new Date().toISOString(), customer.id);
     logStatus(customer.id, 'ajanlat_elfogadva', 'Ügyfél elfogadta az ajánlatot');
+    markStatusAlert(customer.id, 'Ügyfél elfogadta az ajánlatot');
   }
   res.send(simplePage('Köszönjük! Az ajánlat elfogadását rögzítettük. Hamarosan felvesszük Önnel a kapcsolatot a megrendelőlappal kapcsolatban.'));
 });
@@ -129,6 +131,7 @@ router.post('/complaint/:token', upload.array('photos', 8), (req, res) => {
   db.prepare('UPDATE customers SET status = ?, complaint_text = ?, complaint_files = ?, updated_at = ? WHERE id = ?')
     .run('garancialis_problema', req.body.text || '', JSON.stringify(files), new Date().toISOString(), customer.id);
   logStatus(customer.id, 'garancialis_problema', 'Ügyfél reklamációt küldött be');
+  markStatusAlert(customer.id, 'Ügyfél reklamációt küldött be');
 
   res.send(simplePage('Köszönjük a jelzést! Munkatársunk hamarosan felveszi Önnel a kapcsolatot.'));
 });
@@ -202,6 +205,7 @@ router.post('/colleague/:token/approve', async (req, res) => {
     db.prepare('UPDATE customers SET status=?, colleague_approved=1, updated_at=? WHERE id=?')
       .run('megrendelolap_kikuldve', new Date().toISOString(), c.id);
     logStatus(c.id, 'megrendelolap_kikuldve', 'Kolléganő jóváhagyta, megrendelőlap kiküldve az ügyfélnek');
+    markStatusAlert(c.id, 'Kolléganő jóváhagyta, megrendelőlap kiküldve az ügyfélnek');
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -220,6 +224,7 @@ router.post('/colleague/:token/upload-invoice', invoiceUpload.single('invoice'),
     db.prepare('UPDATE customers SET invoice_file=?, status=?, updated_at=? WHERE id=?')
       .run(relPath, 'elolegszamla_kikuldve', new Date().toISOString(), c.id);
     logStatus(c.id, 'elolegszamla_kikuldve', 'Kolléganő feltöltötte és kiküldte az előlegszámlát');
+    markStatusAlert(c.id, 'Előlegszámla kiküldve az ügyfélnek');
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -236,6 +241,7 @@ router.get('/order-approve/:token', (req, res) => {
   db.prepare('UPDATE customers SET status=?, updated_at=? WHERE id=?')
     .run('megrendelolap_elfogadva', new Date().toISOString(), c.id);
   logStatus(c.id, 'megrendelolap_elfogadva', 'Ügyfél elfogadta a megrendelőlapot');
+  markStatusAlert(c.id, 'Ügyfél elfogadta a megrendelőlapot');
   res.send(simplePage('Köszönjük! A megrendelőlap elfogadását rögzítettük. Hamarosan küldjük az előlegszámlát.'));
 });
 
@@ -322,6 +328,7 @@ router.post('/reject-offer/:token', (req, res) => {
   db.prepare('UPDATE customers SET status=?, reject_reason=?, reject_at=?, updated_at=? WHERE id=?')
     .run('elutasitva', reason, new Date().toISOString(), new Date().toISOString(), c.id);
   logStatus(c.id, 'elutasitva', 'Ügyfél elutasította az ajánlatot: ' + reason);
+  markStatusAlert(c.id, 'Ügyfél elutasította az ajánlatot');
   res.send(simplePage('Köszönjük a visszajelzést. Sajnáljuk, hogy nem tudtunk megfelelni az elképzeléseinek.'));
 });
 
@@ -332,6 +339,7 @@ router.post('/order-modify/:token', async (req, res) => {
   db.prepare('UPDATE customers SET modify_request_text=?, modify_request_at=?, updated_at=? WHERE id=?')
     .run(text, new Date().toISOString(), new Date().toISOString(), c.id);
   logStatus(c.id, c.status, 'Ügyfél módosítást kért: ' + text);
+  markStatusAlert(c.id, 'Ügyfél módosítást kért a megrendelőlapon');
 
   const notifyHtml = `<div style="font-family:Arial,sans-serif">
     <h3>Módosítást kért az ügyfél</h3>
@@ -625,6 +633,13 @@ function colleaguePage(c){
 function logStatus(customerId, status, note) {
   db.prepare('INSERT INTO status_log (customer_id, status, changed_at, note) VALUES (?, ?, ?, ?)')
     .run(customerId, status, new Date().toISOString(), note || '');
+}
+
+// Jelzi a backoffice-ban, hogy egy automatikus esemény történt (új igény, ügyfél elfogadta/elutasította,
+// kolléganő jóváhagyta, stb.) — amíg az admin meg nem nézi az adatlapot, egy jelvény mutatja ezt a listában.
+function markStatusAlert(customerId, note) {
+  db.prepare('UPDATE customers SET status_alert_at=?, status_alert_note=? WHERE id=?')
+    .run(new Date().toISOString(), note, customerId);
 }
 
 function simplePage(message) {

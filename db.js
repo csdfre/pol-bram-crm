@@ -99,5 +99,7 @@ addColIfMissing('reminder_sent_at', 'TEXT');
 addColIfMissing('garage_type_used', 'TEXT');
 addColIfMissing('customer_edited_at', 'TEXT');
 addColIfMissing('pre_edit_form_data', 'TEXT');
+addColIfMissing('status_alert_at', 'TEXT');
+addColIfMissing('status_alert_note', 'TEXT');
 
 module.exports = db;

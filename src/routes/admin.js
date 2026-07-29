@@ -26,7 +26,7 @@ const invoiceUpload = multer({
 // ---------------------------------------------------------------
 router.get('/customers', (req, res) => {
   const rows = db.prepare(`
-    SELECT id, created_at, status, name, address, zip, city, phone, email, price_huf, customer_edited_at
+    SELECT id, created_at, status, name, address, zip, city, phone, email, price_huf, customer_edited_at, status_alert_at, status_alert_note
     FROM customers ORDER BY updated_at DESC
   `).all();
   res.json(rows);
@@ -40,6 +40,9 @@ router.get('/customers/:id', (req, res) => {
   if (!c) return res.status(404).json({ error: 'Nem található.' });
   if (c.customer_edited_at) {
     db.prepare('UPDATE customers SET customer_edited_at = NULL WHERE id = ?').run(req.params.id);
+  }
+  if (c.status_alert_at) {
+    db.prepare('UPDATE customers SET status_alert_at = NULL, status_alert_note = NULL WHERE id = ?').run(req.params.id);
   }
   res.json({
     ...c,
@@ -87,6 +90,11 @@ router.get('/customers/:id/history', (req, res) => {
 // A "MÓDOSÍTOTT" jelzés gyors törlése (a lista-elemre kattintva, a teljes adatlap megnyitása nélkül)
 router.post('/customers/:id/dismiss-edited-flag', (req, res) => {
   db.prepare('UPDATE customers SET customer_edited_at = NULL WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+router.post('/customers/:id/dismiss-status-alert', (req, res) => {
+  db.prepare('UPDATE customers SET status_alert_at = NULL, status_alert_note = NULL WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 });
 
@@ -344,6 +352,8 @@ router.post('/customers/:id/send-order-form-colleague', async (req, res) => {
       c.colleague_token = token;
     }
     await email.sendOrderFormToColleague(c);
+    db.prepare('UPDATE customers SET status=?, updated_at=? WHERE id=?').run('kolleganonek_kikuldve', new Date().toISOString(), c.id);
+    logStatus(c.id, 'kolleganonek_kikuldve', 'Link kiküldve a lengyel kolléganőnek jóváhagyásra');
     res.json({ ok: true });
   } catch (err) {
     console.error(err);

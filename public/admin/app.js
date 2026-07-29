@@ -3,6 +3,7 @@ const STATUS_LABELS = {
   ajanlat_kikuldve: 'Ajánlat kiküldve',
   ajanlat_elfogadva: 'Ajánlat elfogadva',
   elutasitva: 'Elutasítva',
+  kolleganonek_kikuldve: 'Kolléganőnek kiküldve',
   megrendelolap_kikuldve: 'Megrendelőlap kiküldve',
   megrendelolap_elfogadva: 'Megrendelőlap elfogadva',
   elolegszamla_kikuldve: 'Előlegszámla kiküldve',
@@ -78,7 +79,7 @@ function renderCustomerTable(rows) {
   const tbody = document.getElementById('customerTableBody');
   tbody.innerHTML = rows.map(r => `
     <tr>
-      <td>${esc(r.name)} ${r.customer_edited_at ? `<span onclick="event.stopPropagation(); dismissEditedFlag(${r.id})" title="Kattints az eltüntetéshez" style="cursor:pointer;background:#F2B705;color:#20242A;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:6px">MÓDOSÍTOTT ✕</span>` : ''}</td>
+      <td>${esc(r.name)} ${r.customer_edited_at ? `<span onclick="event.stopPropagation(); dismissEditedFlag(${r.id})" title="Kattints az eltüntetéshez" style="cursor:pointer;background:#F2B705;color:#20242A;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:6px">MÓDOSÍTOTT ✕</span>` : ''} ${r.status_alert_at ? `<span onclick="event.stopPropagation(); dismissStatusAlert(${r.id})" title="${esc(r.status_alert_note||'')} — kattints az eltüntetéshez" style="cursor:pointer;background:#2F6B8F;color:#fff;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:6px">🔔 ${esc(r.status_alert_note||'ÚJ ESEMÉNY')} ✕</span>` : ''}</td>
       <td>${esc(r.zip)} ${esc(r.city)}, ${esc(r.address)}</td>
       <td>${esc(r.phone)}</td>
       <td>${esc(r.email)}</td>
@@ -91,6 +92,11 @@ function renderCustomerTable(rows) {
 
 async function dismissEditedFlag(id){
   await api('/admin/customers/'+id+'/dismiss-edited-flag', { method:'POST' });
+  loadCustomers();
+}
+
+async function dismissStatusAlert(id){
+  await api('/admin/customers/'+id+'/dismiss-status-alert', { method:'POST' });
   loadCustomers();
 }
 
