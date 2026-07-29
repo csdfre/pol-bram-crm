@@ -30,8 +30,16 @@ async function preparePage(formData) {
   const browser = await getBrowser();
   const page = await browser.newPage();
   const pageErrors = [];
-  page.on('pageerror', (err) => pageErrors.push(err.message));
-  page.on('console', (msg) => { if (msg.type() === 'error') pageErrors.push(msg.text()); });
+  page.on('pageerror', (err) => pageErrors.push('pageerror: ' + err.message));
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') {
+      // A Puppeteer néha csak "JSHandle@error"-t ad vissza objektum-argumentumoknál — megpróbáljuk
+      // a tényleges hibaszöveget is kiolvasni, ha lehetséges.
+      Promise.all(msg.args().map(a => a.jsonValue().catch(() => a.toString())))
+        .then(vals => pageErrors.push('console.error: ' + vals.map(v => typeof v === 'object' ? JSON.stringify(v) : v).join(' ')))
+        .catch(() => pageErrors.push('console.error: ' + msg.text()));
+    }
+  });
   // Fontos: egy valós asztali böngészőnek megfelelő ablakméretet állítunk be — a rajz-motor a
   // konténer tényleges megjelenített méretéből számolja a méretarányt (cm -> pixel), és Puppeteer
   // alapértelmezett (kis) ablakmérete ezt a számítást elronthatja, aminek a rajz szétesése a következménye.
@@ -48,7 +56,9 @@ async function preparePage(formData) {
     }
   });
   await page.setContent(getCustomerFormHtml(), { waitUntil: 'load', timeout: 15000 });
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  // Biztosra megyünk, hogy a form saját induló inicializálása (választógombok bekötése, kezdeti rajz)
+  // teljesen lefutott — ez tartalmazhat egy kis (setTimeout-alapú) késleltetést is a form saját kódjában.
+  await new Promise((resolve) => setTimeout(resolve, 800));
 
   const evalResult = await page.evaluate((data) => {
     try {
@@ -57,9 +67,18 @@ async function preparePage(formData) {
       }
       window.applyFormState(data);
       if (typeof window.refreshAll === 'function') window.refreshAll();
-      return { ok: true };
+      if (typeof window.renderSketch === 'function') window.renderSketch();
+      const container = document.getElementById('sketch');
+      return {
+        ok: true,
+        diag: {
+          hasContainer: !!container,
+          containerHtmlLength: container ? container.innerHTML.length : -1,
+          containerHtmlSample: container ? container.innerHTML.slice(0, 200) : '',
+        },
+      };
     } catch (e) {
-      return { error: 'Kliens-oldali hiba: ' + e.message };
+      return { error: 'Kliens-oldali hiba: ' + e.message + ' | Stack: ' + (e.stack||'').slice(0,300) };
     }
   }, formData);
 
@@ -67,7 +86,7 @@ async function preparePage(formData) {
     await page.close();
     throw new Error(evalResult.error + (pageErrors.length ? ' | Oldal hibák: ' + pageErrors.join('; ') : ''));
   }
-  return { page, pageErrors };
+  return { page, pageErrors, diag: evalResult.diag };
 }
 
 /**
@@ -77,7 +96,7 @@ async function preparePage(formData) {
  * (PDF-generálás, kolléganő-fordítás, email-PNG) ez a mező valódi SVG-szöveget vár.
  */
 async function renderLiveSketchSvg(formData) {
-  const { page, pageErrors } = await preparePage(formData);
+  const { page, pageErrors, diag } = await preparePage(formData);
   try {
     const result = await page.evaluate(() => {
       const container = document.getElementById('sketch');
@@ -88,7 +107,10 @@ async function renderLiveSketchSvg(formData) {
       return { svg: serialized };
     });
     if (result.error) throw new Error(result.error + (pageErrors.length ? ' | Oldal hibák: ' + pageErrors.join('; ') : ''));
-    if (!result.svg) throw new Error('A rajz üresen tért vissza.' + (pageErrors.length ? ' Oldal hibák: ' + pageErrors.join('; ') : ''));
+    if (!result.svg) {
+      const diagText = diag ? ` | Diagnosztika: konténer megvan=${diag.hasContainer}, HTML hossza=${diag.containerHtmlLength}, minta="${diag.containerHtmlSample}"` : '';
+      throw new Error('A rajz üresen tért vissza.' + diagText + (pageErrors.length ? ' | Oldal hibák: ' + pageErrors.join('; ') : ''));
+    }
     return result.svg;
   } finally {
     await page.close();
