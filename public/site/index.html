@@ -1779,20 +1779,27 @@ function buildSummary(){
   const extras = [];
   if(g('gutterYes').checked) extras.push('Ereszcsatorna: igen ('+colorLabel('gutterColor')+')');
   if(g('feltYes').checked) extras.push('Páralecsapódás-gátló filc: igen');
-  if(g('wallYes').checked){
-    const mandatory = g('wallYes').disabled;
-    const cornerTxt = g('wallCorner').value==='left' ? 'bal oldalfaltól' : 'jobb oldalfaltól';
-    let wallTxt = 'Válaszfal: igen, '+g('wallLength').value+' fm, '+g('wallPosition').value+' cm-re a '+cornerTxt+(mandatory?' (kötelező, 7 m feletti nyeregtető miatt)':'');
-    const openType = g('wallOpeningType').value;
+  const wallCountForSummary = Math.max(0, parseInt(g('wallCount').value)||0);
+  for(let wi=0; wi<wallCountForSummary; wi++){
+    const orientEl = g('wallOrientation'+wi);
+    if(!orientEl) continue;
+    const isKereszt = orientEl.value==='keresztben';
+    const mandatory = wi===0 && orientEl.disabled;
+    const cornerVal = g('wallCorner'+wi).value;
+    const cornerTxt = isKereszt
+      ? (cornerVal==='front' ? 'elülső faltól' : 'hátsó faltól')
+      : (cornerVal==='left' ? 'bal oldalfaltól' : 'jobb oldalfaltól');
+    let wallTxt = (wi+1)+'. válaszfal: '+g('wallLength'+wi).value+' fm, '+g('wallPosition'+wi).value+' cm-re a '+cornerTxt+(mandatory?' (kötelező, 7 m feletti nyeregtető miatt)':'');
+    const openType = g('wallOpeningType'+wi).value;
     if(openType!=='none'){
-      const oCornerTxt = g('wallOpeningCorner').value==='front' ? 'elülső faltól' : 'hátsó faltól';
+      const oCornerTxt = g('wallOpeningCorner'+wi).value==='front' ? 'elülső faltól' : 'hátsó faltól';
       if(openType==='opening'){
-        wallTxt += '; a válaszfalban szabad nyílás: '+g('wallOpeningWidth').value+' cm széles, '+g('wallOpeningDistance').value+' cm-re a '+oCornerTxt;
+        wallTxt += '; a válaszfalban szabad nyílás: '+g('wallOpeningWidth'+wi).value+' cm széles, '+g('wallOpeningDistance'+wi).value+' cm-re a '+oCornerTxt;
       } else {
-        wallTxt += '; a válaszfalban ajtó: '+g('wallDoorSize').value+' cm, '+(g('wallDoorHandle').value==='left'?'balra':'jobbra')+' nyílik, '+g('wallOpeningDistance').value+' cm-re a '+oCornerTxt;
+        wallTxt += '; a válaszfalban ajtó: '+g('wallDoorSize'+wi).value+' cm, '+(g('wallDoorHandle'+wi).value==='left'?'balra':'jobbra')+' nyílik, '+g('wallOpeningDistance'+wi).value+' cm-re a '+oCornerTxt;
       }
     }
-    wallTxt += (g('wallNote').value?' — megjegyzés: '+g('wallNote').value:'');
+    wallTxt += (g('wallNote'+wi).value?' — megjegyzés: '+g('wallNote'+wi).value:'');
     extras.push(wallTxt);
   }
 
