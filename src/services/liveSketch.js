@@ -32,6 +32,10 @@ async function preparePage(formData) {
   const pageErrors = [];
   page.on('pageerror', (err) => pageErrors.push(err.message));
   page.on('console', (msg) => { if (msg.type() === 'error') pageErrors.push(msg.text()); });
+  // Fontos: egy valós asztali böngészőnek megfelelő ablakméretet állítunk be — a rajz-motor a
+  // konténer tényleges megjelenített méretéből számolja a méretarányt (cm -> pixel), és Puppeteer
+  // alapértelmezett (kis) ablakmérete ezt a számítást elronthatja, aminek a rajz szétesése a következménye.
+  await page.setViewport({ width: 1400, height: 1000 });
   await page.setRequestInterception(true);
   page.on('request', (req) => {
     if (req.url().includes('/public/garage-types')) {

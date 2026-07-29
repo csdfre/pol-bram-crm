@@ -90,6 +90,18 @@ function renderCustomerTable(rows) {
   `).join('') || '<tr><td colspan="7" style="color:#7a828a;text-align:center">Nincs találat.</td></tr>';
 }
 
+async function regenerateSketchInModal(){
+  const box = document.getElementById('modalSketchBox');
+  box.style.opacity = '0.5';
+  try{
+    const data = await api(`/admin/customers/${currentCustomer.id}/regenerate-sketch`, { method:'POST' });
+    box.innerHTML = data.svg;
+    currentCustomer.sketch_svg = data.svg;
+    alert('A rajz sikeresen újragenerálva és elmentve.');
+  } catch(e){ alert('Hiba: '+e.message); }
+  box.style.opacity = '1';
+}
+
 async function dismissEditedFlag(id){
   await api('/admin/customers/'+id+'/dismiss-edited-flag', { method:'POST' });
   loadCustomers();
@@ -154,7 +166,10 @@ function renderModal() {
     <label>Összefoglaló / garázs adatai (szabadon szerkeszthető)</label>
     <textarea id="f_summary" style="width:100%;min-height:160px;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;padding:8px;border:1px solid var(--line);border-radius:4px">${esc(c.summary_text)}</textarea>
 
-    ${c.sketch_svg ? `<div class="sketch-box">${c.sketch_svg}</div>` : ''}
+    <div class="sketch-box" id="modalSketchBox">${c.sketch_svg || ''}</div>
+    <div style="text-align:center;margin:6px 0 12px">
+      <button class="btn-secondary" onclick="regenerateSketchInModal()" style="font-size:0.78rem;padding:6px 12px">💾 Rajz újragenerálása és mentése (ha elromlott)</button>
+    </div>
 
     <div class="btn-row">
       <button class="btn-secondary" onclick="saveCustomer()">Mentés</button>
@@ -312,9 +327,28 @@ async function sendReplyEmail(){
 
 function renderQuoteTable(quote) {
   return `<div class="price-box">
-    <div style="font-size:1.5rem;font-weight:700">${quote.displayTotal.toLocaleString('hu-HU')} Ft</div>
-    <div style="font-size:0.85rem;color:#7a828a;text-transform:uppercase;letter-spacing:.03em">${quote.displayLabel}${quote.vatRequested ? ' — áfás számla igénye alapján' : ' — nincs áfás számla igénye'}</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+      <input type="number" id="editablePriceInput" value="${quote.displayTotal}" style="width:200px;font-size:1.3rem;font-weight:700;text-align:center;padding:6px 10px;border:1px solid var(--line);border-radius:4px">
+      <span style="font-size:1rem">Ft</span>
+    </div>
+    <div style="font-size:0.85rem;color:#7a828a;text-transform:uppercase;letter-spacing:.03em;margin-top:4px">${quote.displayLabel}${quote.vatRequested ? ' — áfás számla igénye alapján' : ' — nincs áfás számla igénye'}</div>
+    <button onclick="saveEditablePrice()" style="margin-top:10px;font-size:0.8rem">Ár mentése (nem küld emailt)</button>
+    <div id="priceSaveStatus" style="margin-top:6px;font-size:0.8rem"></div>
   </div>`;
+}
+
+async function saveEditablePrice(){
+  const total = parseFloat(document.getElementById('editablePriceInput').value) || 0;
+  const statusEl = document.getElementById('priceSaveStatus');
+  try{
+    await api(`/admin/customers/${currentCustomer.id}/update-price`, { method:'POST', body: JSON.stringify({ total }) });
+    statusEl.textContent = 'Elmentve.';
+    statusEl.style.color = 'var(--accept)';
+    if(currentCustomer.price_breakdown) currentCustomer.price_breakdown.displayTotal = total;
+  } catch(e){
+    statusEl.textContent = 'Hiba: '+e.message;
+    statusEl.style.color = '#b23a3a';
+  }
 }
 
 async function saveCustomer() {

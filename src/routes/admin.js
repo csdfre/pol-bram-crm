@@ -147,6 +147,7 @@ router.get('/customers/:id/editor', (req, res) => {
     <div class="sketch" id="sketchBox">${c.sketch_svg || ''}</div>
     <div style="text-align:center;margin:-10px 0 16px">
       <button onclick="refreshSketch()" style="background:#454C54;font-size:0.8rem;padding:6px 14px">↻ Rajz frissítése a jelenlegi adatokkal</button>
+      <button onclick="regenerateAndSaveSketch()" style="background:#2F6B4F;font-size:0.8rem;padding:6px 14px">💾 Rajz újragenerálása és mentése (ha elromlott)</button>
     </div>
 
     <div class="two-col">
@@ -167,6 +168,17 @@ router.get('/customers/:id/editor', (req, res) => {
     <div id="statusMsg" style="margin-top:14px;font-weight:bold"></div>
   </div>
   <script>
+    async function regenerateAndSaveSketch(){
+      const box = document.getElementById('sketchBox');
+      box.style.opacity = '0.5';
+      try{
+        const res = await fetch(window.location.pathname.replace('/editor','')+'/regenerate-sketch', { method:'POST' });
+        const data = await res.json();
+        if(res.ok){ box.innerHTML = data.svg; alert('A rajz sikeresen újragenerálva és elmentve.'); }
+        else alert('Hiba: '+data.error);
+      } catch(e){ alert('Hiba a rajz mentése közben: '+e.message); }
+      box.style.opacity = '1';
+    }
     async function refreshSketch(){
       const formData = {};
       document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
@@ -519,6 +531,23 @@ router.post('/customers/:id/render-sketch', async (req, res) => {
   } catch (err) {
     console.error('Élő rajz-renderelési hiba:', err);
     res.status(500).json({ error: 'Nem sikerült frissíteni a rajzot: ' + err.message });
+  }
+});
+
+// Ha egy korábbi (hibás) mentés miatt a tárolt rajz elromlott, ezzel egy kattintással
+// újragenerálható és el is menthető, anélkül hogy bármi más adatot módosítani kellene.
+router.post('/customers/:id/regenerate-sketch', async (req, res) => {
+  const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Nem található.' });
+  try {
+    const { renderLiveSketchSvg } = require('../services/liveSketch');
+    const fd = JSON.parse(c.form_data || '{}');
+    const newSketchSvg = await renderLiveSketchSvg(fd);
+    db.prepare('UPDATE customers SET sketch_svg=?, updated_at=? WHERE id=?').run(newSketchSvg, new Date().toISOString(), c.id);
+    res.json({ ok: true, svg: newSketchSvg });
+  } catch (err) {
+    console.error('Rajz újragenerálási hiba:', err);
+    res.status(500).json({ error: 'Nem sikerült újragenerálni a rajzot: ' + err.message });
   }
 });
 
