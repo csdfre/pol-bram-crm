@@ -275,10 +275,13 @@ function calculateQuote(formData) {
     lines.push(line(`Páralecsapódás-gátló filc (${feltArea.toFixed(1)} m²)`, ADDON.feltPerM2 * feltArea));
   }
 
-  // Válaszfal
-  if (formData.wallYes) {
-    const wallLenM = parseFloat(formData.wallLength) || 0;
-    if (wallLenM > 0) lines.push(line(`Válaszfal (${wallLenM} fm)`, ADDON.dividerWallPerMb * wallLenM * (1 + heightPct)));
+  // Válaszfalak — mostantól több válaszfal is megadható (wallCount + wallLength0, wallLength1, ...)
+  const wallCount = Math.max(0, parseInt(formData.wallCount) || 0);
+  for (let wi = 0; wi < wallCount; wi++) {
+    const wallLenM = parseFloat(formData['wallLength' + wi]) || 0;
+    if (wallLenM > 0) {
+      lines.push(line(`${wi + 1}. válaszfal (${wallLenM} fm)`, ADDON.dividerWallPerMb * wallLenM * (1 + heightPct)));
+    }
   }
 
   // Oldaltető / előtető falak (durva közelítés: hossz alapján, ha van megadva)

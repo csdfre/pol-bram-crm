@@ -445,56 +445,11 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
         </div>
 
         <div class="toggle-row">
-          <div class="lbl">Kér válaszfalat?<small>Ha igen, kérjük röviden írja le hova, milyen hosszan · Felár: ≈15 000 Ft/fm</small></div>
-          <label class="switch"><input type="checkbox" id="wallYes"><span class="track"></span><span class="thumb"></span></label>
+          <div class="lbl">Válaszfalak száma (db)<small>Több válaszfalat is hozzáadhat, mindegyiket külön iránnyal és pozícióval · Felár: ≈15 000 Ft/fm</small></div>
+          <input type="number" id="wallCount" value="0" min="0" style="width:70px">
         </div>
-        <div class="toggle-extra" id="wallExtra">
-          <div class="hint" id="wallMandatoryNote" style="display:none;color:#d9a520">⚠ Nyeregtetős garázsnál 7 m szélesség felett statikai okokból válaszfal szükséges — ezt automatikusan bekapcsoltuk, hossza a garázs hosszúságával egyezik meg.</div>
-          <label class="field"><span>Válaszfal iránya</span>
-            <select id="wallOrientation">
-              <option value="hosszaban">Hosszában (oldalfaltól mérve)</option>
-              <option value="keresztben">Keresztben (elülső/hátsó faltól mérve)</option>
-            </select>
-          </label>
-          <label class="field"><span>Válaszfal hossza (fm)</span><input type="number" id="wallLength" value="0" min="0" step="0.1"></label>
-          <div class="grid2">
-            <label class="field"><span>Válaszfal helye: melyik faltól mérjük?</span>
-              <select id="wallCorner"><option value="left">Bal oldalfaltól</option><option value="right">Jobb oldalfaltól</option></select>
-            </label>
-            <label class="field"><span>Távolság (cm)</span><input type="number" id="wallPosition" value="250" min="0" step="10"></label>
-          </div>
-
-          <label class="field" style="margin-top:10px"><span>Válaszfalban</span>
-            <select id="wallOpeningType">
-              <option value="none">Nincs (tömör válaszfal)</option>
-              <option value="opening">Szabad nyílás</option>
-              <option value="door">Ajtó</option>
-            </select>
-          </label>
-          <div class="toggle-extra" id="wallOpeningExtra">
-            <div class="grid3">
-              <label class="field" id="wallOpeningWidthField"><span>Nyílás szélessége (cm)</span><input type="number" id="wallOpeningWidth" value="90" min="60" step="5"></label>
-              <label class="field" id="wallDoorSizeField" style="display:none"><span>Ajtó mérete</span>
-                <select id="wallDoorSize">
-                  <option value="90x200">90×200 cm</option>
-                  <option value="100x200">100×200 cm</option>
-                  <option value="110x200">110×200 cm</option>
-                </select>
-              </label>
-              <label class="field" id="wallDoorHandleField" style="display:none"><span>Merre nyíljon</span>
-                <select id="wallDoorHandle"><option value="left">Bal felé</option><option value="right">Jobb felé</option></select>
-              </label>
-            </div>
-            <div class="grid2" style="margin-top:8px">
-              <label class="field"><span>Melyik saroktól mérjük? (a válaszfal mentén)</span>
-                <select id="wallOpeningCorner"><option value="front">Elülső faltól</option><option value="back">Hátsó faltól</option></select>
-              </label>
-              <label class="field"><span>Távolság (cm)</span><input type="number" id="wallOpeningDistance" value="50" min="0" step="5"></label>
-            </div>
-          </div>
-
-          <textarea id="wallNote" placeholder="pl. a garázs felénél, kb. 3 méter hosszan" style="margin-top:8px"></textarea>
-        </div>
+        <div class="hint" id="wallMandatoryNote" style="display:none;color:#d9a520">⚠ Nyeregtetős garázsnál 7 m szélesség felett statikai okokból válaszfal szükséges — ezt automatikusan bekapcsoltuk, hossza a garázs hosszúságával egyezik meg.</div>
+        <div id="wallUnitsList"></div>
 
       </div>
     </details>
@@ -895,6 +850,93 @@ function refreshPositionUnits(){
   buildPositionUnits('skylightPosList', Math.max(0,parseInt(document.getElementById('skylight').value)||0), 'skylight', false);
   buildPositionUnits('personalDoorPosList', Math.max(0,parseInt(document.getElementById('personalDoorCount').value)||0), 'personalDoor', true);
   buildGateCustomPositions(Math.max(1,parseInt(document.getElementById('gateCount').value)||1));
+  refreshWallUnits();
+}
+function refreshWallUnits(){
+  const qty = Math.max(0, parseInt(document.getElementById('wallCount').value)||0);
+  const container = document.getElementById('wallUnitsList');
+  // Megőrizzük a korábbi értékeket, hogy darabszám-változtatáskor ne vesszenek el
+  const prev = [];
+  for(let i=0;i<qty;i++){
+    prev[i] = {
+      orientation: (document.getElementById('wallOrientation'+i)||{}).value || 'hosszaban',
+      length: (document.getElementById('wallLength'+i)||{}).value || 0,
+      corner: (document.getElementById('wallCorner'+i)||{}).value || 'left',
+      position: (document.getElementById('wallPosition'+i)||{}).value || 250,
+      openingType: (document.getElementById('wallOpeningType'+i)||{}).value || 'none',
+      openingWidth: (document.getElementById('wallOpeningWidth'+i)||{}).value || 90,
+      doorSize: (document.getElementById('wallDoorSize'+i)||{}).value || '90x200',
+      doorHandle: (document.getElementById('wallDoorHandle'+i)||{}).value || 'left',
+      openingCorner: (document.getElementById('wallOpeningCorner'+i)||{}).value || 'front',
+      openingDistance: (document.getElementById('wallOpeningDistance'+i)||{}).value || 50,
+      note: (document.getElementById('wallNote'+i)||{}).value || '',
+    };
+  }
+  let html='';
+  for(let i=0;i<qty;i++){
+    const p = prev[i] || {orientation:'hosszaban',length:0,corner:'left',position:250,openingType:'none',openingWidth:90,doorSize:'90x200',doorHandle:'left',openingCorner:'front',openingDistance:50,note:''};
+    const isKereszt = p.orientation==='keresztben';
+    html += `<div class="subgrid" style="margin-top:${i===0?'12':'14'}px;border-top:${i===0?'none':'1px dashed var(--line)'};padding-top:${i===0?'0':'10'}px">
+      <div class="hint" style="margin-bottom:6px">${i+1}. válaszfal</div>
+      <label class="field"><span>Iránya</span>
+        <select id="wallOrientation${i}" data-wallidx="${i}">
+          <option value="hosszaban"${!isKereszt?' selected':''}>Hosszában (oldalfaltól mérve)</option>
+          <option value="keresztben"${isKereszt?' selected':''}>Keresztben (elülső/hátsó faltól mérve)</option>
+        </select>
+      </label>
+      <label class="field"><span>Hossza (fm)</span><input type="number" id="wallLength${i}" value="${p.length}" min="0" step="0.1"></label>
+      <div class="grid2">
+        <label class="field"><span>Melyik faltól mérjük?</span>
+          <select id="wallCorner${i}">
+            ${isKereszt
+              ? `<option value="front"${p.corner==='front'?' selected':''}>Elülső faltól</option><option value="back"${p.corner==='back'?' selected':''}>Hátsó faltól</option>`
+              : `<option value="left"${p.corner==='left'?' selected':''}>Bal oldalfaltól</option><option value="right"${p.corner==='right'?' selected':''}>Jobb oldalfaltól</option>`}
+          </select>
+        </label>
+        <label class="field"><span>Távolság (cm)</span><input type="number" id="wallPosition${i}" value="${p.position}" min="0" step="10"></label>
+      </div>
+      <label class="field" style="margin-top:10px"><span>Válaszfalban</span>
+        <select id="wallOpeningType${i}">
+          <option value="none"${p.openingType==='none'?' selected':''}>Nincs (tömör válaszfal)</option>
+          <option value="opening"${p.openingType==='opening'?' selected':''}>Szabad nyílás</option>
+          <option value="door"${p.openingType==='door'?' selected':''}>Ajtó</option>
+        </select>
+      </label>
+      <div class="toggle-extra${p.openingType!=='none'?' show':''}" id="wallOpeningExtra${i}">
+        <div class="grid3">
+          <label class="field" id="wallOpeningWidthField${i}" style="${p.openingType==='door'?'display:none':''}"><span>Nyílás szélessége (cm)</span><input type="number" id="wallOpeningWidth${i}" value="${p.openingWidth}" min="60" step="5"></label>
+          <label class="field" id="wallDoorSizeField${i}" style="${p.openingType==='door'?'':'display:none'}"><span>Ajtó mérete</span>
+            <select id="wallDoorSize${i}">
+              <option value="90x200"${p.doorSize==='90x200'?' selected':''}>90×200 cm</option>
+              <option value="100x200"${p.doorSize==='100x200'?' selected':''}>100×200 cm</option>
+              <option value="110x200"${p.doorSize==='110x200'?' selected':''}>110×200 cm</option>
+            </select>
+          </label>
+          <label class="field" id="wallDoorHandleField${i}" style="${p.openingType==='door'?'':'display:none'}"><span>Merre nyíljon</span>
+            <select id="wallDoorHandle${i}"><option value="left"${p.doorHandle==='left'?' selected':''}>Bal felé</option><option value="right"${p.doorHandle==='right'?' selected':''}>Jobb felé</option></select>
+          </label>
+        </div>
+        <div class="grid2" style="margin-top:8px">
+          <label class="field"><span>Melyik saroktól mérjük? (a válaszfal mentén)</span>
+            <select id="wallOpeningCorner${i}"><option value="front"${p.openingCorner==='front'?' selected':''}>Elülső faltól</option><option value="back"${p.openingCorner==='back'?' selected':''}>Hátsó faltól</option></select>
+          </label>
+          <label class="field"><span>Távolság (cm)</span><input type="number" id="wallOpeningDistance${i}" value="${p.openingDistance}" min="0" step="5"></label>
+        </div>
+      </div>
+      <textarea id="wallNote${i}" placeholder="pl. a garázs felénél, kb. 3 méter hosszan" style="margin-top:8px">${p.note}</textarea>
+    </div>`;
+  }
+  container.innerHTML = html;
+  container.querySelectorAll('select[id^="wallOrientation"]').forEach(sel=>{
+    sel.addEventListener('change', ()=>{ refreshWallUnits(); refreshAll(); });
+  });
+  container.querySelectorAll('select[id^="wallOpeningType"]').forEach(sel=>{
+    sel.addEventListener('change', ()=>{ refreshWallUnits(); refreshAll(); });
+  });
+  container.querySelectorAll('input,select,textarea').forEach(el=>{
+    el.addEventListener('input', refreshAll);
+    el.addEventListener('change', refreshAll);
+  });
 }
 function buildGateCustomPositions(qty){
   const container = document.getElementById('gateCustomPosList');
@@ -931,18 +973,7 @@ document.getElementById('personalDoorCount').addEventListener('input', refreshPo
 document.getElementById('notchYes').addEventListener('change', refreshPositionUnits);
 
 
-document.getElementById('wallYes').addEventListener('change', e=>document.getElementById('wallExtra').classList.toggle('show', e.target.checked));
-document.getElementById('wallOrientation').addEventListener('change', ()=>{
-  const orientEl = document.getElementById('wallOrientation');
-  const cornerEl = document.getElementById('wallCorner');
-  const prevVal = cornerEl.value;
-  if(orientEl.value==='keresztben'){
-    cornerEl.innerHTML = '<option value="front">Elülső faltól (kapu oldala)</option><option value="back">Hátsó faltól</option>';
-  } else {
-    cornerEl.innerHTML = '<option value="left">Bal oldalfaltól</option><option value="right">Jobb oldalfaltól</option>';
-  }
-  refreshAll();
-});
+document.getElementById('wallCount').addEventListener('input', ()=>{ refreshWallUnits(); refreshAll(); });
 document.getElementById('gutterYes').addEventListener('change', e=>{document.getElementById('gutterExtra').classList.toggle('show', e.target.checked); refreshAll();});
 document.getElementById('automation').addEventListener('change', e=>{document.getElementById('automationExtra').classList.toggle('show', e.target.checked); refreshAll();});
 document.getElementById('gateLightYes').addEventListener('change', e=>{document.getElementById('gateLightExtra').classList.toggle('show', e.target.checked); refreshAll();});
@@ -1198,39 +1229,45 @@ function renderSketch(){
   // --- Előtető (elülső fal bal vagy jobb sarkán, a belső fala teli falként szolgál) ---
   // --- Válaszfal (belső, alapjáraton függőleges, oldalfaltól mért távolságban) ---
   let dividerEls='';
-  if(document.getElementById('wallYes').checked){
-    const posCm = parseFloat(document.getElementById('wallPosition').value)||0;
-    const corner = document.getElementById('wallCorner').value;
-    const orientation = document.getElementById('wallOrientation').value;
+  const wallQty = Math.max(0, parseInt(document.getElementById('wallCount').value)||0);
+  for(let wi=0; wi<wallQty; wi++){
+    const posEl = document.getElementById('wallPosition'+wi);
+    const cornerEl = document.getElementById('wallCorner'+wi);
+    const orientEl = document.getElementById('wallOrientation'+wi);
+    if(!posEl || !cornerEl || !orientEl) continue;
+    const posCm = parseFloat(posEl.value)||0;
+    const corner = cornerEl.value;
+    const orientation = orientEl.value;
 
     if(orientation==='keresztben'){
       // Keresztbeni válaszfal: az elülső vagy hátsó faltól mért távolságban, a teljes szélességet átszeli
       const posPxRaw = posCm*scale;
       const dyFromFront = corner==='front' ? posPxRaw : rl-posPxRaw;
       const dy = y0 + Math.max(4, Math.min(rl-4, dyFromFront));
-      dividerEls = `<line x1="${x0}" y1="${dy}" x2="${x0+rw}" y2="${dy}" stroke="#c9cdd0" stroke-width="3" stroke-dasharray="6,3"/>
-        <text x="${x0+8}" y="${dy-4}" fill="#c9cdd0" font-size="8" font-family="IBM Plex Mono">válaszfal</text>`;
+      dividerEls += `<line x1="${x0}" y1="${dy}" x2="${x0+rw}" y2="${dy}" stroke="#c9cdd0" stroke-width="3" stroke-dasharray="6,3"/>
+        <text x="${x0+8}" y="${dy-4}" fill="#c9cdd0" font-size="8" font-family="IBM Plex Mono">${wi+1}. válaszfal</text>`;
     } else {
     const posPxRaw = posCm*scale;
     const dxFromLeft = corner==='left' ? posPxRaw : rw-posPxRaw;
     const dx = x0 + Math.max(4, Math.min(rw-4, dxFromLeft));
 
-    const openType = document.getElementById('wallOpeningType').value;
+    const openTypeEl = document.getElementById('wallOpeningType'+wi);
+    const openType = openTypeEl ? openTypeEl.value : 'none';
     if(openType==='none'){
-      dividerEls = `<line x1="${dx}" y1="${y0}" x2="${dx}" y2="${y0+rl}" stroke="#c9cdd0" stroke-width="3" stroke-dasharray="6,3"/>`;
+      dividerEls += `<line x1="${dx}" y1="${y0}" x2="${dx}" y2="${y0+rl}" stroke="#c9cdd0" stroke-width="3" stroke-dasharray="6,3"/>`;
     } else {
-      const openWidthCm = openType==='door' ? parseInt((document.getElementById('wallDoorSize').value||'90x200').split('x')[0])||90 : (parseFloat(document.getElementById('wallOpeningWidth').value)||90);
-      const oCorner = document.getElementById('wallOpeningCorner').value;
-      const oDist = parseFloat(document.getElementById('wallOpeningDistance').value)||0;
+      const openWidthCm = openType==='door' ? parseInt(((document.getElementById('wallDoorSize'+wi)||{}).value||'90x200').split('x')[0])||90 : (parseFloat((document.getElementById('wallOpeningWidth'+wi)||{}).value)||90);
+      const oCorner = (document.getElementById('wallOpeningCorner'+wi)||{}).value || 'front';
+      const oDist = parseFloat((document.getElementById('wallOpeningDistance'+wi)||{}).value)||0;
       const centerFromBackCm = oCorner==='back' ? oDist+openWidthCm/2 : (l-oDist-openWidthCm/2);
       const centerY = y0 + Math.max(openWidthCm*scale/2, Math.min(rl-openWidthCm*scale/2, centerFromBackCm*scale));
       const halfPx = (openWidthCm*scale)/2;
       const gapY1 = centerY-halfPx, gapY2 = centerY+halfPx;
-      dividerEls = `<line x1="${dx}" y1="${y0}" x2="${dx}" y2="${gapY1}" stroke="#c9cdd0" stroke-width="3" stroke-dasharray="6,3"/>
+      dividerEls += `<line x1="${dx}" y1="${y0}" x2="${dx}" y2="${gapY1}" stroke="#c9cdd0" stroke-width="3" stroke-dasharray="6,3"/>
         <line x1="${dx}" y1="${gapY2}" x2="${dx}" y2="${y0+rl}" stroke="#c9cdd0" stroke-width="3" stroke-dasharray="6,3"/>
         <text x="${dx+10}" y="${centerY+3}" fill="#c9cdd0" font-size="7.5" font-family="IBM Plex Mono">${openType==='door'?'ajtó':'nyílás'} ${openWidthCm}cm</text>`;
       if(openType==='door'){
-        const handle = document.getElementById('wallDoorHandle').value; // merre nyíljon
+        const handle = (document.getElementById('wallDoorHandle'+wi)||{}).value || 'left'; // merre nyíljon
         const outDir = handle==='left' ? {x:-1,y:0} : {x:1,y:0};
         const hinge = {x:dx, y: handle==='left' ? gapY2 : gapY1};
         const R = Math.max(6, openWidthCm*scale*0.9);
@@ -1240,7 +1277,7 @@ function renderSketch(){
         dividerEls += quarterArcPath(hinge, R, leafEnd, wallEnd);
       }
     }
-      dividerEls += `<text x="${dx}" y="${y0-4}" fill="#c9cdd0" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">válaszfal</text>`;
+      dividerEls += `<text x="${dx}" y="${y0-4}" fill="#c9cdd0" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">${wi+1}. válaszfal</text>`;
     }
   }
 
@@ -1571,35 +1608,38 @@ function checkMandatoryWall(){
   const roof = document.getElementById('roofType').value;
   const widthCm = parseFloat(document.getElementById('width').value)||0;
   const mandatory = (roof==='dwuspad' && widthCm>700);
-  const wallYesEl = document.getElementById('wallYes');
-  const wallLenEl = document.getElementById('wallLength');
+  const wallCountEl = document.getElementById('wallCount');
   const noteEl = document.getElementById('wallMandatoryNote');
   const lengthM = (parseFloat(document.getElementById('length').value)||0)/100;
-  const widthM = (parseFloat(document.getElementById('width').value)||0)/100;
-  const orientEl = document.getElementById('wallOrientation');
+  const currentCount = Math.max(0, parseInt(wallCountEl.value)||0);
+
   if(mandatory){
-    wallYesEl.checked = true;
-    wallYesEl.disabled = true;
-    wallForcedByRule = true;
-    document.getElementById('wallExtra').classList.add('show');
-    orientEl.value = 'hosszaban'; // a statikai kötelezettség mindig a szélességet osztja el, a hosszúsággal megegyező fallal
-    wallLenEl.value = lengthM.toFixed(1);
     noteEl.style.display='block';
-  } else {
-    wallYesEl.disabled = false;
-    noteEl.style.display='none';
-    // Ha a válaszfalat korábban a szabály kényszerítette be (pl. nyeregtető + 7m felett), és a feltétel
-    // már nem áll fenn (pl. az ügyfél átváltott másik tetőtípusra), automatikusan ki is kapcsoljuk —
-    // nem hagyjuk "beragadva", hogy az ügyfél véletlenül ne fizessen érte feleslegesen.
-    if(wallForcedByRule){
-      wallYesEl.checked = false;
-      wallForcedByRule = false;
-      document.getElementById('wallExtra').classList.remove('show');
+    if(currentCount < 1){
+      wallForcedByRule = true;
+      wallCountEl.value = 1;
+      refreshWallUnits();
     }
-    // Ha az ügyfél MAGA jelölte be a válaszfalat (nem a szabály miatt), és még nincs hossz megadva,
-    // töltsük fel az irányának megfelelő mérettel (hosszában->garázs hossza, keresztben->garázs szélessége)
-    if(wallYesEl.checked && (!wallLenEl.value || parseFloat(wallLenEl.value)===0)){
-      wallLenEl.value = (orientEl.value==='keresztben' ? widthM : lengthM).toFixed(1);
+    // Az első (0. indexű) válaszfalat a statikai szabály állítja be: hosszában, teljes hosszúsággal
+    const orientEl = document.getElementById('wallOrientation0');
+    const lenEl = document.getElementById('wallLength0');
+    if(orientEl){ orientEl.value = 'hosszaban'; orientEl.disabled = true; }
+    if(lenEl){ lenEl.value = lengthM.toFixed(1); lenEl.disabled = true; }
+    wallCountEl.title = 'Legalább 1 válaszfal statikai okokból kötelező (7m feletti nyeregtetős garázsnál) — további válaszfalakat hozzáadhat, de ezt az elsőt nem veheti el.';
+  } else {
+    noteEl.style.display='none';
+    const orientEl = document.getElementById('wallOrientation0');
+    const lenEl = document.getElementById('wallLength0');
+    if(orientEl) orientEl.disabled = false;
+    if(lenEl) lenEl.disabled = false;
+    wallCountEl.title = '';
+    // Ha a válaszfalat korábban KIZÁRÓLAG a szabály kényszerítette be, és a feltétel már nem áll fenn
+    // (pl. az ügyfél átváltott másik tetőtípusra), automatikusan visszaállítjuk 0-ra — nem hagyjuk
+    // "beragadva", hogy az ügyfél véletlenül ne fizessen érte feleslegesen.
+    if(wallForcedByRule && currentCount === 1){
+      wallForcedByRule = false;
+      wallCountEl.value = 0;
+      refreshWallUnits();
     }
   }
 }
@@ -1708,12 +1748,6 @@ function refreshAll(){
   const gatePatternRestricted = (state.gateType==='dwuskrz' && !structureIsZartprofil);
   document.getElementById('gatePatternRestrictionHint').style.display = gatePatternRestricted ? 'block' : 'none';
 
-  // Válaszfalban nyílás/ajtó mezők
-  const wallOpeningTypeVal = document.getElementById('wallOpeningType').value;
-  document.getElementById('wallOpeningExtra').classList.toggle('show', document.getElementById('wallYes').checked && wallOpeningTypeVal!=='none');
-  document.getElementById('wallOpeningWidthField').style.display = wallOpeningTypeVal==='opening' ? 'block' : 'none';
-  document.getElementById('wallDoorSizeField').style.display = wallOpeningTypeVal==='door' ? 'block' : 'none';
-  document.getElementById('wallDoorHandleField').style.display = wallOpeningTypeVal==='door' ? 'block' : 'none';
   document.getElementById('gateWideOpt').disabled = gatePatternRestricted;
   if(gatePatternRestricted && gatePatternEl.value==='Széles vízszintes'){
     gatePatternEl.value = 'T7 – vízszintes';
