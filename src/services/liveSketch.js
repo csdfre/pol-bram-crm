@@ -101,7 +101,11 @@ async function renderLiveSketchSvg(formData) {
     const result = await page.evaluate(() => {
       const container = document.getElementById('sketch');
       if (!container) return { error: 'Nem található a #sketch elem.' };
-      const svgEl = container.querySelector('svg');
+      // A #sketch elem MAGA egy <svg> tag (nem egy azt körülvevő <div>), tehát a tartalmát
+      // magán a konténeren kell szerializálni, nem egy benne keresett beágyazott <svg>-n.
+      const svgEl = container.tagName && container.tagName.toLowerCase() === 'svg'
+        ? container
+        : container.querySelector('svg');
       if (!svgEl) return { svg: '' };
       const serialized = new XMLSerializer().serializeToString(svgEl);
       return { svg: serialized };
