@@ -39,7 +39,10 @@ async function preparePage(formData) {
   await page.setRequestInterception(true);
   page.on('request', (req) => {
     if (req.url().includes('/public/garage-types')) {
-      req.abort().catch(() => {});
+      // Nem elutasítjuk (abort) a kérést, mert az hibát dobhat a form saját kódjában, ami
+      // megszakíthatja a további inicializálást (pl. a rajz renderelését is). Ehelyett egy
+      // ártalmatlan, sikeres, de üres választ adunk — a form ezt normál esetként kezeli.
+      req.respond({ status: 200, contentType: 'application/json', body: '[]' }).catch(() => {});
     } else {
       req.continue().catch(() => {});
     }
