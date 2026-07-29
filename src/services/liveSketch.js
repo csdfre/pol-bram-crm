@@ -36,10 +36,24 @@ async function renderLiveSketch(formData) {
   try {
     page.on('pageerror', (err) => pageErrors.push(err.message));
     page.on('console', (msg) => { if (msg.type() === 'error') pageErrors.push(msg.text()); });
-    await page.setContent(getCustomerFormHtml(), { waitUntil: 'networkidle0', timeout: 15000 });
+
+    // A form saját induló betöltése megpróbálja lekérdezni a típusgarázs-listát egy valós backend-től —
+    // ez itt (Puppeteer-rel, nem valódi domainen futtatva) elakadhat vagy sokáig várakozhat. Ezt a
+    // konkrét kérést azonnal elutasítjuk, hogy a form gyorsan, hiba nélkül továbbléphessen (a form
+    // saját try/catch-e ezt már úgyis kezeli, csak nem lesz típusgarázs-lista — ami itt nem is kell).
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      if (req.url().includes('/public/garage-types')) {
+        req.abort().catch(() => {});
+      } else {
+        req.continue().catch(() => {});
+      }
+    });
+
+    await page.setContent(getCustomerFormHtml(), { waitUntil: 'load', timeout: 15000 });
     // Biztosra megyünk, hogy a form saját induló inicializálása (választógombok bekötése, kezdeti rajz) lefutott,
     // mielőtt a mi adatainkkal felülírnánk — egy rövid várakozás elegendő erre.
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 400));
 
     const evalResult = await page.evaluate((data) => {
       try {
