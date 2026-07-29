@@ -23,62 +23,89 @@ function getCustomerFormHtml() {
   return customerFormHtmlCache;
 }
 
-/**
- * Lefuttatja a valódi ügyfél-oldali configurátor rajzoló motorját (applyFormState + renderSketch)
- * a megadott form_data-val, és visszaadja a friss, aktuális SVG-rajzot szövegként.
- * Ezt használja az admin/kolléganő szerkesztő oldal, amikor a "Rajz frissítése" gombra kattintanak,
- * hogy a rajz mindig tükrözze a legutóbb szerkesztett adatokat (méret, kapu/ablak/ajtó pozíció, stb.)
- */
-async function renderLiveSketch(formData) {
+// Közös induló lépések: friss oldal betöltése, a megadott adatok alkalmazása.
+// Blokkoljuk a típusgarázs-lista lekérdezését (ami itt, Puppeteer-rel futtatva elakadhatna),
+// és megvárjuk, míg a form saját inicializálása lefut.
+async function preparePage(formData) {
   const browser = await getBrowser();
   const page = await browser.newPage();
   const pageErrors = [];
+  page.on('pageerror', (err) => pageErrors.push(err.message));
+  page.on('console', (msg) => { if (msg.type() === 'error') pageErrors.push(msg.text()); });
+  await page.setRequestInterception(true);
+  page.on('request', (req) => {
+    if (req.url().includes('/public/garage-types')) {
+      req.abort().catch(() => {});
+    } else {
+      req.continue().catch(() => {});
+    }
+  });
+  await page.setContent(getCustomerFormHtml(), { waitUntil: 'load', timeout: 15000 });
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  const evalResult = await page.evaluate((data) => {
+    try {
+      if (typeof window.applyFormState !== 'function') {
+        return { error: 'applyFormState nem található a form oldalán.' };
+      }
+      window.applyFormState(data);
+      if (typeof window.refreshAll === 'function') window.refreshAll();
+      return { ok: true };
+    } catch (e) {
+      return { error: 'Kliens-oldali hiba: ' + e.message };
+    }
+  }, formData);
+
+  if (evalResult.error) {
+    await page.close();
+    throw new Error(evalResult.error + (pageErrors.length ? ' | Oldal hibák: ' + pageErrors.join('; ') : ''));
+  }
+  return { page, pageErrors };
+}
+
+/**
+ * A rajzot VALÓDI SVG-szövegként adja vissza (XMLSerializer-rel, ami megbízhatóan megőrzi az
+ * SVG-specifikus, kis-nagybetű-érzékeny attribútumokat, pl. viewBox). Ezt kell használni, amikor
+ * az eredményt EL KELL MENTENI az adatbázisba (sketch_svg mező), mert minden más helyen
+ * (PDF-generálás, kolléganő-fordítás, email-PNG) ez a mező valódi SVG-szöveget vár.
+ */
+async function renderLiveSketchSvg(formData) {
+  const { page, pageErrors } = await preparePage(formData);
   try {
-    page.on('pageerror', (err) => pageErrors.push(err.message));
-    page.on('console', (msg) => { if (msg.type() === 'error') pageErrors.push(msg.text()); });
-
-    // A form saját induló betöltése megpróbálja lekérdezni a típusgarázs-listát egy valós backend-től —
-    // ez itt (Puppeteer-rel, nem valódi domainen futtatva) elakadhat vagy sokáig várakozhat. Ezt a
-    // konkrét kérést azonnal elutasítjuk, hogy a form gyorsan, hiba nélkül továbbléphessen (a form
-    // saját try/catch-e ezt már úgyis kezeli, csak nem lesz típusgarázs-lista — ami itt nem is kell).
-    await page.setRequestInterception(true);
-    page.on('request', (req) => {
-      if (req.url().includes('/public/garage-types')) {
-        req.abort().catch(() => {});
-      } else {
-        req.continue().catch(() => {});
-      }
+    const result = await page.evaluate(() => {
+      const container = document.getElementById('sketch');
+      if (!container) return { error: 'Nem található a #sketch elem.' };
+      const svgEl = container.querySelector('svg');
+      if (!svgEl) return { svg: '' };
+      const serialized = new XMLSerializer().serializeToString(svgEl);
+      return { svg: serialized };
     });
-
-    await page.setContent(getCustomerFormHtml(), { waitUntil: 'load', timeout: 15000 });
-    // Biztosra megyünk, hogy a form saját induló inicializálása (választógombok bekötése, kezdeti rajz) lefutott,
-    // mielőtt a mi adatainkkal felülírnánk — egy rövid várakozás elegendő erre.
-    await new Promise((resolve) => setTimeout(resolve, 400));
-
-    const evalResult = await page.evaluate((data) => {
-      try {
-        if (typeof window.applyFormState !== 'function') {
-          return { error: 'applyFormState nem található a form oldalán.' };
-        }
-        window.applyFormState(data);
-        if (typeof window.refreshAll === 'function') window.refreshAll();
-        const el = document.getElementById('sketch');
-        return { svg: el ? el.innerHTML : '', hadSketchEl: !!el };
-      } catch (e) {
-        return { error: 'Kliens-oldali hiba: ' + e.message };
-      }
-    }, formData);
-
-    if (evalResult.error) {
-      throw new Error(evalResult.error + (pageErrors.length ? ' | Oldal hibák: ' + pageErrors.join('; ') : ''));
-    }
-    if (!evalResult.svg) {
-      throw new Error('A rajz üresen tért vissza.' + (pageErrors.length ? ' Oldal hibák: ' + pageErrors.join('; ') : ''));
-    }
-    return evalResult.svg;
+    if (result.error) throw new Error(result.error + (pageErrors.length ? ' | Oldal hibák: ' + pageErrors.join('; ') : ''));
+    if (!result.svg) throw new Error('A rajz üresen tért vissza.' + (pageErrors.length ? ' Oldal hibák: ' + pageErrors.join('; ') : ''));
+    return result.svg;
   } finally {
     await page.close();
   }
 }
 
-module.exports = { renderLiveSketch };
+/**
+ * A rajzot egy base64 PNG KÉPKÉNT adja vissza (tényleges képernyőkép a rajz-területről).
+ * Ezt kell használni, amikor csak MEGJELENÍTÉSRE kell (pl. a "Rajz frissítése" előnézeti gombnál),
+ * NEM adatbázis-mentésre — a PNG-képernyőkép teljesen kizárja az SVG-szöveg-kinyeréssel járó,
+ * böngészőtől függő méretezési/torzulási problémákat.
+ */
+async function renderLiveSketchPng(formData) {
+  const { page, pageErrors } = await preparePage(formData);
+  try {
+    const sketchHandle = await page.$('#sketch');
+    if (!sketchHandle) {
+      throw new Error('Nem található a #sketch elem.' + (pageErrors.length ? ' Oldal hibák: ' + pageErrors.join('; ') : ''));
+    }
+    const buffer = await sketchHandle.screenshot({ type: 'png' });
+    return `data:image/png;base64,${buffer.toString('base64')}`;
+  } finally {
+    await page.close();
+  }
+}
+
+module.exports = { renderLiveSketchSvg, renderLiveSketchPng };

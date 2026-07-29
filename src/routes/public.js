@@ -149,11 +149,13 @@ router.post('/colleague/:token/render-sketch', async (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE colleague_token = ?').get(req.params.token);
   if (!c) return res.status(404).json({ error: 'Nieprawidłowy link.' });
   try {
-    const { renderLiveSketch } = require('../services/liveSketch');
+    const { renderLiveSketchSvg } = require('../services/liveSketch');
+    const { renderSketchToPngDataUri } = require('../services/pdf');
     const fd = { ...JSON.parse(c.form_data || '{}'), ...(req.body.formData || {}) };
-    const rawSvg = await renderLiveSketch(fd);
-    const svg = prepareColleagueSketch(rawSvg);
-    res.json({ ok: true, svg });
+    const rawSvg = await renderLiveSketchSvg(fd);
+    const lightSvg = prepareColleagueSketch(rawSvg);
+    const image = await renderSketchToPngDataUri(lightSvg);
+    res.json({ ok: true, image });
   } catch (err) {
     console.error('Élő rajz-renderelési hiba (kolléganő):', err);
     res.status(500).json({ error: 'Nem sikerült frissíteni a rajzot: ' + err.message });
@@ -169,8 +171,8 @@ router.post('/colleague/:token/save', async (req, res) => {
   const quote = calculateQuote(merged);
   let newSketchSvg = c.sketch_svg;
   try {
-    const { renderLiveSketch } = require('../services/liveSketch');
-    newSketchSvg = await renderLiveSketch(merged);
+    const { renderLiveSketchSvg } = require('../services/liveSketch');
+    newSketchSvg = await renderLiveSketchSvg(merged);
   } catch (err) {
     console.error('Rajz újragenerálási hiba mentéskor (megmarad a régi rajz):', err.message);
   }
@@ -266,10 +268,10 @@ router.post('/modify-offer/:token/render-sketch', async (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE accept_token = ?').get(req.params.token);
   if (!c) return res.status(404).json({ error: 'A hivatkozás nem érvényes.' });
   try {
-    const { renderLiveSketch } = require('../services/liveSketch');
+    const { renderLiveSketchPng } = require('../services/liveSketch');
     const fd = { ...JSON.parse(c.form_data || '{}'), ...(req.body.formData || {}) };
-    const svg = await renderLiveSketch(fd);
-    res.json({ ok: true, svg });
+    const image = await renderLiveSketchPng(fd);
+    res.json({ ok: true, image });
   } catch (err) {
     console.error('Élő rajz-renderelési hiba (ügyfél):', err);
     res.status(500).json({ error: 'Nem sikerült frissíteni a rajzot: ' + err.message });
@@ -290,8 +292,8 @@ router.post('/modify-offer/:token/save', async (req, res) => {
   const preEditData = c.pre_edit_form_data || c.form_data;
   let newSketchSvg = c.sketch_svg;
   try {
-    const { renderLiveSketch } = require('../services/liveSketch');
-    newSketchSvg = await renderLiveSketch(merged);
+    const { renderLiveSketchSvg } = require('../services/liveSketch');
+    newSketchSvg = await renderLiveSketchSvg(merged);
   } catch (err) {
     console.error('Rajz újragenerálási hiba mentéskor (megmarad a régi rajz):', err.message);
   }
@@ -446,7 +448,7 @@ function modifyOfferPage(c){
       try{
         const res = await fetch('/public/modify-offer/'+token+'/render-sketch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ formData }) });
         const data = await res.json();
-        if(res.ok) box.innerHTML = data.svg;
+        if(res.ok) box.innerHTML = '<img src="'+data.image+'" style="max-width:100%;height:auto;display:block;margin:0 auto">';
         else alert('Hiba: '+data.error);
       } catch(e){ alert('Hiba a rajz frissítése közben: '+e.message); }
       box.style.opacity = '1';
@@ -589,7 +591,7 @@ function colleaguePage(c){
       try{
         const res = await fetch('/public/colleague/'+token+'/render-sketch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ formData }) });
         const data = await res.json();
-        if(res.ok) box.innerHTML = data.svg;
+        if(res.ok) box.innerHTML = '<img src="'+data.image+'" style="max-width:100%;height:auto;display:block;margin:0 auto">';
         else alert('Błąd: '+data.error);
       } catch(e){ alert('Błąd podczas odświeżania szkicu: '+e.message); }
       box.style.opacity = '1';

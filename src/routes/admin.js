@@ -176,7 +176,7 @@ router.get('/customers/:id/editor', (req, res) => {
       try{
         const res = await fetch(window.location.pathname.replace('/editor','')+'/render-sketch', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ formData: fullData }) });
         const data = await res.json();
-        if(res.ok) box.innerHTML = data.svg;
+        if(res.ok) box.innerHTML = '<img src="'+data.image+'" style="max-width:100%;height:auto;display:block;margin:0 auto">';
         else alert('Hiba: '+data.error);
       } catch(e){ alert('Hiba a rajz frissítése közben: '+e.message); }
       box.style.opacity = '1';
@@ -246,8 +246,8 @@ router.post('/customers/:id/update-form-data', async (req, res) => {
   const quote = calculateQuote(merged);
   let newSketchSvg = c.sketch_svg;
   try {
-    const { renderLiveSketch } = require('../services/liveSketch');
-    newSketchSvg = await renderLiveSketch(merged);
+    const { renderLiveSketchSvg } = require('../services/liveSketch');
+    newSketchSvg = await renderLiveSketchSvg(merged);
   } catch (err) {
     console.error('Rajz újragenerálási hiba mentéskor (megmarad a régi rajz):', err.message);
   }
@@ -513,9 +513,9 @@ router.post('/customers/:id/reply-email', async (req, res) => {
 
 router.post('/customers/:id/render-sketch', async (req, res) => {
   try {
-    const { renderLiveSketch } = require('../services/liveSketch');
-    const svg = await renderLiveSketch(req.body.formData || {});
-    res.json({ ok: true, svg });
+    const { renderLiveSketchPng } = require('../services/liveSketch');
+    const image = await renderLiveSketchPng(req.body.formData || {});
+    res.json({ ok: true, image });
   } catch (err) {
     console.error('Élő rajz-renderelési hiba:', err);
     res.status(500).json({ error: 'Nem sikerült frissíteni a rajzot: ' + err.message });
