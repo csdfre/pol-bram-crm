@@ -344,6 +344,15 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
     ], isEmpty: win8060Count===0 });
   }
 
+  const win50150Count = parseInt(fd.win50150)||0;
+  if(win50150Count>0 || includeEmpty){
+    sections.push({ section: lang==='pl'?'Okno stałe 50×150':'Fix ablak (50×150)', items: [
+      E(lang==='pl'?'Ilość (szt.)':'Darabszám', win50150Count, 'win50150', win50150Count, 'number'),
+      ESEL(L('windowColor'), 'colorWindow', fd.colorWindow||'RAL9005', WINDOW_COLOR_OPTIONS[lang], colorName(fd.colorWindow||'RAL9005', lang)),
+      ...placementRows('win50150', Math.max(win50150Count,1)),
+    ], isEmpty: win50150Count===0 });
+  }
+
   if(fd.gutterYes || includeEmpty){
     sections.push({ section: S('gutter'), items: [
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'gutterYes', !!fd.gutterYes, fd.gutterYes ? YES[lang] : VALUE_NONE[lang]),
