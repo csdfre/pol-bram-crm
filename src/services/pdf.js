@@ -256,7 +256,7 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
     E(L('height'), (fd.height||'—'), 'height', fd.height),
   ]});
 
-  const canopyActive = !!fd.canopyYes || !!(fd.canopyWidth && fd.canopyLength);
+  const canopyActive = !!fd.canopyYes;
   if(canopyActive || includeEmpty){
     sections.push({ section: S('canopy'), items: [
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'canopyYes', canopyActive, canopyActive ? YES[lang] : VALUE_NONE[lang]),

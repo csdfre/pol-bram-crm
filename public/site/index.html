@@ -978,7 +978,16 @@ document.getElementById('gutterYes').addEventListener('change', e=>{document.get
 document.getElementById('automation').addEventListener('change', e=>{document.getElementById('automationExtra').classList.toggle('show', e.target.checked); refreshAll();});
 document.getElementById('gateLightYes').addEventListener('change', e=>{document.getElementById('gateLightExtra').classList.toggle('show', e.target.checked); refreshAll();});
 document.getElementById('personalDoorYes').addEventListener('change', e=>{document.getElementById('personalDoorExtra').classList.toggle('show', e.target.checked); refreshAll();});
-document.getElementById('canopyYes').addEventListener('change', e=>document.getElementById('canopyExtra').classList.toggle('show', e.target.checked));
+document.getElementById('canopyYes').addEventListener('change', e=>{
+  document.getElementById('canopyExtra').classList.toggle('show', e.target.checked);
+  if(!e.target.checked){
+    // Kikapcsoláskor töröljük a méreteket és a fal-beállításokat is, hogy ne maradjanak "beragadva"
+    // a beküldött adatokban — enélkül a backoffice tévesen aktívnak mutatná az oldaltetőt.
+    ['canopyWidth','canopyLength'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    ['canopyBackWall','canopySideWall'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value='none'; });
+  }
+  refreshAll();
+});
 document.getElementById('notchYes').addEventListener('change', e=>{document.getElementById('notchExtra').classList.toggle('show', e.target.checked); refreshAll();});
 document.getElementById('custInvoice').addEventListener('change', e=>document.getElementById('custCompanyExtra').classList.toggle('show', e.target.value==='igen'));
 
@@ -1114,13 +1123,13 @@ function renderSketch(){
       gateMarginEls += `<line x1="${xL1}" y1="${y1}" x2="${xL2}" y2="${y1}" stroke="#8b939a" stroke-width="1"/>
         <line x1="${xL1}" y1="${y1-2}" x2="${xL1}" y2="${y1+2}" stroke="#8b939a" stroke-width="1"/>
         <line x1="${xL2}" y1="${y1-2}" x2="${xL2}" y2="${y1+2}" stroke="#8b939a" stroke-width="1"/>
-        <text x="${(xL1+xL2)/2}" y="${y2+7}" fill="#8b939a" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">${leftMarginCm.toFixed(0)}cm</text>`;
+        <text x="${(xL1+xL2)/2}" y="${y2+7}" fill="#8b939a" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">${leftMarginCm.toFixed(0)}cm szabad hely</text>`;
     }
     if(rightMarginCm>1){
       gateMarginEls += `<line x1="${xR1}" y1="${y1}" x2="${xR2}" y2="${y1}" stroke="#8b939a" stroke-width="1"/>
         <line x1="${xR1}" y1="${y1-2}" x2="${xR1}" y2="${y1+2}" stroke="#8b939a" stroke-width="1"/>
         <line x1="${xR2}" y1="${y1-2}" x2="${xR2}" y2="${y1+2}" stroke="#8b939a" stroke-width="1"/>
-        <text x="${(xR1+xR2)/2}" y="${y2+7}" fill="#8b939a" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">${rightMarginCm.toFixed(0)}cm</text>`;
+        <text x="${(xR1+xR2)/2}" y="${y2+7}" fill="#8b939a" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">${rightMarginCm.toFixed(0)}cm szabad hely</text>`;
     }
   }
   if(state.gateType!=='none'){
@@ -1158,9 +1167,32 @@ function renderSketch(){
       if(gx < x0){ gw -= (x0-gx); gx = x0; }
       if(gx+gw > x0+rw){ gw = x0+rw-gx; }
       if(idx===0) firstGateX = gx;
-      gateEls += `<rect x="${gx}" y="${y0+rl-3}" width="${Math.max(0,gw)}" height="6" fill="#F2B705"/>`;
-      drawGateMargin(startCm, startCm+gwCm);
+      gateEls += `<rect x="${gx}" y="${y0+rl-3}" width="${Math.max(0,gw)}" height="6" fill="#F2B705"/>
+        <text x="${gx+gw/2}" y="${y0+rl-7}" fill="#F2B705" font-size="7.5" font-weight="bold" text-anchor="middle" font-family="IBM Plex Mono">kapu: ${gwCm}cm</text>`;
+      // (A szél-menti margó megjelenítését szándékosan nem rajzoljuk ki — csak a kapu mérete és a
+      // kapuk közti rés (lásd lentebb) számít, a szélektől mért távolság feltüntetése zavaró volt.)
     });
+    // 2 vagy több kapunál a szélektől mért margó mellett a kapuk KÖZÖTTI tényleges rést is jelezzük —
+    // enélkül két, egymáshoz közeli (de nem fedő) kapu is ugyanazt a (megtévesztő) szél-menti margót
+    // mutathatja, miközben a közöttük lévő tényleges hézag máshol nem látszana.
+    if(gateStartCms.length>1){
+      const sorted = [...gateStartCms].sort((a,b)=>a-b);
+      for(let i=0;i<sorted.length-1;i++){
+        const gapStartCm = sorted[i]+gwCm, gapEndCm = sorted[i+1];
+        const gapCm = gapEndCm-gapStartCm;
+        const gy1 = y0+rl+16, gy2 = y0+rl+23;
+        const gxs = x0+gapStartCm*scale, gxe = x0+gapEndCm*scale;
+        if(gapCm < -1){
+          // Átfedés — figyelmeztető jelzés
+          gateMarginEls += `<text x="${(gxs+gxe)/2}" y="${gy2+7}" fill="#e0555e" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono" font-weight="bold">⚠ ${Math.abs(gapCm).toFixed(0)}cm átfedés!</text>`;
+        } else if(gapCm > 1){
+          gateMarginEls += `<line x1="${gxs}" y1="${gy1}" x2="${gxe}" y2="${gy1}" stroke="#F2B705" stroke-width="1"/>
+            <line x1="${gxs}" y1="${gy1-2}" x2="${gxs}" y2="${gy1+2}" stroke="#F2B705" stroke-width="1"/>
+            <line x1="${gxe}" y1="${gy1-2}" x2="${gxe}" y2="${gy1+2}" stroke="#F2B705" stroke-width="1"/>
+            <text x="${(gxs+gxe)/2}" y="${gy2+7}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${gapCm.toFixed(0)}cm rés a kapuk közt</text>`;
+        }
+      }
+    }
     if(document.getElementById('gateLightYes').checked){
       const gw = gwCm*scale;
       const qty = Math.max(1, parseInt(document.getElementById('gateLightQty').value)||1);
