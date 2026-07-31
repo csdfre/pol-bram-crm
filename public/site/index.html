@@ -1179,20 +1179,24 @@ function renderSketch(){
       if(gx < x0){ gw -= (x0-gx); gx = x0; }
       if(gx+gw > x0+rw){ gw = x0+rw-gx; }
       if(idx===0) firstGateX = gx;
-      gateEls += `<rect x="${gx}" y="${y0+rl-3}" width="${Math.max(0,gw)}" height="6" fill="#F2B705"/>`;
-      // Egyetlen, egyértelmű távolság-jel: szaggatott mérővonal a közelebbi saroktól + egy "X cm" felirat —
-      // ugyanaz a vizuális stílus, mint az ablakoknál/ajtóknál, ütközés-elkerüléssel.
+      gateEls += `<rect x="${gx}" y="${y0+rl-6}" width="${Math.max(0,gw)}" height="12" fill="#F2B705"/>`;
+
+      // 1) Távolság a közelebbi saroktól: valódi mérővonal-csík (kis merőleges végjelekkel), a cm-érték
+      //    közvetlenül alatta — ütközés-elkerüléssel, ha több kapu van egymáshoz közel.
       const distToLeft = startCm, distToRight = w-startCm-gwCm;
       const nearLeft = distToLeft <= distToRight;
       const cornerDist = Math.max(0, Math.round(nearLeft ? distToLeft : distToRight));
-      const cornerLabel = nearLeft ? 'bal sarok' : 'jobb sarok';
-      const cornerPt = { x: nearLeft ? x0 : x0+rw, y: y0+rl };
-      const edgePt = { x: nearLeft ? gx : gx+gw, y: y0+rl };
+      const cornerX = nearLeft ? x0 : x0+rw;
+      const edgeX = nearLeft ? gx : gx+gw;
       const n = nextLabelOffset('front', startCm+gwCm/2);
-      const gOff = 12 + n*13;
-      gateEls += `<line x1="${cornerPt.x}" y1="${cornerPt.y}" x2="${edgePt.x}" y2="${edgePt.y}" stroke="#F2B705" stroke-width="0.75" stroke-dasharray="2,2" opacity="0.6"/>
-        <circle cx="${cornerPt.x}" cy="${cornerPt.y}" r="2" fill="#F2B705" opacity="0.8"/>
-        <text x="${gx+gw/2}" y="${y0+rl+gOff}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${cornerDist} cm a ${cornerLabel}tól (${gwCm}cm)</text>`;
+      const dimY = y0+rl + 10 + n*15;
+      gateEls += `<line x1="${cornerX}" y1="${dimY}" x2="${edgeX}" y2="${dimY}" stroke="#F2B705" stroke-width="1"/>
+        <line x1="${cornerX}" y1="${dimY-3}" x2="${cornerX}" y2="${dimY+3}" stroke="#F2B705" stroke-width="1"/>
+        <line x1="${edgeX}" y1="${dimY-3}" x2="${edgeX}" y2="${dimY+3}" stroke="#F2B705" stroke-width="1"/>
+        <text x="${(cornerX+edgeX)/2}" y="${dimY+9}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${cornerDist} cm</text>`;
+
+      // 2) A kapu szélessége belülről, magán a kapun — csak a cm-érték, semmi más szöveg
+      gateEls += `<text x="${gx+gw/2}" y="${y0+rl+2.5}" fill="#20242A" font-size="7.5" font-weight="bold" text-anchor="middle" font-family="IBM Plex Mono">${gwCm}cm</text>`;
     });
     // 2 vagy több kapunál csak akkor jelzünk valamit a kapuk között, ha ténylegesen ÁTFEDIK egymást
     // (ez hiba lenne) — a puszta rés mértékét nem tüntetjük fel, az nem szükséges.
@@ -1478,7 +1482,9 @@ function renderSketch(){
     ${notchEls}
     ${dividerEls}
     ${gateEls}${gateMarginEls}${els}${doorArc}${labelEls}
+    <rect x="${x0+rw/2-28}" y="${y0-20}" width="56" height="14" fill="#161A1E" opacity="0.9"/>
     <text x="${x0+rw/2}" y="${y0-10}" fill="#8b939a" font-size="11" text-anchor="middle" font-family="IBM Plex Mono">${w.toFixed(0)} cm</text>
+    <rect x="${x0-21}" y="136" width="14" height="28" fill="#161A1E" opacity="0.9" transform="rotate(-90 ${x0-14} 150)"/>
     <text x="${x0-14}" y="150" fill="#8b939a" font-size="11" text-anchor="middle" font-family="IBM Plex Mono" transform="rotate(-90 ${x0-14} 150)">${l.toFixed(0)} cm</text>
     <text x="${x0+rw/2}" y="${y0+rl+30}" fill="#F2B705" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">ELÜLSŐ FAL (kapu oldala)</text>
   `;
