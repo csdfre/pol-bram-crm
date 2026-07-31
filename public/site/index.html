@@ -1132,6 +1132,18 @@ function renderSketch(){
         <text x="${(xR1+xR2)/2}" y="${y2+7}" fill="#8b939a" font-size="7" text-anchor="middle" font-family="IBM Plex Mono">${rightMarginCm.toFixed(0)}cm szabad hely</text>`;
     }
   }
+  const wallLabelCount = {};
+  const wallLabelPositions = {};
+  function nextLabelOffset(wallVal, posAlongWall){
+    const n = wallLabelCount[wallVal] || 0;
+    wallLabelCount[wallVal] = n+1;
+    const prevPositions = wallLabelPositions[wallVal] || [];
+    // Ha egy korábbi, ugyanazon a falon lévő felirat pozíciója közel van (kevesebb, mint 70cm),
+    // extra eltolást adunk hozzá, hogy a szövegek ne fussanak össze, még ha az elemek közel is vannak.
+    const closeCount = prevPositions.filter(p => Math.abs(p - posAlongWall) < 70).length;
+    wallLabelPositions[wallVal] = [...prevPositions, posAlongWall];
+    return n + closeCount*2;
+  }
   if(state.gateType!=='none'){
     const gwCm = parseFloat(document.getElementById('gateWidth').value)||300;
     const count = Math.max(1, parseInt(document.getElementById('gateCount').value)||1);
@@ -1167,10 +1179,20 @@ function renderSketch(){
       if(gx < x0){ gw -= (x0-gx); gx = x0; }
       if(gx+gw > x0+rw){ gw = x0+rw-gx; }
       if(idx===0) firstGateX = gx;
-      gateEls += `<rect x="${gx}" y="${y0+rl-3}" width="${Math.max(0,gw)}" height="6" fill="#F2B705"/>
-        <text x="${gx+gw/2}" y="${y0+rl-7}" fill="#F2B705" font-size="7.5" font-weight="bold" text-anchor="middle" font-family="IBM Plex Mono">kapu: ${gwCm}cm</text>`;
-      // (A szél-menti margó megjelenítését szándékosan nem rajzoljuk ki — csak a kapu mérete és a
-      // kapuk közti rés (lásd lentebb) számít, a szélektől mért távolság feltüntetése zavaró volt.)
+      gateEls += `<rect x="${gx}" y="${y0+rl-3}" width="${Math.max(0,gw)}" height="6" fill="#F2B705"/>`;
+      // Egyetlen, egyértelmű távolság-jel: szaggatott mérővonal a közelebbi saroktól + egy "X cm" felirat —
+      // ugyanaz a vizuális stílus, mint az ablakoknál/ajtóknál, ütközés-elkerüléssel.
+      const distToLeft = startCm, distToRight = w-startCm-gwCm;
+      const nearLeft = distToLeft <= distToRight;
+      const cornerDist = Math.max(0, Math.round(nearLeft ? distToLeft : distToRight));
+      const cornerLabel = nearLeft ? 'bal sarok' : 'jobb sarok';
+      const cornerPt = { x: nearLeft ? x0 : x0+rw, y: y0+rl };
+      const edgePt = { x: nearLeft ? gx : gx+gw, y: y0+rl };
+      const n = nextLabelOffset('front', startCm+gwCm/2);
+      const gOff = 12 + n*13;
+      gateEls += `<line x1="${cornerPt.x}" y1="${cornerPt.y}" x2="${edgePt.x}" y2="${edgePt.y}" stroke="#F2B705" stroke-width="0.75" stroke-dasharray="2,2" opacity="0.6"/>
+        <circle cx="${cornerPt.x}" cy="${cornerPt.y}" r="2" fill="#F2B705" opacity="0.8"/>
+        <text x="${gx+gw/2}" y="${y0+rl+gOff}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${cornerDist} cm a ${cornerLabel}tól</text>`;
     });
     // 2 vagy több kapunál a szélektől mért margó mellett a kapuk KÖZÖTTI tényleges rést is jelezzük —
     // enélkül két, egymáshoz közeli (de nem fedő) kapu is ugyanazt a (megtévesztő) szél-menti margót
@@ -1364,18 +1386,6 @@ function renderSketch(){
     const hsz = p.horizontal ? 3.5 : size;
     els += `<rect x="${p.x-wsz/2}" y="${p.y-hsz/2}" width="${wsz}" height="${hsz}" fill="${color}"/>`;
     return p;
-  }
-  const wallLabelCount = {};
-  const wallLabelPositions = {};
-  function nextLabelOffset(wallVal, posAlongWall){
-    const n = wallLabelCount[wallVal] || 0;
-    wallLabelCount[wallVal] = n+1;
-    const prevPositions = wallLabelPositions[wallVal] || [];
-    // Ha egy korábbi, ugyanazon a falon lévő felirat pozíciója közel van (kevesebb, mint 70cm),
-    // extra eltolást adunk hozzá, hogy a szövegek ne fussanak össze, még ha az elemek közel is vannak.
-    const closeCount = prevPositions.filter(p => Math.abs(p - posAlongWall) < 70).length;
-    wallLabelPositions[wallVal] = [...prevPositions, posAlongWall];
-    return n + closeCount*2;
   }
   function drawUnits(qty, prefix, color, widthCm, sizeLabel){
     const size = Math.max(4, widthCm*scale);
