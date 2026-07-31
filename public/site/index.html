@@ -1395,19 +1395,21 @@ function renderSketch(){
       const baseOff = 10 + n*15;
       if(p.refCorner){
         // Mérővonal-csík (kis merőleges végjelekkel) a saroktól a jelölő SZÉLÉIG (nem a középpontjáig),
-        // a cm-érték alatta/mellette — ugyanaz a stílus, mint a kapuknál.
+        // mindig a garázson KÍVÜLRE — a konkrét faltól függő irányban —, a cm-érték alatta/mellette.
         if(p.horizontal){
-          const y2 = edgeP.y - baseOff;
+          const outward = wEl.value==='front' ? 1 : -1; // elülső fal: lefelé kifelé; hátsó fal: felfelé kifelé
+          const y2 = edgeP.y + outward*baseOff;
           labelEls += `<line x1="${p.refCorner.x}" y1="${y2}" x2="${edgeP.x}" y2="${y2}" stroke="#F2B705" stroke-width="1"/>
             <line x1="${p.refCorner.x}" y1="${y2-3}" x2="${p.refCorner.x}" y2="${y2+3}" stroke="#F2B705" stroke-width="1"/>
             <line x1="${edgeP.x}" y1="${y2-3}" x2="${edgeP.x}" y2="${y2+3}" stroke="#F2B705" stroke-width="1"/>
-            <text x="${(p.refCorner.x+edgeP.x)/2}" y="${y2-4}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${dist}cm</text>`;
+            <text x="${(p.refCorner.x+edgeP.x)/2}" y="${y2+(outward>0?9:-4)}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${dist}cm</text>`;
         } else {
-          const x2 = edgeP.x + baseOff;
+          const outward = wEl.value==='left' ? -1 : 1; // bal fal: balra kifelé; minden más (jobb, oldaltető, előtető fala): jobbra kifelé
+          const x2 = edgeP.x + outward*baseOff;
           labelEls += `<line x1="${x2}" y1="${p.refCorner.y}" x2="${x2}" y2="${edgeP.y}" stroke="#F2B705" stroke-width="1"/>
             <line x1="${x2-3}" y1="${p.refCorner.y}" x2="${x2+3}" y2="${p.refCorner.y}" stroke="#F2B705" stroke-width="1"/>
             <line x1="${x2-3}" y1="${edgeP.y}" x2="${x2+3}" y2="${edgeP.y}" stroke="#F2B705" stroke-width="1"/>
-            <text x="${x2+4}" y="${(p.refCorner.y+edgeP.y)/2+3}" fill="#F2B705" font-size="7.5" text-anchor="start" font-family="IBM Plex Mono">${dist}cm</text>`;
+            <text x="${x2+(outward>0?4:-4)}" y="${(p.refCorner.y+edgeP.y)/2+3}" fill="#F2B705" font-size="7.5" text-anchor="${outward>0?'start':'end'}" font-family="IBM Plex Mono">${dist}cm</text>`;
         }
       }
       // A méret a jelölőn magán, külön — a helyzet-mérővonaltól függetlenül
