@@ -20,6 +20,7 @@ app.use(cookieSession({
 app.use('/uploads', express.static(path.join(__dirname, 'data', 'uploads')));
 app.use('/admin', express.static(path.join(__dirname, 'public', 'admin')));
 app.use(express.static(path.join(__dirname, 'public', 'site'))); // pl. polbram.hu gyökerén a garázs-igénylő form
+app.use('/tervezo', express.static(path.join(__dirname, 'public', 'site'))); // ugyanaz a form, polbram.hu/tervezo alatt is
 
 // API route-ok
 app.use('/api/auth', require('./src/routes/auth'));
