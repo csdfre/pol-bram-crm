@@ -160,11 +160,12 @@ router.get('/customers/:id/editor', (req, res) => {
         <input type="number" id="priceAmount" value="${quote ? quote.displayTotal : 0}" style="width:220px;background:#fff;border:1px solid #C7D0D6;color:#20242A;font-size:22px;font-weight:700;text-align:center;border-radius:6px;padding:4px 8px">
         <span style="font-size:16px;color:#454C54">Ft</span>
       </div>
-      <div class="label">${quote ? (quote.displayLabel||'').toUpperCase() : ''}</div>
+      <div class="label" id="priceLabel">${quote ? (quote.displayLabel||'').toUpperCase() : ''}</div>
       <button onclick="savePrice()" style="margin-top:10px;font-size:0.8rem">Ár mentése (ez nem küld emailt)</button>
     </div>
 
-    <button onclick="saveChanges()">Mentés és újraszámolás</button>
+    <button onclick="saveChanges()">💾 Mentés</button>
+    <button onclick="recalcPrice()" style="background:#454C54;color:#fff">↻ Összeg újraszámolása</button>
     <div id="statusMsg" style="margin-top:14px;font-weight:bold"></div>
   </div>
   <script>
@@ -225,12 +226,29 @@ router.get('/customers/:id/editor', (req, res) => {
       const data = await res.json();
       const msgEl = document.getElementById('statusMsg');
       if(res.ok){
-        msgEl.textContent = 'Mentve, ár újraszámolva.';
+        msgEl.textContent = 'Mentve. (Az összeg nem változott — ha kell, kattints az "Összeg újraszámolása" gombra.)';
         notifyOpenerToRefresh();
         setTimeout(()=>location.reload(), 800);
       } else {
         msgEl.textContent = 'Hiba: '+data.error;
       }
+    }
+    // Külön, tudatos lépés — csak az árat számolja újra a jelenleg ELMENTETT adatok alapján.
+    // Szándékosan nem fut le automatikusan mentéskor, hogy a kolléganő lássa és irányítsa,
+    // mikor változik az ügyfélnek mutatott összeg.
+    async function recalcPrice(){
+      const msgEl = document.getElementById('statusMsg');
+      msgEl.textContent = 'Összeg újraszámolása...';
+      try{
+        const res = await fetch(window.location.pathname.replace('/editor','')+'/calculate', { method:'POST' });
+        const quote = await res.json();
+        if(!res.ok) throw new Error(quote.error || 'Ismeretlen hiba');
+        document.getElementById('priceAmount').value = quote.displayTotal;
+        const labelEl = document.getElementById('priceLabel');
+        if(labelEl) labelEl.textContent = (quote.displayLabel||'').toUpperCase();
+        msgEl.textContent = 'Összeg újraszámolva a mentett adatok alapján.';
+        notifyOpenerToRefresh();
+      } catch(e){ msgEl.textContent = 'Hiba: '+e.message; }
     }
   </script>
   </body></html>`);
@@ -255,7 +273,6 @@ router.post('/customers/:id/update-form-data', async (req, res) => {
   const { name, phone, email: custEmail, zip, city, address, formData } = req.body;
   const merged = { ...JSON.parse(c.form_data || '{}'), ...(formData || {}) };
   if (merged.__gateType) merged.gateType = merged.__gateType;
-  const quote = calculateQuote(merged);
   let newSketchSvg = c.sketch_svg;
   try {
     const { renderLiveSketchSvg } = require('../services/liveSketch');
@@ -263,12 +280,16 @@ router.post('/customers/:id/update-form-data', async (req, res) => {
   } catch (err) {
     console.error('Rajz újragenerálási hiba mentéskor (megmarad a régi rajz):', err.message);
   }
+  // Szándékosan CSAK az adatokat (és a rajzot) menti — az árat nem számolja újra és nem
+  // írja felül. Az újraszámolás külön, tudatos lépés a kolléganő részéről
+  // (lásd: POST /customers/:id/calculate a "Összeg újraszámolása" gombhoz),
+  // hogy a mentés és az árváltozás soha ne essen egybe észrevétlenül.
   db.prepare(`
-    UPDATE customers SET name=?, phone=?, email=?, zip=?, city=?, address=?, form_data=?, price_huf=?, price_breakdown=?, sketch_svg=?, updated_at=?
+    UPDATE customers SET name=?, phone=?, email=?, zip=?, city=?, address=?, form_data=?, sketch_svg=?, updated_at=?
     WHERE id=?
   `).run(name || c.name, phone || c.phone, custEmail || c.email, zip || c.zip, city || c.city, address || c.address,
-    JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), newSketchSvg, new Date().toISOString(), c.id);
-  res.json({ ok: true, quote });
+    JSON.stringify(merged), newSketchSvg, new Date().toISOString(), c.id);
+  res.json({ ok: true });
 });
 
 // ---------------------------------------------------------------
