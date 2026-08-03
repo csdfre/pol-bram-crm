@@ -148,10 +148,12 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
       <select id="presetSelect">
         <option value="">— Egyedi összeállítás —</option>
       </select>
-      <button class="btn-ghost" id="mirrorBtn" type="button" style="width:auto;margin:0;padding:8px 16px">↔ Tükörkép (jobbról balra / balról jobbra)</button>
       <button class="btn-ghost" id="clearFormBtn" type="button" style="width:auto;margin:0;padding:8px 16px;border-color:#b23a3a;color:#b23a3a">🗑 Összes adat törlése</button>
     </div>
     <div class="preset-gallery" id="presetGallery"></div>
+    <div class="preset-panel-row" style="margin-top:16px">
+      <button class="btn-ghost" id="mirrorBtn" type="button" style="width:auto;margin:0;padding:8px 16px">↔ Tükörkép (jobbról balra / balról jobbra)</button>
+    </div>
   </div>
 </div>
 
@@ -779,6 +781,19 @@ function mirrorCurrentConfig(){
   const flipLR = (v) => v==='left' ? 'right' : (v==='right' ? 'left' : v);
   const data = captureFormState();
   Object.keys(data).forEach(key=>{
+    // Az ablak/ajtó egységek "...Corner{i}" mezőjének jelentése attól függ, melyik
+    // falra van szerelve az egység ("...Wall{i}"): elülső/hátsó falon a "bal/jobb
+    // saroktól" tényleg a bal/jobb oldalt jelenti, DE bal/jobb OLDALFALON ugyanez a
+    // mező valójában az elülső/hátsó saroktól mért távolságot jelöli (lásd
+    // wallPoint() a rajzolónál). Ezért oldalfalon lévő elemnél ezt NEM szabad
+    // megfordítani tükrözéskor — különben egy elöl lévő ablak a másik oldalon
+    // hátra "ugrik", ahelyett hogy pontosan szemben (ugyanolyan távolságra elöltől)
+    // jelenne meg.
+    const unitCornerMatch = key.match(/^(.+)Corner(\d+)$/);
+    if(unitCornerMatch){
+      const wallKey = unitCornerMatch[1] + 'Wall' + unitCornerMatch[2];
+      if(wallKey in data && (data[wallKey]==='left' || data[wallKey]==='right')) return;
+    }
     const isCornerLike = /Corner\d*$/.test(key) || /Handle\d*$/.test(key) ||
       key==='canopySide' || key==='notchSide' || key==='wallCorner' || key==='gateCorner';
     const isWallLR = /Wall\d*$/.test(key) && (data[key]==='left' || data[key]==='right');
@@ -1385,7 +1400,14 @@ function renderSketch(){
   // --- Ablakok és személyi ajtó (sarok + cm távolság alapján) ---
   let els='';
   let labelEls='';
-  function drawMarker(wallVal, cornerVal, distanceCm, color, size){
+  // Egyetlen, mellékhatás nélküli pontszámító függvény minden fal-típusra (elülső/hátsó/
+  // bal/jobb oldalfal, oldaltető oldalfala, előtető fala). Ezt használja mind a jelölő
+  // rajzolása (drawMarker), mind a mérővonal széleinek számítása (drawUnits) — korábban
+  // ez utóbbi a generikus wallPoint()-ot hívta, ami nem ismeri az "canopy"/"notch" eseteket,
+  // és emiatt csendben a jobb oldalfalként számolt (FR/BR sarkok alapján) — ez húzta a
+  // mérővonalat keresztül az egész garázson, ha az ablak/ajtó az előtető (vagy oldaltető)
+  // falán volt.
+  function unitPoint(wallVal, cornerVal, distanceCm){
     if(wallVal==='canopy' && canopyGeom){
       const A = canopyGeom.outerFrom, B = canopyGeom.outerTo;
       const wallLenCm = Math.hypot(B.x-A.x, B.y-A.y)/scale;
@@ -1394,8 +1416,6 @@ function renderSketch(){
       const t = distFromLeft/wallLenCm;
       const px = A.x+(B.x-A.x)*t, py = A.y+(B.y-A.y)*t;
       const horizontal = canopyGeom.outerOrientation==='horizontal';
-      const THK = 3.5;
-      els += `<rect x="${px-(horizontal?size/2:THK/2)}" y="${py-(horizontal?THK/2:size/2)}" width="${horizontal?size:THK}" height="${horizontal?THK:size}" fill="${color}"/>`;
       const refCorner = cornerVal==='left' ? A : B;
       return {x:px, y:py, horizontal, refCorner};
     }
@@ -1405,11 +1425,22 @@ function renderSketch(){
       distFromLeft = Math.max(5, Math.min(wallLenCm-5, distFromLeft));
       const px = notchGeom.x1 + distFromLeft*scale;
       const py = notchGeom.y;
-      els += `<rect x="${px-size/2}" y="${py-1.75}" width="${size}" height="3.5" fill="${color}"/>`;
       const refCorner = cornerVal==='left' ? {x:notchGeom.x1,y:notchGeom.y} : {x:notchGeom.x2,y:notchGeom.y};
       return {x:px, y:py, horizontal:true, refCorner};
     }
-    const p = wallPoint(wallVal, cornerVal, distanceCm, x0, y0, rw, rl, w, l);
+    return wallPoint(wallVal, cornerVal, distanceCm, x0, y0, rw, rl, w, l);
+  }
+  function drawMarker(wallVal, cornerVal, distanceCm, color, size){
+    const p = unitPoint(wallVal, cornerVal, distanceCm);
+    if(wallVal==='canopy' && canopyGeom){
+      const THK = 3.5;
+      els += `<rect x="${p.x-(p.horizontal?size/2:THK/2)}" y="${p.y-(p.horizontal?THK/2:size/2)}" width="${p.horizontal?size:THK}" height="${p.horizontal?THK:size}" fill="${color}"/>`;
+      return p;
+    }
+    if(wallVal==='notch' && notchGeom){
+      els += `<rect x="${p.x-size/2}" y="${p.y-1.75}" width="${size}" height="3.5" fill="${color}"/>`;
+      return p;
+    }
     const wsz = p.horizontal ? size : 3.5;
     const hsz = p.horizontal ? 3.5 : size;
     els += `<rect x="${p.x-wsz/2}" y="${p.y-hsz/2}" width="${wsz}" height="${hsz}" fill="${color}"/>`;
@@ -1423,14 +1454,14 @@ function renderSketch(){
       const dist = parseFloat(dEl.value)||50;
       const centerDist = dist + widthCm/2; // a megadott távolság az ablak sarkáig (éléig) értendő
       const p = drawMarker(wEl.value, cEl.value, centerDist, color, size);
-      const edgeP = wallPoint(wEl.value, cEl.value, dist, x0, y0, rw, rl, w, l); // a jelölő SARKA (éle), nem a középpontja
+      const edgeP = unitPoint(wEl.value, cEl.value, dist); // a jelölő SARKA (éle), nem a középpontja
       const n = nextLabelOffset(wEl.value, centerDist);
       const baseOff = 10;
       if(p.refCorner){
         // Mérővonal-csík (kis merőleges végjelekkel) a saroktól a jelölő SZÉLÉIG (nem a középpontjáig),
         // mindig a garázson KÍVÜLRE — a konkrét faltól függő irányban —, a cm-érték alatta/mellette.
         if(p.horizontal){
-          const outward = wEl.value==='front' ? 1 : -1; // elülső fal: lefelé kifelé; hátsó fal: felfelé kifelé
+          const outward = (wEl.value==='front' || wEl.value==='notch') ? 1 : -1; // elülső fal / előtető fala: lefelé kifelé; hátsó fal: felfelé kifelé
           const y2 = edgeP.y + outward*baseOff;
           labelEls += `<line x1="${p.refCorner.x}" y1="${y2}" x2="${edgeP.x}" y2="${y2}" stroke="#F2B705" stroke-width="1"/>
             <line x1="${p.refCorner.x}" y1="${y2-3}" x2="${p.refCorner.x}" y2="${y2+3}" stroke="#F2B705" stroke-width="1"/>
