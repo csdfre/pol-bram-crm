@@ -101,5 +101,6 @@ addColIfMissing('customer_edited_at', 'TEXT');
 addColIfMissing('pre_edit_form_data', 'TEXT');
 addColIfMissing('status_alert_at', 'TEXT');
 addColIfMissing('status_alert_note', 'TEXT');
+addColIfMissing('customer_edit_note', 'TEXT'); // az ügyfél opcionális megjegyzése, amikor módosít az ajánlaton
 
 module.exports = db;

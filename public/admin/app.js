@@ -234,6 +234,7 @@ function renderModal() {
     ${c.satisfaction_rating ? `<p style="margin-top:14px">Elégedettségi értékelés: <strong>${c.satisfaction_rating} / 5 ⭐</strong></p>` : ''}
     ${c.colleague_approved ? `<p style="margin-top:10px;color:var(--accept)">✓ A kolléganő jóváhagyta a megrendelőlapot.</p>` : ''}
     ${c.modify_request_text ? `<div class="complaint-box" style="border-color:#454C54;background:#f4f5f6"><h3 style="margin-top:0;color:#454C54">Ügyfél módosítást kért (${new Date(c.modify_request_at).toLocaleString('hu-HU')})</h3><p>${esc(c.modify_request_text)}</p></div>` : ''}
+    ${c.customer_edit_note ? `<div class="complaint-box" style="border-color:#F2B705;background:#fffdf5"><h3 style="margin-top:0;color:#8a5a03">Ügyfél megjegyzése a módosításhoz</h3><p>${esc(c.customer_edit_note)}</p></div>` : ''}
     ${c.reject_reason ? `<div class="complaint-box" style="border-color:#8a8a8a;background:#f0f0f0"><h3 style="margin-top:0;color:#555">Ügyfél elutasította az ajánlatot (${new Date(c.reject_at).toLocaleString('hu-HU')})</h3><p>${esc(c.reject_reason)}</p></div>` : ''}
 
     <hr>

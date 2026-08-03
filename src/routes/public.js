@@ -281,7 +281,7 @@ router.post('/modify-offer/:token/render-sketch', async (req, res) => {
 router.post('/modify-offer/:token/save', async (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE accept_token = ?').get(req.params.token);
   if (!c) return res.status(404).json({ error: 'A hivatkozás nem érvényes.' });
-  const { formData } = req.body;
+  const { formData, note } = req.body;
   const merged = { ...JSON.parse(c.form_data || '{}'), ...(formData || {}) };
   if (merged.__gateType) merged.gateType = merged.__gateType; // szinkronban tartjuk a két kulcsot
   const quote = calculateQuote(merged);
@@ -297,14 +297,16 @@ router.post('/modify-offer/:token/save', async (req, res) => {
   } catch (err) {
     console.error('Rajz újragenerálási hiba mentéskor (megmarad a régi rajz):', err.message);
   }
-  db.prepare('UPDATE customers SET form_data=?, price_huf=?, price_breakdown=?, customer_edited_at=?, pre_edit_form_data=?, sketch_svg=?, updated_at=? WHERE id=?')
-    .run(JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), now, preEditData, newSketchSvg, now, c.id);
-  logStatus(c.id, c.status, 'Ügyfél módosította az ajánlat tételeit, ár újraszámolva');
+  const editNote = (note || '').trim();
+  db.prepare('UPDATE customers SET form_data=?, price_huf=?, price_breakdown=?, customer_edited_at=?, pre_edit_form_data=?, sketch_svg=?, customer_edit_note=?, updated_at=? WHERE id=?')
+    .run(JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), now, preEditData, newSketchSvg, editNote || null, now, c.id);
+  logStatus(c.id, c.status, 'Ügyfél módosította az ajánlat tételeit, ár újraszámolva' + (editNote ? ' — megjegyzés: ' + editNote : ''));
 
   if (process.env.ADMIN_NOTIFY_EMAIL) {
     const notifyHtml = `<div style="font-family:Arial,sans-serif">
       <h3>Ügyfél módosította a saját ajánlatát</h3>
       <p><strong>${escapeHtml(c.name)}</strong> (${escapeHtml(c.email)}) módosított a garázs beállításain — az új ár: ${quote.displayTotal.toLocaleString('hu-HU')} Ft (${quote.displayLabel}).</p>
+      ${editNote ? `<p><strong>Az ügyfél megjegyzése:</strong> ${escapeHtml(editNote)}</p>` : ''}
       <p>Nézd meg a backoffice-ban a részleteket.</p>
     </div>`;
     email.sendMail({ to: process.env.ADMIN_NOTIFY_EMAIL, subject: 'Ügyfél módosított egy ajánlatot – ' + c.name, html: notifyHtml })
@@ -435,6 +437,13 @@ function modifyOfferPage(c){
       <div class="label">${quote ? (quote.displayLabel||'').toUpperCase() : ''}</div>
     </div>
 
+    <div class="section" style="margin-bottom:14px">
+      <h2>Megjegyzés (nem kötelező)</h2>
+      <div style="border:1px solid #e6e8ea;border-top:none;padding:10px">
+        <textarea id="customerNote" placeholder="Írja le röviden, mit és miért módosított — ez megjelenik munkatársunknál." style="width:100%;min-height:70px;padding:8px;border:1px solid #C7D0D6;border-radius:3px;font-size:0.9rem;font-family:Arial,sans-serif">${escapeHtml(c.customer_edit_note || '')}</textarea>
+      </div>
+    </div>
+
     <button onclick="saveChanges()">Módosítások mentése</button>
     <div id="statusMsg" style="margin-top:14px;font-weight:bold"></div>
   </div>
@@ -458,7 +467,8 @@ function modifyOfferPage(c){
     async function saveChanges(){
       const formData = {};
       document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
-      const res = await fetch('/public/modify-offer/'+token+'/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ formData }) });
+      const note = document.getElementById('customerNote').value;
+      const res = await fetch('/public/modify-offer/'+token+'/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ formData, note }) });
       const data = await res.json();
       if(res.ok){
         msg('Módosítások mentve, munkatársunk hamarosan új ajánlatot küld.');
