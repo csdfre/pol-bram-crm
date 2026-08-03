@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../../db');
 const email = require('../services/email');
 const { calculateQuote } = require('../services/pricing');
-const { generateOrderFormPdf, buildOrderFields, sectionHtml, editableSectionHtml, prepareColleagueSketch, priceCardHtml } = require('../services/pdf');
+const { generateOrderFormPdf, buildOrderFields, sectionHtml, editableSectionHtml, prepareColleagueSketch, priceCardHtml, UNIT_TOGGLE_CSS, UNIT_TOGGLE_SCRIPT } = require('../services/pdf');
 
 const router = express.Router();
 
@@ -413,6 +413,7 @@ function modifyOfferPage(c){
     .price-card .label{font-size:10px;color:#8a5a03;text-transform:uppercase;letter-spacing:.06em;margin-top:3px;font-weight:bold}
     button{background:#F2B705;border:none;padding:12px 20px;border-radius:4px;cursor:pointer;font-weight:bold;margin:6px 6px 6px 0;font-size:0.95rem}
     input{padding:4px 6px;border:1px solid #C7D0D6;border-radius:3px;font-size:11px;width:100%}
+    ${UNIT_TOGGLE_CSS}
   </style></head><body>
   <div class="box">
     <h2>Ajánlat módosítása — ${escapeHtml(c.name)}</h2>
@@ -439,6 +440,7 @@ function modifyOfferPage(c){
   </div>
   <script>
     const token = ${JSON.stringify(c.accept_token)};
+    ${UNIT_TOGGLE_SCRIPT}
     function msg(t){ document.getElementById('statusMsg').textContent = t; }
     async function refreshSketch(){
       const formData = {};
@@ -508,6 +510,7 @@ function colleaguePage(c){
     .invoice-box{border:2px solid #F2B705;border-radius:8px;padding:18px 20px;margin:20px 0;background:#fffdf5}
     .invoice-box h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:#454C54}
     @media print{ button, input[type=file], .no-print{display:none !important} }
+    ${UNIT_TOGGLE_CSS}
   </style></head><body>
   <div class="box">
     <h2>Zamówienie — ${escapeHtml(c.name)}</h2>
@@ -561,6 +564,7 @@ function colleaguePage(c){
   <script>
     const token = ${JSON.stringify(c.colleague_token)};
     const isPrivateIndividual = ${JSON.stringify(fd.custInvoice === 'nem')};
+    ${UNIT_TOGGLE_SCRIPT}
     function fmt(n){ return Math.round(n).toLocaleString('hu-HU'); }
     function updatePricePreview(){
       const total = parseFloat(document.getElementById('priceInput').value) || 0;

@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../../db');
 const requireAuth = require('../middleware/requireAuth');
 const { calculateQuote } = require('../services/pricing');
-const { generateOrderFormPdf, buildOrderFields, sectionHtml, sectionHtmlEmail, editableSectionHtml, renderSketchToPngBuffer, LOGO_B64 } = require('../services/pdf');
+const { generateOrderFormPdf, buildOrderFields, sectionHtml, sectionHtmlEmail, editableSectionHtml, renderSketchToPngBuffer, LOGO_B64, UNIT_TOGGLE_CSS, UNIT_TOGGLE_SCRIPT } = require('../services/pdf');
 const email = require('../services/email');
 
 const router = express.Router();
@@ -130,6 +130,7 @@ router.get('/customers/:id/editor', (req, res) => {
     .price-card .label{font-size:10px;color:#8a5a03;text-transform:uppercase;letter-spacing:.06em;margin-top:3px;font-weight:bold}
     button{background:#F2B705;border:none;padding:12px 20px;border-radius:4px;cursor:pointer;font-weight:bold;margin:6px 6px 6px 0;font-size:0.95rem}
     input,select{padding:4px 6px;border:1px solid #C7D0D6;border-radius:3px;font-size:11px;width:100%}
+    ${UNIT_TOGGLE_CSS}
   </style></head><body>
   <div class="box">
     <h2>Adatok szerkesztése — ${esc(c.name)}</h2>
@@ -169,6 +170,7 @@ router.get('/customers/:id/editor', (req, res) => {
     <div id="statusMsg" style="margin-top:14px;font-weight:bold"></div>
   </div>
   <script>
+    ${UNIT_TOGGLE_SCRIPT}
     async function regenerateAndSaveSketch(){
       const box = document.getElementById('sketchBox');
       box.style.opacity = '0.5';

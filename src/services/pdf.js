@@ -232,19 +232,27 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
   };
   // item formátum: { label, value (megjelenített szöveg), key (form_data kulcs, vagy null ha nem szerkeszthető),
   //                   raw (nyers érték), type: 'text'|'number'|'select'|'checkbox', options, changed }
-  const E = (label, display, key, raw, type) => ({ label, value: display, key: key||null, raw: raw!==undefined?raw:display, type: type||'text', changed: isChanged(key) });
-  const ESEL = (label, key, raw, options, display) => ({ label, value: display!==undefined?display:raw, key, raw, type:'select', options, changed: isChanged(key) });
-  const ECHECK = (label, key, checked, display) => ({ label, value: display, key, raw: checked, type:'checkbox', changed: isChanged(key) });
+  const E = (label, display, key, raw, type, rowAttrs) => ({ label, value: display, key: key||null, raw: raw!==undefined?raw:display, type: type||'text', changed: isChanged(key), rowAttrs: rowAttrs||'' });
+  const ESEL = (label, key, raw, options, display, rowAttrs) => ({ label, value: display!==undefined?display:raw, key, raw, type:'select', options, changed: isChanged(key), rowAttrs: rowAttrs||'' });
+  const ECHECK = (label, key, checked, display, rowAttrs) => ({ label, value: display, key, raw: checked, type:'checkbox', changed: isChanged(key), rowAttrs: rowAttrs||'' });
 
-  function placementRows(prefix, count, labelPrefix){
+  const UNIT_ROW_CAP = 10; // ennyi elem-blokkot renderelünk mindig előre (a felesleg rejtve, de kész — így ha az ügyfél/kolléganő növeli a darabszámot, azonnal megjelenik a helyhez tartozó szerkesztőmező, nem kell újratölteni az oldalt)
+  const HANDLE_OPTIONS = { hu: [['left','Bal oldalt'],['right','Jobb oldalt']], pl: [['left','Lewa strona'],['right','Prawa strona']] };
+  function placementRows(prefix, count, withHandle){
     const rows = [];
-    for(let i=0;i<count;i++){
+    for(let i=0;i<UNIT_ROW_CAP;i++){
+      const hidden = i>=Math.max(count,1);
+      const rowAttrs = ` data-unit="${prefix}" data-unit-idx="${i}"${hidden?' class="unit-hidden"':''}`;
       const n = `${i+1}. `;
       rows.push(ESEL(n+(lang==='pl'?'ściana':'fal'), `${prefix}Wall${i}`, fd[`${prefix}Wall${i}`]||'front', WALL_OPTIONS[lang],
-        (WALL_OPTIONS[lang].find(o=>o[0]===(fd[`${prefix}Wall${i}`]||'front'))||[,fd[`${prefix}Wall${i}`]])[1]));
+        (WALL_OPTIONS[lang].find(o=>o[0]===(fd[`${prefix}Wall${i}`]||'front'))||[,fd[`${prefix}Wall${i}`]])[1], rowAttrs));
       rows.push(ESEL(n+(lang==='pl'?'róg':'sarok'), `${prefix}Corner${i}`, fd[`${prefix}Corner${i}`]||'left', CORNER_OPTIONS[lang],
-        (CORNER_OPTIONS[lang].find(o=>o[0]===(fd[`${prefix}Corner${i}`]||'left'))||[,fd[`${prefix}Corner${i}`]])[1]));
-      rows.push(E(n+(lang==='pl'?'odległość (cm)':'távolság (cm)'), fd[`${prefix}Distance${i}`]||'—', `${prefix}Distance${i}`, fd[`${prefix}Distance${i}`], 'number'));
+        (CORNER_OPTIONS[lang].find(o=>o[0]===(fd[`${prefix}Corner${i}`]||'left'))||[,fd[`${prefix}Corner${i}`]])[1], rowAttrs));
+      rows.push(E(n+(lang==='pl'?'odległość (cm)':'távolság (cm)'), fd[`${prefix}Distance${i}`]||'—', `${prefix}Distance${i}`, fd[`${prefix}Distance${i}`], 'number', rowAttrs));
+      if(withHandle){
+        rows.push(ESEL(n+(lang==='pl'?'strona klamki':'kilincs oldala'), `${prefix}Handle${i}`, fd[`${prefix}Handle${i}`]||'left', HANDLE_OPTIONS[lang],
+          (HANDLE_OPTIONS[lang].find(o=>o[0]===(fd[`${prefix}Handle${i}`]||'left'))||[,fd[`${prefix}Handle${i}`]])[1], rowAttrs));
+      }
     }
     return rows;
   }
@@ -286,11 +294,15 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
     ];
     sections.push({ section: S('gate'), items, isEmpty: gateType==='none' });
 
-    // Az automatika külön, önmagában összecsukható tétel — csak akkor nyílik nyitva, ha az ügyfél ténylegesen kérte
-    sections.push({ section: lang==='pl'?'Automatyka bramy':'Kapuautomatika', items: [
-      ECHECK(lang==='pl'?'Automatyka':'Automatika kérése', 'automation', !!fd.automation, fd.automation ? YES[lang] : VALUE_NONE[lang]),
-      E(lang==='pl'?'Ilość automatyki (szt.)':'Automatika darabszáma (db)', fd.automationQty||1, 'automationQty', fd.automationQty||1, 'number'),
-    ], isEmpty: !fd.automation });
+    // Az automatika külön, önmagában összecsukható tétel — a kiküldött (nem szerkeszthető)
+    // ajánlaton csak akkor jelenik meg, ha az ügyfél ténylegesen kérte; a szerkeszthető
+    // (ügyfél/kolléganő) oldalakon includeEmpty=true miatt továbbra is felkínáljuk, összecsukva.
+    if(fd.automation || includeEmpty){
+      sections.push({ section: lang==='pl'?'Automatyka bramy':'Kapuautomatika', items: [
+        ECHECK(lang==='pl'?'Automatyka':'Automatika kérése', 'automation', !!fd.automation, fd.automation ? YES[lang] : VALUE_NONE[lang]),
+        E(lang==='pl'?'Ilość automatyki (szt.)':'Automatika darabszáma (db)', fd.automationQty||1, 'automationQty', fd.automationQty||1, 'number'),
+      ], isEmpty: !fd.automation });
+    }
   }
 
   sections.push({ section: S('structure'), items: [
@@ -305,22 +317,64 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
   ]});
 
   {
+    const WALL_CAP = 6; // ennyi válaszfal-blokkot renderelünk mindig előre, rejtve a felesleget
     const wallCount = Math.max(0, parseInt(fd.wallCount) || 0);
     const orientOptions = { hu: [['hosszaban','Hosszában (oldalfaltól mérve)'],['keresztben','Keresztben (elülső/hátsó faltól mérve)']],
                              pl: [['hosszaban','Wzdłuż (od ściany bocznej)'],['keresztben','W poprzek (od ściany przedniej/tylnej)']] };
+    // A "melyik faltól mérjük" (a válaszfal saját elhelyezkedése) mind a 4 lehetséges értéket
+    // tartalmazza — attól függően, hogy a válaszfal "hosszában" vagy "keresztben" áll, más-más pár
+    // az értelmes; itt szándékosan mindkét párt felkínáljuk, a helyes párt kell kiválasztani az irányhoz.
+    const cornerOptionsWall = { hu: [['left','Bal oldalfaltól (ha a fal hosszában áll)'],['right','Jobb oldalfaltól (ha a fal hosszában áll)'],
+                                      ['front','Elülső faltól (ha a fal keresztben áll)'],['back','Hátsó faltól (ha a fal keresztben áll)']],
+                                pl: [['left','Od lewej (dla ściany wzdłużnej)'],['right','Od prawej (dla ściany wzdłużnej)'],
+                                     ['front','Od przedniej (dla ściany poprzecznej)'],['back','Od tylnej (dla ściany poprzecznej)']] };
+    const openingTypeOptions = { hu: [['none','Nincs (tömör válaszfal)'],['opening','Szabad nyílás'],['door','Ajtó']],
+                                  pl: [['none','Brak (pełna ściana)'],['opening','Wolny otwór'],['door','Drzwi']] };
+    const doorSizeOptionsWall = { hu: [['90x200','90×200 cm'],['100x200','100×200 cm'],['110x200','110×200 cm']],
+                                   pl: [['90x200','90×200 cm'],['100x200','100×200 cm'],['110x200','110×200 cm']] };
+    const openingCornerOptions = { hu: [['front','Elülső faltól'],['back','Hátsó faltól']], pl: [['front','Od przedniej'],['back','Od tylnej']] };
+
+    function unitAttrs(idx, countHidden, showWhen, currentOpeningType){
+      const classes = [];
+      if(countHidden) classes.push('unit-hidden');
+      let s = ` data-unit="wall" data-unit-idx="${idx}"`;
+      if(showWhen){
+        const condHidden = showWhen==='any' ? currentOpeningType==='none' : currentOpeningType!==showWhen;
+        s += ` data-cond-group="wallOpeningType${idx}" data-cond-show="${showWhen}"`;
+        if(condHidden) classes.push('cond-hidden');
+      }
+      if(classes.length) s += ` class="${classes.join(' ')}"`;
+      return s;
+    }
+
     const wallItems = [
       E(lang==='pl'?'Ilość ścian działowych (szt.)':'Válaszfalak száma (db)', wallCount, 'wallCount', wallCount, 'number'),
     ];
-    for(let wi=0; wi<wallCount; wi++){
+    for(let wi=0; wi<WALL_CAP; wi++){
+      const hidden = wi>=Math.max(wallCount,1);
       const orientation = fd['wallOrientation'+wi] || 'hosszaban';
-      const cornerOptionsWall = orientation==='keresztben'
-        ? { hu: [['front','Elülső faltól'],['back','Hátsó faltól']], pl: [['front','Od ściany przedniej'],['back','Od ściany tylnej']] }
-        : { hu: [['left','Bal oldalfaltól'],['right','Jobb oldalfaltól']], pl: [['left','Od lewej'],['right','Od prawej']] };
+      const openingType = fd['wallOpeningType'+wi] || 'none';
+      const plainAttrs = unitAttrs(wi, hidden, null, openingType);
       wallItems.push(
-        ESEL(`${wi+1}. ${lang==='pl'?'Kierunek':'válaszfal iránya'}`, 'wallOrientation'+wi, orientation, orientOptions[lang], (orientOptions[lang].find(o=>o[0]===orientation)||[,orientation])[1]),
-        E(`${wi+1}. ${lang==='pl'?'Długość (mb)':'válaszfal hossza (fm)'}`, fd['wallLength'+wi]||0, 'wallLength'+wi, fd['wallLength'+wi]||0, 'number'),
-        ESEL(`${wi+1}. ${lang==='pl'?'Mierzone od':'válaszfal — melyik faltól mérve'}`, 'wallCorner'+wi, fd['wallCorner'+wi]||'left', cornerOptionsWall[lang], (cornerOptionsWall[lang].find(o=>o[0]===(fd['wallCorner'+wi]||'left'))||[,fd['wallCorner'+wi]])[1]),
-        E(`${wi+1}. ${lang==='pl'?'Odległość (cm)':'válaszfal — távolság (cm)'}`, fd['wallPosition'+wi]||0, 'wallPosition'+wi, fd['wallPosition'+wi]||0, 'number'),
+        ESEL(`${wi+1}. ${lang==='pl'?'Kierunek':'válaszfal iránya'}`, 'wallOrientation'+wi, orientation, orientOptions[lang],
+          (orientOptions[lang].find(o=>o[0]===orientation)||[,orientation])[1], plainAttrs),
+        E(`${wi+1}. ${lang==='pl'?'Długość (mb)':'válaszfal hossza (fm)'}`, fd['wallLength'+wi]||0, 'wallLength'+wi, fd['wallLength'+wi]||0, 'number', plainAttrs),
+        ESEL(`${wi+1}. ${lang==='pl'?'Mierzone od':'válaszfal — melyik faltól mérve'}`, 'wallCorner'+wi, fd['wallCorner'+wi]||'left', cornerOptionsWall[lang],
+          (cornerOptionsWall[lang].find(o=>o[0]===(fd['wallCorner'+wi]||'left'))||[,fd['wallCorner'+wi]])[1], plainAttrs),
+        E(`${wi+1}. ${lang==='pl'?'Odległość (cm)':'válaszfal — távolság (cm)'}`, fd['wallPosition'+wi]||0, 'wallPosition'+wi, fd['wallPosition'+wi]||0, 'number', plainAttrs),
+        ESEL(`${wi+1}. ${lang==='pl'?'W ścianie':'válaszfalban'}`, 'wallOpeningType'+wi, openingType, openingTypeOptions[lang],
+          (openingTypeOptions[lang].find(o=>o[0]===openingType)||[,openingType])[1], plainAttrs),
+        E(`${wi+1}. ${lang==='pl'?'Szerokość otworu (cm)':'nyílás szélessége (cm)'}`, fd['wallOpeningWidth'+wi]||90, 'wallOpeningWidth'+wi, fd['wallOpeningWidth'+wi]||90, 'number',
+          unitAttrs(wi, hidden, 'opening', openingType)),
+        ESEL(`${wi+1}. ${lang==='pl'?'Rozmiar drzwi':'ajtó mérete'}`, 'wallDoorSize'+wi, fd['wallDoorSize'+wi]||'90x200', doorSizeOptionsWall[lang],
+          (doorSizeOptionsWall[lang].find(o=>o[0]===(fd['wallDoorSize'+wi]||'90x200'))||[,fd['wallDoorSize'+wi]])[1], unitAttrs(wi, hidden, 'door', openingType)),
+        ESEL(`${wi+1}. ${lang==='pl'?'Strona otwierania':'merre nyíljon (kilincs oldala)'}`, 'wallDoorHandle'+wi, fd['wallDoorHandle'+wi]||'left', HANDLE_OPTIONS[lang],
+          (HANDLE_OPTIONS[lang].find(o=>o[0]===(fd['wallDoorHandle'+wi]||'left'))||[,fd['wallDoorHandle'+wi]])[1], unitAttrs(wi, hidden, 'door', openingType)),
+        ESEL(`${wi+1}. ${lang==='pl'?'Otwór/drzwi mierzone od':'nyílás/ajtó — melyik saroktól mérve'}`, 'wallOpeningCorner'+wi, fd['wallOpeningCorner'+wi]||'front', openingCornerOptions[lang],
+          (openingCornerOptions[lang].find(o=>o[0]===(fd['wallOpeningCorner'+wi]||'front'))||[,fd['wallOpeningCorner'+wi]])[1], unitAttrs(wi, hidden, 'any', openingType)),
+        E(`${wi+1}. ${lang==='pl'?'Odległość otworu (cm)':'nyílás/ajtó — távolság (cm)'}`, fd['wallOpeningDistance'+wi]||50, 'wallOpeningDistance'+wi, fd['wallOpeningDistance'+wi]||50, 'number',
+          unitAttrs(wi, hidden, 'any', openingType)),
+        E(`${wi+1}. ${lang==='pl'?'Uwaga':'megjegyzés'}`, fd['wallNote'+wi]||'—', 'wallNote'+wi, fd['wallNote'+wi]||'', 'text', plainAttrs),
       );
     }
     sections.push({ section: lang==='pl'?'Ściany działowe':'Válaszfalak', items: wallItems, isEmpty: wallCount===0 });
@@ -334,7 +388,7 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
       ESEL(L('doorColor'), 'colorDoor', fd.colorDoor||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorDoor||'RAL9005', lang)),
       ESEL(L('doorPattern'), 'personalDoorPattern', fd.personalDoorPattern||'Széles vízszintes', PATTERN_OPTIONS[lang], patternName(fd.personalDoorPattern||'Széles vízszintes', lang)),
       E(lang==='pl'?'Dodatkowy zamek (szt.)':'Extra zár (db)', fd.extraLockQty||0, 'extraLockQty', fd.extraLockQty||0, 'number'),
-      ...placementRows('personalDoor', Math.max(personalDoorCount,1)),
+      ...placementRows('personalDoor', personalDoorCount, true),
     ], isEmpty: personalDoorCount===0 });
   }
 
@@ -342,7 +396,7 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
     sections.push({ section: S('window'), items: [
       E(L('windowCount'), win8060Count, 'win8060', win8060Count, 'number'),
       ESEL(L('windowColor'), 'colorWindow', fd.colorWindow||'RAL9005', WINDOW_COLOR_OPTIONS[lang], colorName(fd.colorWindow||'RAL9005', lang)),
-      ...placementRows('win8060', Math.max(win8060Count,1)),
+      ...placementRows('win8060', win8060Count),
     ], isEmpty: win8060Count===0 });
   }
 
@@ -351,7 +405,7 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
     sections.push({ section: lang==='pl'?'Okno stałe 50×150':'Fix ablak (50×150)', items: [
       E(lang==='pl'?'Ilość (szt.)':'Darabszám', win50150Count, 'win50150', win50150Count, 'number'),
       ESEL(L('windowColor'), 'colorWindow', fd.colorWindow||'RAL9005', WINDOW_COLOR_OPTIONS[lang], colorName(fd.colorWindow||'RAL9005', lang)),
-      ...placementRows('win50150', Math.max(win50150Count,1)),
+      ...placementRows('win50150', win50150Count),
     ], isEmpty: win50150Count===0 });
   }
 
@@ -383,6 +437,49 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
 
   return sections;
 }
+
+// Megosztott CSS + JS a szerkeszthető oldalak (ügyfél "ajánlat módosítása" + kolléganő
+// backoffice-szerkesztő) számára: ez teszi lehetővé, hogy a darabszám (ablak/ajtó/válaszfal)
+// növelésekor azonnal megjelenjenek az újabb elem(ek) elhelyezés-mezői, illetve hogy a
+// válaszfalban lévő nyílás típusától (nincs/szabad nyílás/ajtó) függően a megfelelő almezők
+// (szélesség, vagy ajtóméret+kilincs, vagy semmi) látszódjanak — pontosan úgy, mint a
+// nyilvános konfigurátoron.
+const UNIT_TOGGLE_CSS = `.unit-hidden,.cond-hidden{display:none!important}`;
+const UNIT_TOGGLE_SCRIPT = `
+function syncUnitRows(){
+  var countMap = {win8060:'win8060', win50150:'win50150', personalDoorCount:'personalDoor', wallCount:'wall'};
+  Object.keys(countMap).forEach(function(countKey){
+    var ctrl = document.querySelector('[data-key="'+countKey+'"]');
+    if(!ctrl) return;
+    var count = Math.max(parseInt(ctrl.value)||0, 1);
+    var prefix = countMap[countKey];
+    document.querySelectorAll('[data-unit="'+prefix+'"]').forEach(function(row){
+      var idx = parseInt(row.getAttribute('data-unit-idx'));
+      row.classList.toggle('unit-hidden', idx>=count);
+    });
+  });
+}
+function syncCondRows(){
+  document.querySelectorAll('[data-cond-group]').forEach(function(row){
+    var groupKey = row.getAttribute('data-cond-group');
+    var ctrl = document.querySelector('[data-key="'+groupKey+'"]');
+    if(!ctrl) return;
+    var val = ctrl.value;
+    var showWhen = row.getAttribute('data-cond-show');
+    var show = showWhen==='any' ? val!=='none' : showWhen===val;
+    row.classList.toggle('cond-hidden', !show);
+  });
+}
+document.addEventListener('input', function(e){
+  if(e.target.matches && e.target.matches('[data-key="win8060"],[data-key="win50150"],[data-key="personalDoorCount"],[data-key="wallCount"]')) syncUnitRows();
+  if(e.target.matches && e.target.matches('[data-key^="wallOpeningType"]')) syncCondRows();
+});
+document.addEventListener('change', function(e){
+  if(e.target.matches && e.target.matches('[data-key="win8060"],[data-key="win50150"],[data-key="personalDoorCount"],[data-key="wallCount"]')) syncUnitRows();
+  if(e.target.matches && e.target.matches('[data-key^="wallOpeningType"]')) syncCondRows();
+});
+syncUnitRows(); syncCondRows();
+`;
 
 function sectionHtml(s){
   return `<div class="section">
@@ -417,7 +514,7 @@ function editableSectionHtml(s){
       }
       const changedStyle = it.changed ? 'background:#fff7e0;box-shadow:inset 3px 0 0 #F2B705' : '';
       const changedBadge = it.changed ? '<span style="background:#F2B705;color:#20242A;font-size:9px;font-weight:bold;padding:1px 5px;border-radius:8px;margin-left:6px">MÓDOSULT</span>' : '';
-      return `<tr style="${changedStyle}"><td class="label">${escapeHtml(it.label)}</td><td>${control}${changedBadge}</td></tr>`;
+      return `<tr style="${changedStyle}"${it.rowAttrs||''}><td class="label">${escapeHtml(it.label)}</td><td>${control}${changedBadge}</td></tr>`;
     }).join('')}</table>`;
 
   if(s.isEmpty){
@@ -610,4 +707,4 @@ async function generateOrderFormPdf(customer, quote, lang) {
   return renderHtmlToPdf(html);
 }
 
-module.exports = { generateOrderFormPdf, orderFormHtml, buildOrderFields, sectionHtml, sectionHtmlEmail, editableSectionHtml, lightenSketchSvg, translateSketchToPolish, prepareColleagueSketch, priceCardHtml, renderSketchToPngDataUri, renderSketchToPngBuffer, LOGO_B64 };
+module.exports = { generateOrderFormPdf, orderFormHtml, buildOrderFields, sectionHtml, sectionHtmlEmail, editableSectionHtml, lightenSketchSvg, translateSketchToPolish, prepareColleagueSketch, priceCardHtml, renderSketchToPngDataUri, renderSketchToPngBuffer, LOGO_B64, UNIT_TOGGLE_CSS, UNIT_TOGGLE_SCRIPT };
