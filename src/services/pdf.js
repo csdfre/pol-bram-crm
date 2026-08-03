@@ -240,7 +240,12 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
   const HANDLE_OPTIONS = { hu: [['left','Bal oldalt'],['right','Jobb oldalt']], pl: [['left','Lewa strona'],['right','Prawa strona']] };
   function placementRows(prefix, count, withHandle){
     const rows = [];
-    for(let i=0;i<UNIT_ROW_CAP;i++){
+    // A "kiegészítő, rejtett" blokkokat (amik lehetővé teszik a darabszám élő növelését) csak a
+    // SZERKESZTHETŐ oldalakon (includeEmpty=true) renderezzük előre. A ténylegesen kiküldött,
+    // nem szerkeszthető ajánlaton/PDF-en (includeEmpty=false) pontosan annyi blokk jelenjen meg,
+    // amennyit ténylegesen kértek — különben olyan is felsorolásra kerülne, amit nem kértek.
+    const cap = includeEmpty ? UNIT_ROW_CAP : count;
+    for(let i=0;i<cap;i++){
       const hidden = i>=Math.max(count,1);
       const rowAttrs = ` data-unit="${prefix}" data-unit-idx="${i}"${hidden?' class="unit-hidden"':''}`;
       const n = `${i+1}. `;
@@ -350,7 +355,10 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
     const wallItems = [
       E(lang==='pl'?'Ilość ścian działowych (szt.)':'Válaszfalak száma (db)', wallCount, 'wallCount', wallCount, 'number'),
     ];
-    for(let wi=0; wi<WALL_CAP; wi++){
+    // Lásd fenti megjegyzés a placementRows()-nál: a kiegészítő, rejtett blokkokat csak a
+    // szerkeszthető oldalakon renderezzük előre, a kiküldött ajánlaton pontosan a kért darabszám jelenik meg.
+    const wallCap = includeEmpty ? WALL_CAP : wallCount;
+    for(let wi=0; wi<wallCap; wi++){
       const hidden = wi>=Math.max(wallCount,1);
       const orientation = fd['wallOrientation'+wi] || 'hosszaban';
       const openingType = fd['wallOpeningType'+wi] || 'none';
@@ -377,7 +385,9 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
         E(`${wi+1}. ${lang==='pl'?'Uwaga':'megjegyzés'}`, fd['wallNote'+wi]||'—', 'wallNote'+wi, fd['wallNote'+wi]||'', 'text', plainAttrs),
       );
     }
-    sections.push({ section: lang==='pl'?'Ściany działowe':'Válaszfalak', items: wallItems, isEmpty: wallCount===0 });
+    if(wallCount>0 || includeEmpty){
+      sections.push({ section: lang==='pl'?'Ściany działowe':'Válaszfalak', items: wallItems, isEmpty: wallCount===0 });
+    }
   }
 
   if(personalDoorCount>0 || includeEmpty){
