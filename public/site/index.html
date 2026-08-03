@@ -707,6 +707,39 @@ function captureFormState(){
   return data;
 }
 function applyFormState(data){
+  // --- Visszamenőleges kompatibilitás -------------------------------------------------
+  // A Típusgarázs-szerkesztő (admin/type-editor.html) még a RÉGI, egyetlen válaszfalas
+  // mezőnevekkel menti a form_data-t (wallYes, wallLength, wallCorner, wallPosition,
+  // wallOpeningType, wallOpeningWidth, wallDoorSize, wallDoorHandle, wallOpeningCorner,
+  // wallOpeningDistance, wallNote) — index nélkül, mert az az UI csak 1 válaszfalat ismer.
+  // Ez a konfigurátor viszont a wallCount + indexelt mezőkkel dolgozik (wallLength0,
+  // wallPosition0, ...), hogy több válaszfalat is támogasson. document.getElementById(id)
+  // a régi neveket itt nem találja meg (null), ezért ezek az értékek eddig csendben
+  // elvesztek betöltéskor — ez okozta a hibás/eltérő vázlatot a típusgarázs-választásnál.
+  // Itt fordítjuk le a régi mezőneveket az új, 0. indexű mezőkre, mielőtt bármit is
+  // beírnánk a DOM-ba.
+  if(data.wallCount === undefined && ('wallYes' in data)){
+    data = {...data};
+    const hasWall = !!data.wallYes;
+    data.wallCount = hasWall ? 1 : 0;
+    if(hasWall){
+      data.wallOrientation0 = 'hosszaban'; // a régi UI mindig oldalfaltól mérte = "hosszában"
+      data.wallLength0 = data.wallLength;
+      data.wallCorner0 = data.wallCorner;
+      data.wallPosition0 = data.wallPosition;
+      data.wallOpeningType0 = data.wallOpeningType;
+      data.wallOpeningWidth0 = data.wallOpeningWidth;
+      data.wallDoorSize0 = data.wallDoorSize;
+      data.wallDoorHandle0 = data.wallDoorHandle;
+      data.wallOpeningCorner0 = data.wallOpeningCorner;
+      data.wallOpeningDistance0 = data.wallOpeningDistance;
+      data.wallNote0 = data.wallNote;
+    }
+    ['wallYes','wallLength','wallCorner','wallPosition','wallOpeningType','wallOpeningWidth',
+     'wallDoorSize','wallDoorHandle','wallOpeningCorner','wallOpeningDistance','wallNote'
+    ].forEach(k=>delete data[k]);
+  }
+  // -------------------------------------------------------------------------------------
   // 1. kör: minden statikus mező, ami most létezik
   Object.keys(data).forEach(id=>{
     if(id==='__gateType') return;
