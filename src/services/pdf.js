@@ -412,9 +412,14 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
 
   const win50150Count = parseInt(fd.win50150)||0;
   if(win50150Count>0 || includeEmpty){
+    // FONTOS: a "colorWindow" egyetlen, közös beállítás minden ablaktípusra (bukó + fix ablak is
+    // ugyanabban a színben készül) — ITT SZÁNDÉKOSAN nem szerkeszthető (nincs data-key rajta), mert
+    // ha mindkét szekció ugyanazt a mezőt szerkeszthetővé tenné, mentéskor a kettő közül a DOM-ban
+    // KÉSŐBB álló (ez a szekció) mindig felülírta volna a "Bukó ablak" szekcióban beállított színt —
+    // pontosan ez okozta, hogy a szín visszaállt mentés után.
     sections.push({ section: lang==='pl'?'Okno stałe 50×150':'Fix ablak (50×150)', items: [
       E(lang==='pl'?'Ilość (szt.)':'Darabszám', win50150Count, 'win50150', win50150Count, 'number'),
-      ESEL(L('windowColor'), 'colorWindow', fd.colorWindow||'RAL9005', WINDOW_COLOR_OPTIONS[lang], colorName(fd.colorWindow||'RAL9005', lang)),
+      E(L('windowColor')+(lang==='pl'?' (patrz wyżej: Okno uchylne)':' (lásd fent: Bukó ablak)'), colorName(fd.colorWindow||'RAL9005', lang)),
       ...placementRows('win50150', win50150Count),
     ], isEmpty: win50150Count===0 });
   }
