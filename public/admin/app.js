@@ -33,7 +33,8 @@ function showApp() {
   loadCustomers();
 }
 
-document.getElementById('loginBtn').addEventListener('click', async () => {
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
   const username = document.getElementById('loginUser').value;
   const password = document.getElementById('loginPass').value;
   const errEl = document.getElementById('loginError');
@@ -81,7 +82,7 @@ function renderCustomerTable(rows) {
     <tr>
       <td>${esc(r.name)} ${r.customer_edited_at ? `<span onclick="event.stopPropagation(); dismissEditedFlag(${r.id})" title="Kattints az eltüntetéshez" style="cursor:pointer;background:#F2B705;color:#20242A;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:6px">MÓDOSÍTOTT ✕</span>` : ''} ${r.status_alert_at ? `<span onclick="event.stopPropagation(); dismissStatusAlert(${r.id})" title="${esc(r.status_alert_note||'')} — kattints az eltüntetéshez" style="cursor:pointer;background:#2F6B8F;color:#fff;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:6px">🔔 ${esc(r.status_alert_note||'ÚJ ESEMÉNY')} ✕</span>` : ''}</td>
       <td>${esc(r.zip)} ${esc(r.city)}, ${esc(r.address)}</td>
-      <td>${esc(r.phone)}</td>
+      <td><a href="tel:${esc((r.phone||'').replace(/[^\d+]/g,''))}" onclick="event.stopPropagation()" style="color:#2F6B8F;text-decoration:none">${esc(r.phone)}</a></td>
       <td>${esc(r.email)}</td>
       <td>${new Date(r.created_at).toLocaleString('hu-HU')}</td>
       <td><span class="status-pill status-${r.status}">${STATUS_LABELS[r.status] || r.status}</span></td>
@@ -115,7 +116,11 @@ async function dismissStatusAlert(id){
 function filterCustomers() {
   const q = document.getElementById('customerSearchInput').value.trim().toLowerCase();
   if (!q) { renderCustomerTable(allCustomers); return; }
-  const filtered = allCustomers.filter(r => (r.name || '').toLowerCase().includes(q));
+  const filtered = allCustomers.filter(r =>
+    (r.name || '').toLowerCase().includes(q) ||
+    (r.email || '').toLowerCase().includes(q) ||
+    (r.phone || '').toLowerCase().includes(q)
+  );
   renderCustomerTable(filtered);
 }
 

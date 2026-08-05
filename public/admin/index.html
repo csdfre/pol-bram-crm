@@ -12,9 +12,11 @@
 <div id="loginScreen" class="login-screen">
   <div class="login-box">
     <h1>Pol-Bram <span>Backoffice</span></h1>
-    <input type="text" id="loginUser" placeholder="Felhasználónév">
-    <input type="password" id="loginPass" placeholder="Jelszó">
-    <button id="loginBtn">Belépés</button>
+    <form id="loginForm" autocomplete="on">
+      <input type="text" id="loginUser" name="username" autocomplete="username" placeholder="Felhasználónév">
+      <input type="password" id="loginPass" name="password" autocomplete="current-password" placeholder="Jelszó">
+      <button id="loginBtn" type="submit">Belépés</button>
+    </form>
     <div id="loginError" class="error-text"></div>
   </div>
 </div>
@@ -39,7 +41,7 @@
 
     <div id="customersView">
       <div style="margin-bottom:14px">
-        <input type="text" id="customerSearchInput" placeholder="Keresés név alapján..." oninput="filterCustomers()" style="width:100%;max-width:320px;padding:10px 14px;border:1px solid var(--line);border-radius:4px;font-size:0.9rem">
+        <input type="text" id="customerSearchInput" placeholder="Keresés név, email vagy telefonszám alapján..." oninput="filterCustomers()" style="width:100%;max-width:320px;padding:10px 14px;border:1px solid var(--line);border-radius:4px;font-size:0.9rem">
       </div>
       <table id="customerTable">
         <thead>

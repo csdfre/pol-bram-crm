@@ -289,6 +289,12 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
   ]});
 
   if(gateType!=='none' || includeEmpty){
+    const GATE_CAP = 4; // ennyi kapu-blokkot renderelünk mindig előre (lásd a fenti magyarázatot az ablakoknál/válaszfalaknál)
+    const gatePosMode = fd.gatePositionMode || 'auto';
+    const gatePosOptions = { hu: [['auto','Automatikus, arányosan a falon belül'],['custom','Egyéni pozíció megadása (kapunként)']],
+                              pl: [['auto','Automatycznie, proporcjonalnie'],['custom','Własna pozycja (dla każdej bramy)']] };
+    const gateCornerOptions = { hu: [['left','Bal faltól'],['right','Jobb faltól']], pl: [['left','Od lewej ściany'],['right','Od prawej ściany']] };
+    const gateCap = includeEmpty ? GATE_CAP : (gateCount||1);
     const items = [
       ESEL(lang==='pl'?'Typ bramy':'Kapu típusa', '__gateType', gateType, GATE_TYPE_OPTIONS[lang], (GATE_NAMES[gateType]&&GATE_NAMES[gateType][lang])||gateType),
       E(lang==='pl'?'Ilość bram (szt.)':'Kapuk száma (db)', gateCount||1, 'gateCount', gateCount||1, 'number'),
@@ -296,7 +302,23 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
       E(L('gateHeight'), (fd.gateHeight||'185')+' cm', 'gateHeight', fd.gateHeight||185, 'number'),
       ESEL(L('gateColor'), 'colorGate', fd.colorGate||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorGate||'RAL9005', lang)),
       ESEL(L('gatePattern'), 'gatePattern', fd.gatePattern||'Széles vízszintes', PATTERN_OPTIONS[lang], patternName(fd.gatePattern||'Széles vízszintes', lang)),
+      ESEL(lang==='pl'?'Umiejscowienie bram(y)':'Kapu(k) elhelyezése', 'gatePositionMode', gatePosMode, gatePosOptions[lang],
+        (gatePosOptions[lang].find(o=>o[0]===gatePosMode)||[,gatePosMode])[1]),
     ];
+    const gateCapEff = (includeEmpty || gatePosMode==='custom') ? gateCap : 0;
+    for(let i=0;i<gateCapEff;i++){
+      const countHidden = i>=Math.max(gateCount||1,1);
+      const classes = [];
+      if(countHidden) classes.push('unit-hidden');
+      const condHidden = gatePosMode!=='custom';
+      if(condHidden) classes.push('cond-hidden');
+      const rowAttrs = ` data-unit="gate" data-unit-idx="${i}" data-cond-group="gatePositionMode" data-cond-show="custom"${classes.length?` class="${classes.join(' ')}"`:''}`;
+      items.push(
+        ESEL(`${i+1}. ${lang==='pl'?'brama — od której ściany':'kapu — melyik faltól'}`, 'gateCustomCorner'+i, fd['gateCustomCorner'+i]||'left', gateCornerOptions[lang],
+          (gateCornerOptions[lang].find(o=>o[0]===(fd['gateCustomCorner'+i]||'left'))||[,fd['gateCustomCorner'+i]])[1], rowAttrs),
+        E(`${i+1}. ${lang==='pl'?'brama — odległość (cm)':'kapu — távolság (cm)'}`, fd['gateCustomDistance'+i]||(50+i*350), 'gateCustomDistance'+i, fd['gateCustomDistance'+i]||(50+i*350), 'number', rowAttrs),
+      );
+    }
     sections.push({ section: S('gate'), items, isEmpty: gateType==='none' });
 
     // Az automatika külön, önmagában összecsukható tétel — a kiküldött (nem szerkeszthető)
@@ -462,7 +484,7 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
 const UNIT_TOGGLE_CSS = `.unit-hidden,.cond-hidden{display:none!important}`;
 const UNIT_TOGGLE_SCRIPT = `
 function syncUnitRows(){
-  var countMap = {win8060:'win8060', win50150:'win50150', personalDoorCount:'personalDoor', wallCount:'wall'};
+  var countMap = {win8060:'win8060', win50150:'win50150', personalDoorCount:'personalDoor', wallCount:'wall', gateCount:'gate'};
   Object.keys(countMap).forEach(function(countKey){
     var ctrl = document.querySelector('[data-key="'+countKey+'"]');
     if(!ctrl) return;
@@ -486,12 +508,12 @@ function syncCondRows(){
   });
 }
 document.addEventListener('input', function(e){
-  if(e.target.matches && e.target.matches('[data-key="win8060"],[data-key="win50150"],[data-key="personalDoorCount"],[data-key="wallCount"]')) syncUnitRows();
-  if(e.target.matches && e.target.matches('[data-key^="wallOpeningType"]')) syncCondRows();
+  if(e.target.matches && e.target.matches('[data-key="win8060"],[data-key="win50150"],[data-key="personalDoorCount"],[data-key="wallCount"],[data-key="gateCount"]')) syncUnitRows();
+  if(e.target.matches && e.target.matches('[data-key^="wallOpeningType"],[data-key="gatePositionMode"]')) syncCondRows();
 });
 document.addEventListener('change', function(e){
-  if(e.target.matches && e.target.matches('[data-key="win8060"],[data-key="win50150"],[data-key="personalDoorCount"],[data-key="wallCount"]')) syncUnitRows();
-  if(e.target.matches && e.target.matches('[data-key^="wallOpeningType"]')) syncCondRows();
+  if(e.target.matches && e.target.matches('[data-key="win8060"],[data-key="win50150"],[data-key="personalDoorCount"],[data-key="wallCount"],[data-key="gateCount"]')) syncUnitRows();
+  if(e.target.matches && e.target.matches('[data-key^="wallOpeningType"],[data-key="gatePositionMode"]')) syncCondRows();
 });
 syncUnitRows(); syncCondRows();
 `;
