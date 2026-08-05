@@ -89,7 +89,7 @@ router.get('/customers/:id/history', (req, res) => {
 
 // A "MÓDOSÍTOTT" jelzés gyors törlése (a lista-elemre kattintva, a teljes adatlap megnyitása nélkül)
 router.post('/customers/:id/dismiss-edited-flag', (req, res) => {
-  db.prepare('UPDATE customers SET customer_edited_at = NULL WHERE id = ?').run(req.params.id);
+  db.prepare('UPDATE customers SET customer_edited_at = NULL, recalculated_price_huf = NULL WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
 });
 
@@ -264,7 +264,7 @@ router.post('/customers/:id/update-price', (req, res) => {
   const quote = c.price_breakdown ? JSON.parse(c.price_breakdown) : {};
   quote.displayTotal = newTotal;
   quote.manuallyEdited = true;
-  db.prepare('UPDATE customers SET price_huf=?, price_breakdown=?, updated_at=? WHERE id=?')
+  db.prepare('UPDATE customers SET price_huf=?, price_breakdown=?, recalculated_price_huf=NULL, updated_at=? WHERE id=?')
     .run(newTotal, JSON.stringify(quote), new Date().toISOString(), c.id);
   res.json({ ok: true });
 });
@@ -304,7 +304,7 @@ router.post('/customers/:id/calculate', (req, res) => {
   const formData = JSON.parse(c.form_data || '{}');
   const quote = calculateQuote(formData);
 
-  db.prepare('UPDATE customers SET price_huf=?, price_breakdown=?, updated_at=? WHERE id=?')
+  db.prepare('UPDATE customers SET price_huf=?, price_breakdown=?, recalculated_price_huf=NULL, updated_at=? WHERE id=?')
     .run(quote.totalHUF, JSON.stringify(quote), new Date().toISOString(), c.id);
 
   res.json(quote);

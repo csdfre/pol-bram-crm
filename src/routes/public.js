@@ -298,14 +298,36 @@ router.post('/modify-offer/:token/save', async (req, res) => {
     console.error('Rajz újragenerálási hiba mentéskor (megmarad a régi rajz):', err.message);
   }
   const editNote = (note || '').trim();
-  db.prepare('UPDATE customers SET form_data=?, price_huf=?, price_breakdown=?, customer_edited_at=?, pre_edit_form_data=?, sketch_svg=?, customer_edit_note=?, updated_at=? WHERE id=?')
-    .run(JSON.stringify(merged), quote.totalHUF, JSON.stringify(quote), now, preEditData, newSketchSvg, editNote || null, now, c.id);
-  logStatus(c.id, c.status, 'Ügyfél módosította az ajánlat tételeit, ár újraszámolva' + (editNote ? ' — megjegyzés: ' + editNote : ''));
+  // Ha az árat korábban KÉZZEL állította be az admin/kolléganő (pl. egyedi kedvezmény),
+  // az ügyfél módosítása ne írja felül azt automatikusan — csak elmentjük, mennyi lenne a
+  // képlet szerint, hogy az admin lássa és eldönthesse, kell-e módosítani.
+  const existingQuote = c.price_breakdown ? JSON.parse(c.price_breakdown) : {};
+  const priceWasManual = !!existingQuote.manuallyEdited;
+  const now2 = now;
+  let priceHufToSave, breakdownToSave, recalcToSave;
+  if (priceWasManual) {
+    priceHufToSave = c.price_huf;
+    breakdownToSave = c.price_breakdown;
+    recalcToSave = quote.totalHUF;
+  } else {
+    priceHufToSave = quote.totalHUF;
+    breakdownToSave = JSON.stringify(quote);
+    recalcToSave = null;
+  }
+  db.prepare('UPDATE customers SET form_data=?, price_huf=?, price_breakdown=?, recalculated_price_huf=?, customer_edited_at=?, pre_edit_form_data=?, sketch_svg=?, customer_edit_note=?, updated_at=? WHERE id=?')
+    .run(JSON.stringify(merged), priceHufToSave, breakdownToSave, recalcToSave, now2, preEditData, newSketchSvg, editNote || null, now2, c.id);
+  logStatus(c.id, c.status, priceWasManual
+    ? `Ügyfél módosította az ajánlat tételeit — az ár KÉZZEL be volt állítva, ezért nem íródott felül (a képlet szerint most ${quote.totalHUF.toLocaleString('hu-HU')} Ft lenne, ellenőrizendő)`
+    : 'Ügyfél módosította az ajánlat tételeit, ár újraszámolva'
+  + (editNote ? ' — megjegyzés: ' + editNote : ''));
 
   if (process.env.ADMIN_NOTIFY_EMAIL) {
     const notifyHtml = `<div style="font-family:Arial,sans-serif">
       <h3>Ügyfél módosította a saját ajánlatát</h3>
-      <p><strong>${escapeHtml(c.name)}</strong> (${escapeHtml(c.email)}) módosított a garázs beállításain — az új ár: ${quote.displayTotal.toLocaleString('hu-HU')} Ft (${quote.displayLabel}).</p>
+      <p><strong>${escapeHtml(c.name)}</strong> (${escapeHtml(c.email)}) módosított a garázs beállításain.</p>
+      ${priceWasManual
+        ? `<p><strong>Figyelem:</strong> az ár korábban kézzel lett beállítva (${c.price_huf.toLocaleString('hu-HU')} Ft), ezért ez a módosítás NEM írta felül automatikusan. A képlet szerint most <strong>${quote.totalHUF.toLocaleString('hu-HU')} Ft</strong> lenne — nézd át és állítsd be, ha szükséges.</p>`
+        : `<p>Az új ár: ${quote.displayTotal.toLocaleString('hu-HU')} Ft (${quote.displayLabel}).</p>`}
       ${editNote ? `<p><strong>Az ügyfél megjegyzése:</strong> ${escapeHtml(editNote)}</p>` : ''}
       <p>Nézd meg a backoffice-ban a részleteket.</p>
     </div>`;
@@ -313,7 +335,7 @@ router.post('/modify-offer/:token/save', async (req, res) => {
       .catch(err => console.error('Admin értesítő email hiba:', err));
   }
 
-  res.json({ ok: true, quote });
+  res.json({ ok: true, quote: priceWasManual ? existingQuote : quote });
 });
 
 // ---------------------------------------------------------------

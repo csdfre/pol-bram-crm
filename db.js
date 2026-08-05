@@ -102,5 +102,6 @@ addColIfMissing('pre_edit_form_data', 'TEXT');
 addColIfMissing('status_alert_at', 'TEXT');
 addColIfMissing('status_alert_note', 'TEXT');
 addColIfMissing('customer_edit_note', 'TEXT'); // az ügyfél opcionális megjegyzése, amikor módosít az ajánlaton
+addColIfMissing('recalculated_price_huf', 'INTEGER'); // ha az ár kézzel be volt állítva, ide kerül, mennyi lenne a képlet szerint az ügyfél módosítása után (nem írja felül a tényleges árat)
 
 module.exports = db;

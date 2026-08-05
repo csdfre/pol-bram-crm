@@ -240,6 +240,7 @@ function renderModal() {
     ${c.colleague_approved ? `<p style="margin-top:10px;color:var(--accept)">✓ A kolléganő jóváhagyta a megrendelőlapot.</p>` : ''}
     ${c.modify_request_text ? `<div class="complaint-box" style="border-color:#454C54;background:#f4f5f6"><h3 style="margin-top:0;color:#454C54">Ügyfél módosítást kért (${new Date(c.modify_request_at).toLocaleString('hu-HU')})</h3><p>${esc(c.modify_request_text)}</p></div>` : ''}
     ${c.customer_edit_note ? `<div class="complaint-box" style="border-color:#F2B705;background:#fffdf5"><h3 style="margin-top:0;color:#8a5a03">Ügyfél megjegyzése a módosításhoz</h3><p>${esc(c.customer_edit_note)}</p></div>` : ''}
+    ${c.recalculated_price_huf ? `<div class="complaint-box" style="border-color:#b23a3a;background:#fff5f5"><h3 style="margin-top:0;color:#b23a3a">⚠️ Az ár kézzel van beállítva — az ügyfél módosított</h3><p>A jelenlegi (kézzel beállított) ár: <strong>${Number(c.price_huf).toLocaleString('hu-HU')} Ft</strong>. A módosítás után a képlet szerint most <strong>${Number(c.recalculated_price_huf).toLocaleString('hu-HU')} Ft</strong> lenne. Ellenőrizd, és ha szükséges, állítsd be újra az árat lent.</p></div>` : ''}
     ${c.reject_reason ? `<div class="complaint-box" style="border-color:#8a8a8a;background:#f0f0f0"><h3 style="margin-top:0;color:#555">Ügyfél elutasította az ajánlatot (${new Date(c.reject_at).toLocaleString('hu-HU')})</h3><p>${esc(c.reject_reason)}</p></div>` : ''}
 
     <hr>
