@@ -26,10 +26,17 @@ html,body{margin:0;padding:0;}
 body{background:var(--steel-bg);color:var(--graphite);font-family:'Inter',sans-serif;line-height:1.45;-webkit-font-smoothing:antialiased;}
 h1,h2,h3,.disp{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:0.03em;color:var(--graphite);margin:0;}
 .mono{font-family:'IBM Plex Mono',monospace;}
-header.top{background:#fff;color:var(--graphite);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:4px solid var(--signal);}
+header.top{background:#fff;color:var(--graphite);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 24px;border-bottom:4px solid var(--signal);}
 header.top .brand{font-family:'Oswald',sans-serif;font-weight:700;font-size:1.4rem;letter-spacing:0.08em;}
 header.top .brand span{color:var(--signal-deep);}
 header.top .tag{font-size:0.78rem;color:var(--graphite-soft);letter-spacing:0.05em;text-transform:uppercase;}
+.top-nav{display:flex;flex-wrap:wrap;align-items:center;gap:4px 20px;margin-left:auto;}
+.top-nav a{font-family:'Inter',sans-serif;font-size:0.86rem;color:var(--graphite);text-decoration:none;letter-spacing:0.01em;white-space:nowrap;}
+.top-nav a:hover{color:var(--signal-deep);}
+.top-nav a.current{color:var(--signal-deep);font-weight:600;}
+@media (max-width:900px){
+  .top-nav{width:100%;margin-left:0;gap:4px 14px;font-size:0.8rem;}
+}
 .intro{max-width:1240px;margin:0 auto;padding:26px 20px 0;}
 .intro p{max-width:640px;color:var(--graphite-soft);font-size:0.95rem;}
 .preset-bar{max-width:1240px;margin:16px auto 0;padding:0 20px;}
@@ -130,6 +137,18 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
       <div class="tag">Egyedi garázs igénylés · Magyarország</div>
     </div>
   </div>
+  <nav class="top-nav">
+    <a href="https://pol-bram.hu/">Home</a>
+    <a href="https://pol-bram.hu/mobilgarazsok/">Mobilgarázsok</a>
+    <a href="https://pol-bram.hu/kerti-tarolo/">Kerti tároló</a>
+    <a href="https://pol-bram.hu/kutyakennel/">Kutyakennel</a>
+    <a href="https://pol-bram.hu/galeria/">Galéria</a>
+    <a href="https://pol-bram.hu/szinvalasztek/">Színválaszték</a>
+    <a href="https://pol-bram.hu/rolunk/">Rólunk</a>
+    <a href="https://polbram.hu/tervezo" class="current">Árajánlatkérő űrlap – garázsok</a>
+    <a href="https://pol-bram.hu/webaruhaz/">Webáruház</a>
+    <a href="https://pol-bram.hu/kapcsolat/">Kapcsolat</a>
+  </nav>
 </header>
 
 <div class="intro">
