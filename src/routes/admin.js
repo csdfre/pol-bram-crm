@@ -603,4 +603,43 @@ router.post('/data-retention/run', (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------
+// Kolléganő-Excel letöltése bármikor (admin felületről, "Kolléganő-Excel letöltése" gomb)
+// ---------------------------------------------------------------
+router.get('/customers/:id/colleague-report.xlsx', async (req, res) => {
+  const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
+  if (!c) return res.status(404).send('Nem található.');
+  try {
+    const buffer = await buildColleagueReportBuffer(c);
+    const safeName = (c.name || 'megrendeles').trim().replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}.xlsx"`);
+    res.send(buffer);
+  } catch (err) {
+    console.error('Kolléganő-Excel generálási hiba:', err);
+    res.status(500).send('Nem sikerült előállítani az Excel-fájlt: ' + err.message);
+  }
+});
+
+// ---------------------------------------------------------------
+// Az összes, korábban a kolléganőnek már kiküldött megrendelés Excel-riportjának ÚJRAKÜLDÉSE
+// a javított (A4-re illeszkedő) sablonnal. Egyszeri, kézi indítású admin-akció — minden érintett
+// ügyfélnél újra lefut a küldés (ugyanaz az email megy ki, csak a frissített melléklettel).
+// ---------------------------------------------------------------
+router.post('/customers/resend-colleague-reports', async (req, res) => {
+  const customers = db.prepare(`SELECT * FROM customers WHERE colleague_token IS NOT NULL AND colleague_token != ''`).all();
+  const results = { total: customers.length, sent: 0, failed: [] };
+  for (const c of customers) {
+    try {
+      const buffer = await buildColleagueReportBuffer(c);
+      await email.sendOrderFormToColleague(c, buffer);
+      results.sent++;
+    } catch (err) {
+      console.error(`Hiba a(z) #${c.id} (${c.name}) kolléganő-riport újraküldésekor:`, err.message);
+      results.failed.push({ id: c.id, name: c.name, error: err.message });
+    }
+  }
+  res.json({ ok: true, ...results });
+});
+
 module.exports = router;

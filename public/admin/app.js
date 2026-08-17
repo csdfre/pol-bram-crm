@@ -206,6 +206,7 @@ function renderModal() {
       <button class="btn-main" onclick="sendOffer()">Ajánlat kiküldése</button>
       <button class="btn-secondary" onclick="sendReminder()">Emlékeztető küldése</button>
       <button class="btn-secondary" onclick="sendOrderFormColleague()">Link küldése a kolléganőnek (jóváhagyásra)</button>
+      <a class="btn-secondary" href="/api/admin/customers/${c.id}/colleague-report.xlsx" target="_blank" style="text-decoration:none;display:inline-block">Kolléganő-Excel letöltése</a>
       <button class="btn-secondary" onclick="sendOrderFormCustomer()">Megrendelőlap kézi (újra)küldése ügyfélnek</button>
     </div>
     ${c.reminder_sent_at ? `<p style="font-size:0.8rem;color:#7a828a">Emlékeztető kiküldve: ${new Date(c.reminder_sent_at).toLocaleString('hu-HU')}</p>` : ''}
@@ -433,6 +434,16 @@ async function sendOrderFormColleague() {
   try {
     await api(`/admin/customers/${currentCustomer.id}/send-order-form-colleague`, { method: 'POST' });
     alert('Megrendelőlap (PL) kiküldve a kolléganőnek.');
+  } catch (e) { alert(e.message); }
+}
+
+async function resendAllColleagueReports() {
+  if (!confirm('Ez újraküldi az emailt (a javított, A4-re illeszkedő Excel-melléklettel) MINDEN ügyfélnek, akinek korábban már kiküldtük a kolléganő-linket. Biztosan folytatod?')) return;
+  try {
+    const data = await api('/admin/customers/resend-colleague-reports', { method: 'POST' });
+    let msg = `Kész: ${data.sent} / ${data.total} sikeresen újraküldve.`;
+    if (data.failed.length) msg += `\n\nHibás (nem ment ki): ${data.failed.map(f => `#${f.id} ${f.name}`).join(', ')}`;
+    alert(msg);
   } catch (e) { alert(e.message); }
 }
 
