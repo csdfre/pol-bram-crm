@@ -1,9 +1,6 @@
-const path = require('path');
 const ExcelJS = require('exceljs');
 const { buildOrderFields } = require('./pdf');
 const { buildColleagueSketchPng } = require('./colleagueSketchExport');
-
-const TEMPLATE_PATH = path.join(__dirname, '..', '..', 'templates', 'colleague_report_template.xlsx');
 
 // --- Segédfüggvények a buildOrderFields (pdf.js) kimenetének kiolvasásához -----------------
 function findSection(sections, name) {
@@ -193,6 +190,91 @@ function tableWidthPx(worksheet) {
   }, 0);
 }
 
+/**
+ * A riport alap-táblázatát KIZÁRÓLAG az ExcelJS API-jával építjük fel (nem külső .xlsx-sablonból
+ * töltjük be) — korábban egy openpyxl (Python) által előállított sablon-fájlt töltöttünk be és
+ * módosítottunk ExcelJS-szel, ami a valódi Microsoft Excelben "a munkafüzet egy része hibás"
+ * hibaüzenetet és üres/be nem töltődő fájlt eredményezett. A gyanú szerint ez a két különböző
+ * eszköz (openpyxl vs. ExcelJS) által generált OOXML-szerkezet közötti apró inkompatibilitás
+ * miatt történt (ExcelJS saját olvasója és a LibreOffice is elnézőbb, mint a valódi Excel).
+ * A teljesen ExcelJS-sel felépített munkafüzet ugyanazzal a szerializálóval jön létre, amit majd
+ * vissza is olvasunk/módosítunk, így ez a fajta inkompatibilitás kizárt.
+ */
+function buildBaseWorksheet(workbook) {
+  const ws = workbook.addWorksheet('Arkusz1', {
+    pageSetup: { paperSize: 9, orientation: 'portrait' },
+  });
+  ws.getColumn(1).width = 26;
+  ws.getColumn(2).width = 90;
+
+  const bold = { bold: true, size: 11 };
+  const wrapTop = { wrapText: true, vertical: 'top' };
+  const thinBottom = { bottom: { style: 'thin' } };
+
+  ws.mergeCells('A1:B1');
+  ws.getCell('A1').value = 'Garaż blaszany';
+  ws.getCell('A1').font = { bold: true, size: 14 };
+  ws.getCell('A1').alignment = { horizontal: 'center', vertical: 'center' };
+  ws.getRow(1).height = 22;
+
+  const simpleRows = [
+    [2, 'Nazwisko:', 15],
+    [3, 'Adres montażu:', 15],
+    [4, 'Cena:', 15],
+    [5, 'Zaliczka (30%):', 15],
+  ];
+  simpleRows.forEach(([r, label, h]) => {
+    ws.getCell(`A${r}`).value = label;
+    ws.getCell(`A${r}`).font = bold;
+    ws.getCell(`A${r}`).alignment = { vertical: 'top' };
+    ws.getCell(`B${r}`).alignment = wrapTop;
+    ws.getRow(r).height = h;
+  });
+
+  ws.getRow(6).height = 8; // spacer
+
+  const contentRows = [
+    [7, 'wymiar (front / długość)', 15, false],
+    [8, 'wiata (wymiar / umiejscowienie / panele)', 45, true],
+    [9, 'dach (kolor / spad)', 15, false],
+    [10, 'ściany (kolor / trapez)', 15, false],
+    [11, 'brama (kolor / trapez/ rodzaj / umiejscowienie)', 45, true],
+    [12, 'furtka kolor / trapez/ rodzaj / umiejscowienie / kier otwierania', 60, true],
+    [13, 'okno ( ilość / wymiar / kolor)', 30, true],
+    [14, 'szkic', 15, false],
+    [15, 'filc / rynny / automatyka', 30, true],
+  ];
+  contentRows.forEach(([r, label, h, wrapLabel]) => {
+    ws.getCell(`A${r}`).value = label;
+    ws.getCell(`A${r}`).font = bold;
+    ws.getCell(`A${r}`).alignment = wrapLabel ? wrapTop : { vertical: 'top' };
+    ws.getCell(`B${r}`).alignment = wrapTop;
+    ws.getRow(r).height = h;
+    ws.getCell(`A${r}`).border = thinBottom;
+    ws.getCell(`B${r}`).border = thinBottom;
+  });
+
+  ws.getRow(16).height = 8; // spacer
+
+  ws.mergeCells('A17:B17');
+  ws.getCell('A17').value = 'Dodatkowe informacje:';
+  ws.getCell('A17').font = bold;
+  ws.getCell('A17').alignment = { horizontal: 'center' };
+  ws.getRow(17).height = 15;
+
+  ws.mergeCells('A18:B18');
+  ws.getCell('A18').alignment = wrapTop;
+  ws.getRow(18).height = 15;
+
+  ws.getRow(19).height = 8; // spacer
+
+  ws.getCell('A20').value = 'Podpis:';
+  ws.getCell('A20').font = bold;
+  ws.getRow(20).height = 15;
+
+  return ws;
+}
+
 async function buildColleagueReportBuffer(customer) {
   let fd = {};
   try {
@@ -210,8 +292,7 @@ async function buildColleagueReportBuffer(customer) {
   const sections = buildOrderFields(fd, 'pl', false, null);
 
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(TEMPLATE_PATH);
-  const ws = workbook.worksheets[0];
+  const ws = buildBaseWorksheet(workbook);
 
   ws.getCell('B2').value = `${customer.name || ''} tel. ${customer.phone || ''}, mail: ${customer.email || ''}`;
   ws.getCell('B3').value = `${customer.address || ''}, ${customer.zip || ''}, ${customer.city || ''}`;
