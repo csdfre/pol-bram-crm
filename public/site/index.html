@@ -525,7 +525,7 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
         </div>
         <label style="display:flex;align-items:flex-start;gap:8px;font-size:0.8rem;color:var(--graphite-soft);margin-top:12px">
           <input type="checkbox" id="gdprConsent" style="margin-top:3px">
-          <span>Hozzájárulok ahhoz, hogy a fent megadott személyes adataimat kizárólag az általam elküldött üzenetre adott válasz céljából kezeljék.</span>
+          <span>Megismertem és elfogadom az <a href="/adatkezelesi-tajekoztato.html" target="_blank" rel="noopener">adatkezelési tájékoztatót</a>, mely szerint a fent megadott személyes adataimat az ajánlatkérés/egyeztetés során a Torusz Trade Kft. kezeli, megrendelés esetén pedig a PUH Pol-Bram (Lengyelország) részére továbbítja, aki a gyártást, a szállítást és a számlázást a saját nevében, önálló adatkezelőként végzi.</span>
         </label>
       </div>
     </details>
@@ -2125,6 +2125,7 @@ document.getElementById('submitBtn').addEventListener('click', ()=>{
     summaryText: summary,
     sketchSvg: sketchSvg,
     garageTypeUsed: selectedGarageTypeName,
+    gdprConsent: document.getElementById('gdprConsent').checked,
   };
 
   const submitBtnEl = document.getElementById('submitBtn');

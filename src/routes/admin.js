@@ -576,4 +576,31 @@ router.post('/customers/:id/regenerate-sketch', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------
+// Adatmegőrzés / anonimizálás (GDPR) — előnézet és kézi futtatás
+// ---------------------------------------------------------------
+// Előnézet: mely rekordok járnának le a megőrzési idő (jelenleg 2 év) alapján, ha most futna le
+// az anonimizálás — semmit nem módosít, csak megmutatja.
+router.get('/data-retention/preview', (req, res) => {
+  try {
+    const { findExpiredCustomers, RETENTION_YEARS } = require('../services/dataRetention');
+    const expired = findExpiredCustomers();
+    res.json({ ok: true, retentionYears: RETENTION_YEARS, count: expired.length, customers: expired });
+  } catch (err) {
+    res.status(500).json({ error: 'Hiba az előnézet lekérésekor: ' + err.message });
+  }
+});
+
+// Kézi futtatás — ugyanazt csinálja, mint a napi 3:00-kor automatikusan lefutó ütemezett job
+// (lásd src/services/scheduler.js), csak azonnal, admin kérésre.
+router.post('/data-retention/run', (req, res) => {
+  try {
+    const { runAnonymization } = require('../services/dataRetention');
+    const count = runAnonymization();
+    res.json({ ok: true, anonymizedCount: count });
+  } catch (err) {
+    res.status(500).json({ error: 'Hiba az anonimizálás futtatásakor: ' + err.message });
+  }
+});
+
 module.exports = router;

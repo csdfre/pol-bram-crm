@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const db = require('../../db');
 const email = require('./email');
+const { runAnonymization } = require('./dataRetention');
 
 const REMINDER_AFTER_DAYS = parseInt(process.env.REMINDER_AFTER_DAYS) || 5;
 
@@ -40,6 +41,18 @@ function startScheduler(){
     checkAndSendReminders().catch(err => console.error('[emlékeztető] Ütemezett futás hiba:', err));
   });
   console.log('Emlékeztető-ütemező elindítva (naponta 9:00-kor fut).');
+
+  // Minden nap hajnali 3:00-kor lefuttatja az adatmegőrzési (anonimizálási) folyamatot —
+  // lásd src/services/dataRetention.js és az adatkezelési tájékoztató 5. pontját.
+  cron.schedule('0 3 * * *', () => {
+    try {
+      const count = runAnonymization();
+      if (count > 0) console.log(`[adatmegőrzés] Ütemezett futás: ${count} lejárt rekord anonimizálva.`);
+    } catch (err) {
+      console.error('[adatmegőrzés] Ütemezett futás hiba:', err.message);
+    }
+  });
+  console.log('Adatmegőrzési (anonimizálási) ütemező elindítva (naponta 3:00-kor fut).');
 }
 
 module.exports = { startScheduler, checkAndSendReminders };
