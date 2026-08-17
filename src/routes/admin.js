@@ -8,6 +8,7 @@ const requireAuth = require('../middleware/requireAuth');
 const { calculateQuote } = require('../services/pricing');
 const { generateOrderFormPdf, buildOrderFields, sectionHtml, sectionHtmlEmail, editableSectionHtml, renderSketchToPngBuffer, LOGO_B64, UNIT_TOGGLE_CSS, UNIT_TOGGLE_SCRIPT } = require('../services/pdf');
 const email = require('../services/email');
+const { buildColleagueReportBuffer } = require('../services/colleagueExcel');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -386,7 +387,8 @@ router.post('/customers/:id/send-order-form-colleague', async (req, res) => {
       db.prepare('UPDATE customers SET colleague_token=? WHERE id=?').run(token, c.id);
       c.colleague_token = token;
     }
-    await email.sendOrderFormToColleague(c);
+    const excelBuffer = await buildColleagueReportBuffer(c);
+    await email.sendOrderFormToColleague(c, excelBuffer);
     db.prepare('UPDATE customers SET status=?, updated_at=? WHERE id=?').run('kolleganonek_kikuldve', new Date().toISOString(), c.id);
     logStatus(c.id, 'kolleganonek_kikuldve', 'Link kiküldve a lengyel kolléganőnek jóváhagyásra');
     res.json({ ok: true });

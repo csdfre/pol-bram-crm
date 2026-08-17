@@ -1,7 +1,7 @@
 {
   "name": "pol-bram-garage-crm",
   "version": "1.0.0",
-  "description": "Pol-Bram garázs árajánlat és megrendelés-kezelő rendszer (backend + backoffice)",
+  "description": "Pol-Bram gar\u00e1zs \u00e1raj\u00e1nlat \u00e9s megrendel\u00e9s-kezel\u0151 rendszer (backend + backoffice)",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
@@ -23,6 +23,7 @@
     "nodemailer": "^6.9.14",
     "puppeteer": "^22.15.0",
     "uuid": "^9.0.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "exceljs": "^4.4.0"
   }
 }

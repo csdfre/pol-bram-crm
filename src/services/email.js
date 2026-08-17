@@ -61,10 +61,15 @@ async function sendOfferReminder(customer, priceText) {
   return sendMail({ to: customer.email, subject, html });
 }
 
-async function sendOrderFormToColleague(customer) {
+async function sendOrderFormToColleague(customer, excelBuffer) {
   const colleagueUrl = `${process.env.BASE_URL}/public/colleague/${customer.colleague_token}`;
   const { subject, html } = renderTemplate('order_form_colleague', { name: customer.name || '', colleagueUrl });
-  return sendMail({ to: process.env.COLLEAGUE_EMAIL, subject, html });
+  const attachments = [];
+  if (excelBuffer) {
+    const safeName = (customer.name || 'megrendeles').trim().replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
+    attachments.push({ filename: `${safeName}.xlsx`, content: excelBuffer });
+  }
+  return sendMail({ to: process.env.COLLEAGUE_EMAIL, subject, html, attachments });
 }
 
 async function sendFinalOrderFormToCustomer(customer, pdfHuBuffer) {
