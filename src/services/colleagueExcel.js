@@ -159,10 +159,27 @@ async function buildColleagueReportBuffer(customer) {
   const { buffer: pngBuffer, cssWidthPx, cssHeightPx } = await buildColleagueSketchPng(customer);
   const imageId = workbook.addImage({ buffer: pngBuffer, extension: 'png' });
   const scaledHeight = (cssHeightPx / cssWidthPx) * targetWidthPx;
+  const imageStartRow = 22; // 0-indexelt sor (= 23. sor), pár sorral a táblázat alja alatt
   ws.addImage(imageId, {
-    tl: { col: 5, row: 22 }, // F oszlop (0-indexelve: F=5), 23. sor (0-indexelve: 22)
+    tl: { col: 5, row: imageStartRow }, // F oszlop (0-indexelve: F=5)
     ext: { width: targetWidthPx, height: scaledHeight },
   });
+
+  // --- Nyomtatási beállítás: az egész riport (táblázat + rajz) egyetlen álló A4 lapra férjen ki ---
+  // A print area-t szűken, a tényleges tartalomra (F oszloptól, a rajz aljáig) állítjuk — az A:E
+  // oszlopok üresek (csak térköz), ezek kihagyásával a "lapra igazítás" nem pazarolja rájuk a helyet.
+  const DEFAULT_ROW_HEIGHT_PX = 20; // ~15pt alapértelmezett Excel sormagasság, 96 DPI mellett
+  const imageEndRow = imageStartRow + Math.ceil(scaledHeight / DEFAULT_ROW_HEIGHT_PX) + 1;
+  ws.pageSetup = {
+    paperSize: 9, // A4
+    orientation: 'portrait',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 1,
+    horizontalCentered: true,
+    margins: { left: 0.3, right: 0.3, top: 0.3, bottom: 0.3, header: 0, footer: 0 },
+    printArea: `F1:N${imageEndRow}`,
+  };
 
   return workbook.xlsx.writeBuffer();
 }
