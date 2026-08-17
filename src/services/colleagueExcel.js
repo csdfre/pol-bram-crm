@@ -6,9 +6,6 @@ const { buildColleagueSketchPng } = require('./colleagueSketchExport');
 const TEMPLATE_PATH = path.join(__dirname, '..', '..', 'templates', 'colleague_report_template.xlsx');
 
 // --- Segédfüggvények a buildOrderFields (pdf.js) kimenetének kiolvasásához -----------------
-// A buildOrderFields(fd, 'pl', false, null) a valós, karbantartott HU/PL fordítási szótárak
-// alapján adja vissza a szekciókra bontott, lengyelre fordított mezőket — ugyanaz a forrás,
-// amit a kolléganő-oldal és a PL PDF is használ, tehát a fordítás garantáltan konzisztens.
 function findSection(sections, name) {
   return sections.find((s) => s.section === name);
 }
@@ -37,7 +34,6 @@ function buildFurtkaText(sections) {
     const corner = unitVal(doorSection, i, 'róg', '—');
     const dist = unitVal(doorSection, i, 'odległość (cm)', '—');
     const handle = unitVal(doorSection, i, 'strona klamki', 'Lewa strona');
-    // A "kilincs oldala" a KEZELŐ oldalát jelöli — a nyitásirány ennek fizikailag az ellentettje.
     const opensLeft = /prawa/i.test(handle);
     const openDir = opensLeft ? 'lewa (klamka po prawej)' : 'prawa (klamka po lewej)';
     const prefix = count > 1 ? `${i + 1}) ` : '';
@@ -125,11 +121,10 @@ function buildFilcRynnyText(sections) {
   const gutterOn = gutterSection && !gutterSection.isEmpty;
   const feltOn = feltSection && !feltSection.isEmpty;
   const gutterColor = gutterOn ? val(gutterSection, 'Kolor', '') : '';
-  const parts = [
+  return [
     `filc - ${feltOn ? 'tak' : 'nie'}`,
     `rynny - ${gutterOn ? `tak${gutterColor ? ' (' + gutterColor + ')' : ''}` : 'nie'}`,
-  ];
-  return parts.join(', ');
+  ].join(', ');
 }
 
 function buildStructureNote(sections) {
@@ -141,17 +136,9 @@ function buildStructureNote(sections) {
   return note;
 }
 
-/**
- * A válaszfalak (helyt takarékosan, tömören, walanként egy sorban) — mivel a sablonban nincs
- * külön erre fenntartott sor, a "Dodatkowe informacje" jegyzet-sávba kerül be, csak ha ténylegesen
- * van kért válaszfal (üresen nem foglal helyet).
- */
 function buildWallsDividerNote(sections) {
   const wallsSection = findSection(sections, 'Ściany działowe');
   if (!wallsSection || wallsSection.isEmpty) return '';
-  // A wallCount-ot magukból az items-ekből vezetjük le: minden egység 8-9 mezőt ad (lásd pdf.js
-  // placementRows-szerű felépítés a wallItems-nél) — egyszerűbb, ha az egyedi "Kierunek" mezők
-  // számából számoljuk ki, hány válaszfal-egység van ténylegesen kitöltve.
   const count = wallsSection.items.filter((i) => /^\d+\. Kierunek$/.test(i.label)).length || 1;
   const lines = ['Ściany działowe:'];
   for (let i = 0; i < count; i++) {
@@ -174,9 +161,6 @@ function buildWallsDividerNote(sections) {
   return lines.join('\n');
 }
 
-/**
- * Cégadatok (áfás számlához), ha az ügyfél ezt kérte — szintén a jegyzet-sávba, tömören.
- */
 function buildInvoiceNote(sections) {
   const companySection = findSection(sections, 'Dane firmy (do faktury VAT)');
   if (!companySection) return '';
@@ -190,12 +174,18 @@ function buildInvoiceNote(sections) {
   return note;
 }
 
-/**
- * Az összes cellaszélesség (F:N) pixelben — ehhez igazítjuk a beillesztett rajz szélességét,
- * hogy pontosan a táblázat alá, azzal egyező szélességben kerüljön be.
- */
+function setWrappedCell(ws, cellRef, rowNum, text) {
+  const cell = ws.getCell(cellRef);
+  cell.value = text;
+  cell.alignment = { ...(cell.alignment || {}), wrapText: true, vertical: 'top' };
+  const lineCount = String(text).split('\n').length;
+  const neededHeight = Math.max(15, lineCount * 20 + 6);
+  const row = ws.getRow(rowNum);
+  if (!row.height || row.height < neededHeight) row.height = neededHeight;
+}
+
 function tableWidthPx(worksheet) {
-  const cols = ['F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
+  const cols = ['A', 'B'];
   return cols.reduce((sum, letter) => {
     const col = worksheet.getColumn(letter);
     const width = col.width || 10;
@@ -203,99 +193,83 @@ function tableWidthPx(worksheet) {
   }, 0);
 }
 
-/**
- * Egy cellába több sornyi szöveget ír (word-wrap engedélyezve), és szükség esetén megnöveli a
- * sor magasságát, hogy nyomtatáskor semmi ne vágódjon le. A meglévő egyéb stílust (font, border)
- * nem érinti, csak az igazítást.
- */
-function setWrappedCell(ws, cellRef, rowNum, text) {
-  const cell = ws.getCell(cellRef);
-  cell.value = text;
-  cell.alignment = { ...(cell.alignment || {}), wrapText: true, vertical: 'top' };
-  const lineCount = String(text).split('\n').length;
-  // 16pt/sor + kis puffer — a 15pt-os szoros számítás egyes megjelenítőknél (pl. LibreOffice PDF
-  // export) az utolsó sort levágta, mert a tényleges betűméret+sorköz kicsit több helyet igényel.
-  const neededHeight = Math.max(15, lineCount * 20 + 6);
-  const row = ws.getRow(rowNum);
-  if (!row.height || row.height < neededHeight) row.height = neededHeight;
-}
-
 async function buildColleagueReportBuffer(customer) {
-  const fd = customer.form_data ? JSON.parse(customer.form_data) : {};
-  const quote = customer.price_breakdown ? JSON.parse(customer.price_breakdown) : null;
+  let fd = {};
+  try {
+    fd = customer.form_data ? JSON.parse(customer.form_data) : {};
+  } catch (e) {
+    console.error(`Hibás form_data JSON a(z) #${customer.id} ügyfélnél, üresként kezelve:`, e.message);
+    fd = {};
+  }
+  let quote = null;
+  try {
+    quote = customer.price_breakdown ? JSON.parse(customer.price_breakdown) : null;
+  } catch (e) {
+    console.error(`Hibás price_breakdown JSON a(z) #${customer.id} ügyfélnél, ár nélkül folytatva:`, e.message);
+  }
   const sections = buildOrderFields(fd, 'pl', false, null);
 
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(TEMPLATE_PATH);
   const ws = workbook.worksheets[0];
 
-  ws.getCell('G4').value = `${customer.name || ''} tel. ${customer.phone || ''}, mail: ${customer.email || ''}`;
-  ws.getCell('G5').value = `${customer.address || ''}, ${customer.zip || ''}, ${customer.city || ''}`;
+  ws.getCell('B2').value = `${customer.name || ''} tel. ${customer.phone || ''}, mail: ${customer.email || ''}`;
+  ws.getCell('B3').value = `${customer.address || ''}, ${customer.zip || ''}, ${customer.city || ''}`;
   if (quote) {
     const total = Math.round(quote.displayTotal);
     const advance = Math.round((total * 0.3) / 100) * 100;
-    ws.getCell('M4').value = `${total.toLocaleString('pl-PL')} ft `;
-    ws.getCell('M5').value = `zal ${advance.toLocaleString('pl-PL')}`;
+    ws.getCell('B4').value = `${total.toLocaleString('pl-PL')} ft`;
+    ws.getCell('B5').value = `${advance.toLocaleString('pl-PL')} ft`;
   }
 
   const widthM = (parseFloat(fd.width) || 0) / 100;
   const lengthM = (parseFloat(fd.length) || 0) / 100;
-  ws.getCell('H6').value = `${widthM} x ${lengthM}`;
-  ws.getCell('H7').value = buildWiataText(sections);
-  ws.getCell('H8').value = buildDachText(sections);
-  ws.getCell('H9').value = buildScianyText(sections);
-  setWrappedCell(ws, 'H10', 10, buildBramaText(sections));
-  setWrappedCell(ws, 'H11', 11, buildFurtkaText(sections));
-  setWrappedCell(ws, 'H13', 13, buildOknoText(sections));
-  ws.getCell('H14').value = 'tak';
-  ws.getCell('H15').value = buildFilcRynnyText(sections);
+  ws.getCell('B7').value = `${widthM} x ${lengthM}`;
+  ws.getCell('B8').value = buildWiataText(sections);
+  ws.getCell('B9').value = buildDachText(sections);
+  ws.getCell('B10').value = buildScianyText(sections);
+  setWrappedCell(ws, 'B11', 11, buildBramaText(sections));
+  setWrappedCell(ws, 'B12', 12, buildFurtkaText(sections));
+  setWrappedCell(ws, 'B13', 13, buildOknoText(sections));
+  ws.getCell('B14').value = 'tak';
+  ws.getCell('B15').value = buildFilcRynnyText(sections);
 
-  // "Dodatkowe informacje" jegyzet-sáv: szerkezet mindig, + válaszfalak/cégadatok CSAK ha vannak —
-  // így helytakarékos marad (nem foglal helyet olyan szekció, amit az ügyfél nem kért).
   const noteLines = [buildStructureNote(sections)];
   const wallsNote = buildWallsDividerNote(sections);
   if (wallsNote) noteLines.push(wallsNote);
   const invoiceNote = buildInvoiceNote(sections);
   if (invoiceNote) noteLines.push(invoiceNote);
-  setWrappedCell(ws, 'F19', 19, noteLines.join('\n'));
+  setWrappedCell(ws, 'A18', 18, noteLines.join('\n'));
 
-  // --- Rajz: a valós rendszer-motor (customer.sketch_svg / renderLiveSketchSvg) alapján ---
   const targetWidthPx = tableWidthPx(ws);
   const { buffer: pngBuffer, cssWidthPx, cssHeightPx } = await buildColleagueSketchPng(customer);
   const imageId = workbook.addImage({ buffer: pngBuffer, extension: 'png' });
   const scaledHeight = (cssHeightPx / cssWidthPx) * targetWidthPx;
 
-  // --- Nyomtatási beállítás: az egész riport (táblázat + rajz) egyetlen álló A4 lapra férjen ki ---
-  // Minden érintett sor magasságát EXPLICIT módon, saját magunk állítjuk be (nem az Excel
-  // alapértelmezésére hagyatkozunk), így a szükséges sorok száma egzaktul, nem becsléssel
-  // számolható ki — és következetesen 1-indexelt sorhivatkozásokkal dolgozunk mindenhol. A fenti
-  // (esetlegesen a több-soros adatok miatt megnövelt magasságú) tartalmi sorok miatt a rajz
-  // kezdősorát nem mozgatjuk (a sablonban fix, jó messze van, 19. sorig ér a táblázat) — csak azt
-  // biztosítjuk, hogy a rajz alatti terület mérete pontos legyen.
-  const IMAGE_START_ROW = 23; // 1-indexelt sor, ahol a rajz kezdődik
-  const ROW_HEIGHT_PT = 15; // amit ténylegesen beállítunk minden érintett sorra
-  const ROW_HEIGHT_PX = ROW_HEIGHT_PT * (96 / 72); // = 20 px — egzakt, mert mi állítjuk be, nem feltételezés
+  const IMAGE_START_ROW = 22;
+  const ROW_HEIGHT_PT = 15;
+  const ROW_HEIGHT_PX = ROW_HEIGHT_PT * (96 / 72);
   const rowsForImage = Math.max(1, Math.ceil(scaledHeight / ROW_HEIGHT_PX));
-  const printAreaEndRow = IMAGE_START_ROW + rowsForImage + 1; // +1 sor puffer a rajz alatt
+  const printAreaEndRow = IMAGE_START_ROW + rowsForImage + 1;
 
   for (let r = IMAGE_START_ROW; r <= printAreaEndRow; r++) {
     ws.getRow(r).height = ROW_HEIGHT_PT;
   }
 
   ws.addImage(imageId, {
-    tl: { col: 5, row: IMAGE_START_ROW - 1 }, // a kép-horgony 0-indexelt, ezért -1
+    tl: { col: 0, row: IMAGE_START_ROW - 1 },
     ext: { width: targetWidthPx, height: scaledHeight },
   });
 
   ws.pageSetup = {
-    paperSize: 9, // A4
+    paperSize: 9,
     orientation: 'portrait',
     fitToPage: true,
     fitToWidth: 1,
     fitToHeight: 1,
     horizontalCentered: true,
     margins: { left: 0.3, right: 0.3, top: 0.3, bottom: 0.3, header: 0, footer: 0 },
-    printArea: `F1:N${printAreaEndRow}`,
+    printArea: `A1:B${printAreaEndRow}`,
   };
 
   return workbook.xlsx.writeBuffer();
