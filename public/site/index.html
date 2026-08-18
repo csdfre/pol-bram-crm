@@ -1256,7 +1256,7 @@ function renderSketch(){
       const cornerX = nearLeft ? x0 : x0+rw;
       const edgeX = nearLeft ? gx : gx+gw;
       const n = nextLabelOffset('front', startCm+gwCm/2);
-      const dimY = y0+rl + 10;
+      const dimY = y0+rl + 10 + n*10; // ha egymáshoz közeli kapuk vannak, lépcsőzetesen kijjebb toljuk a mérővonalat, hogy ne fussanak össze
       gateEls += `<line x1="${cornerX}" y1="${dimY}" x2="${edgeX}" y2="${dimY}" stroke="#F2B705" stroke-width="1"/>
         <line x1="${cornerX}" y1="${dimY-3}" x2="${cornerX}" y2="${dimY+3}" stroke="#F2B705" stroke-width="1"/>
         <line x1="${edgeX}" y1="${dimY-3}" x2="${edgeX}" y2="${dimY+3}" stroke="#F2B705" stroke-width="1"/>
@@ -1476,7 +1476,7 @@ function renderSketch(){
       const p = drawMarker(wEl.value, cEl.value, centerDist, color, size);
       const edgeP = unitPoint(wEl.value, cEl.value, dist); // a jelölő SARKA (éle), nem a középpontja
       const n = nextLabelOffset(wEl.value, centerDist);
-      const baseOff = 10;
+      const baseOff = 10 + n*12; // ha egy falon több elemet (pl. ajtót és ablakot) ugyanattól a saroktól mérünk, lépcsőzetesen kijjebb toljuk a mérővonalat/feliratot, hogy ne fussanak össze
       if(p.refCorner){
         // Mérővonal-csík (kis merőleges végjelekkel) a saroktól a jelölő SZÉLÉIG (nem a középpontjáig),
         // mindig a garázson KÍVÜLRE — a konkrét faltól függő irányban —, a cm-érték alatta/mellette.
