@@ -782,6 +782,23 @@ function applyFormState(data){
   onGateTypeChange();
   refreshPositionUnits();
   updateCanopyColorVisibility();
+  // A fenti checkbox-értékek beállítása (el.checked = ...) NEM váltja ki a 'change' eseményt,
+  // pedig épp az egyes kapcsolók 'change' listenere jeleníti meg (classList 'show') a hozzájuk
+  // tartozó részletes mezőket (pl. oldaltető szélessége/hossza/fal-típusa). Enélkül a preset
+  // betöltésekor a kapcsoló bepipálva látszott, de a mögötte lévő adatok rejtve maradtak — itt
+  // szinkronizáljuk explicit módon a láthatóságot minden ilyen kapcsolóra.
+  [
+    ['canopyYes', 'canopyExtra'],
+    ['gutterYes', 'gutterExtra'],
+    ['automation', 'automationExtra'],
+    ['gateLightYes', 'gateLightExtra'],
+    ['personalDoorYes', 'personalDoorExtra'],
+    ['notchYes', 'notchExtra'],
+  ].forEach(([checkboxId, extraId]) => {
+    const checkboxEl = document.getElementById(checkboxId);
+    const extraEl = document.getElementById(extraId);
+    if (checkboxEl && extraEl) extraEl.classList.toggle('show', checkboxEl.checked);
+  });
   // 2. kör: most már léteznek a dinamikusan legenerált (egységenkénti) mezők is
   Object.keys(data).forEach(id=>{
     if(id==='__gateType') return;

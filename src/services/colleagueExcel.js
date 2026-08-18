@@ -91,11 +91,20 @@ function buildBramaText(sections) {
   return lines.join('\n');
 }
 
-function buildDachText(sections) {
+function buildDachText(sections, fd) {
   const roofSection = findSection(sections, 'Dach');
   const color = val(roofSection, 'Kolor blachy dachowej', '—');
   const type = val(roofSection, 'Typ dachu', '—');
-  return `${color} + okucia dachowe / ${type}`;
+  let text = `${color} + okucia dachowe / ${type}`;
+  // "Kalenica" (gerincvonal) — csak a féloldalasan lejtő tetőknél (spad jobbra/balra) értelmezett:
+  // eltolva van-e (a magasság egy szinten fut mindkét oldalon), vagy nincs eltolva (az egyik oldalon
+  // alacsonyabb a fal).
+  if (fd && (fd.roofType === 'spad jobbra' || fd.roofType === 'spad balra')) {
+    text += fd.ridgeShift
+      ? ' — przesunięta kalenica (wysokość równa po obu stronach)'
+      : ' — kalenica nieprzesunięta (jedna strona niższa)';
+  }
+  return text;
 }
 
 function buildScianyText(sections) {
@@ -110,7 +119,12 @@ function buildWiataText(sections) {
   if (!canopySection || canopySection.isEmpty) return 'brak';
   const w = val(canopySection, 'Szerokość', '—');
   const l = val(canopySection, 'Długość', '—');
-  return `${w} x ${l}`;
+  const backWall = val(canopySection, 'Pokrycie tylnej ściany', null);
+  const sideWall = val(canopySection, 'Pokrycie ściany bocznej', null);
+  let text = `${w} x ${l}`;
+  if (backWall && backWall !== '—' && !/brak/i.test(backWall)) text += ` / ściana tylna: ${backWall}`;
+  if (sideWall && sideWall !== '—' && !/brak/i.test(sideWall)) text += ` / ściana boczna: ${sideWall}`;
+  return text;
 }
 
 function buildFilcRynnyText(sections) {
@@ -309,7 +323,7 @@ async function buildColleagueReportBuffer(customer) {
   const heightCm = fd.height || '213';
   ws.getCell('B7').value = `${widthM} x ${lengthM} (oldalmagasság ${heightCm} cm)`;
   ws.getCell('B8').value = buildWiataText(sections);
-  ws.getCell('B9').value = buildDachText(sections);
+  ws.getCell('B9').value = buildDachText(sections, fd);
   ws.getCell('B10').value = buildScianyText(sections);
   setWrappedCell(ws, 'B11', 11, buildBramaText(sections));
   setWrappedCell(ws, 'B12', 12, buildFurtkaText(sections));
