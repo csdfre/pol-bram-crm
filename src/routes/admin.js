@@ -441,7 +441,11 @@ router.post('/customers/:id/send-invoice', async (req, res) => {
   if (!c.invoice_file) return res.status(400).json({ error: 'Előbb töltse fel az előlegszámla PDF-et.' });
 
   try {
-    const filePath = path.join(__dirname, '..', '..', c.invoice_file);
+    // FONTOS: a c.invoice_file '/uploads/invoices/xxx.pdf' formátumban van tárolva (ez a webes
+    // elérési út, lásd server.js: app.use('/uploads', express.static('data/uploads'))), a fájl
+    // viszont ténylegesen a lemezen a data/uploads/invoices/ mappában van — korábban itt hiányzott
+    // a 'data' mappa a path.join-ból, emiatt a fájl sosem lett megtalálva (kiküldéskor hibát dobott).
+    const filePath = path.join(__dirname, '..', '..', 'data', c.invoice_file);
     const buffer = fs.readFileSync(filePath);
     await email.sendAdvanceInvoice(c, buffer, path.basename(c.invoice_file));
     db.prepare('UPDATE customers SET status=?, updated_at=? WHERE id=?')
