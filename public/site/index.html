@@ -1679,8 +1679,10 @@ function computeWallUsage(){
   for(let i=0;i<w4qty;i++){
     const wEl=document.getElementById('win50150Wall'+i), cEl=document.getElementById('win50150Corner'+i), dEl=document.getElementById('win50150Distance'+i);
     if(wEl && wallUsed.hasOwnProperty(wEl.value)){
-      wallUsed[wEl.value]+=150; wallItems[wEl.value].push('fix ablak (150 cm)');
-      if(cEl&&dEl) addInterval(wEl.value, 'fix ablak', 150, cEl.value, (parseFloat(dEl.value)||0)+75);
+      // FONTOS: a "Fix ablak 50×150" 50 cm SZÉLES és 150 cm MAGAS — a falon (alaprajzban) a szélessége
+      // (50 cm) foglal helyet, nem a magassága. Korábban tévesen 150-zel számoltunk itt.
+      wallUsed[wEl.value]+=50; wallItems[wEl.value].push('fix ablak (50 cm)');
+      if(cEl&&dEl) addInterval(wEl.value, 'fix ablak', 50, cEl.value, (parseFloat(dEl.value)||0)+25);
     }
   }
   const woqty = parseInt(document.getElementById('winOpening').value)||0;
