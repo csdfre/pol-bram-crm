@@ -1549,7 +1549,16 @@ function renderSketch(){
       }
       labelEls += `<text x="${p.x+(p.horizontal?0:doorOff)}" y="${p.y+(p.horizontal?-doorOff:4)}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${dDist} cm a ${cornerLabel}tól (${document.getElementById('personalDoorSize').value||'90x200'})</text>`;
       const outDir = dWall==='front' ? {x:0,y:1} : dWall==='back' ? {x:0,y:-1} : dWall==='left' ? {x:-1,y:0} : dWall==='right' ? {x:1,y:0} : dWall==='notch' ? {x:0,y:1} : (canopyGeom&&canopyGeom.side==='left'?{x:-1,y:0}:{x:1,y:0});
-      const along  = (dWall==='front' || dWall==='back' || dWall==='notch') ? {x:1,y:0} : {x:0,y:1};
+      // Az "along" (a fal mentén, a távolság-mérés irányába mutató) vektort a tényleges geometriából
+      // számoljuk ki (két közeli pont különbségéből), nem előre feltételezett előjellel — korábban a
+      // bal/jobb oldalfalnál ez az előjel FORDÍTVA volt megadva (mindig +y-nak véve, holott a
+      // távolság-mérés a bal/jobb falon valójában -y irányba nő), ami miatt a kilincs oldala és a
+      // rajzon látható nyitásirány pont ellentétes lett ezeknél a faloknál.
+      const alongProbeA = unitPoint(dWall, dCorner, dCenterDist);
+      const alongProbeB = unitPoint(dWall, dCorner, dCenterDist + 1);
+      const alongRaw = { x: alongProbeB.x - alongProbeA.x, y: alongProbeB.y - alongProbeA.y };
+      const alongLen = Math.hypot(alongRaw.x, alongRaw.y) || 1;
+      const along = { x: alongRaw.x / alongLen, y: alongRaw.y / alongLen };
       const handle = hEl.value;
       const hingeSign = handle==='left' ? 1 : -1; // a zsanér a kilincs ellentétes oldalán van
       const R = Math.max(6, doorWidthCm*scale*0.9);

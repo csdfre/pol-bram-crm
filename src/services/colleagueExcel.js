@@ -73,8 +73,9 @@ function buildBramaText(sections) {
   const type = val(gateSection, 'Typ bramy', '—');
   const count = parseInt(val(gateSection, 'Ilość bram (szt.)', 1), 10) || 1;
   const width = val(gateSection, 'Szerokość bramy', '300 cm');
+  const height = val(gateSection, 'Wysokość bramy', '185 cm');
   const placementMode = val(gateSection, 'Umiejscowienie bram(y)', '—');
-  const lines = [`${color} / ${pattern} / ${type} x${count} (${width}) / ${placementMode}`];
+  const lines = [`${color} / ${pattern} / ${type} x${count} (${width} x ${height}) / ${placementMode}`];
   if (/własna/i.test(placementMode)) {
     for (let i = 0; i < count; i++) {
       const corner = unitVal(gateSection, i, 'brama — od której ściany', '—');
@@ -305,7 +306,8 @@ async function buildColleagueReportBuffer(customer) {
 
   const widthM = (parseFloat(fd.width) || 0) / 100;
   const lengthM = (parseFloat(fd.length) || 0) / 100;
-  ws.getCell('B7').value = `${widthM} x ${lengthM}`;
+  const heightCm = fd.height || '213';
+  ws.getCell('B7').value = `${widthM} x ${lengthM} (oldalmagasság ${heightCm} cm)`;
   ws.getCell('B8').value = buildWiataText(sections);
   ws.getCell('B9').value = buildDachText(sections);
   ws.getCell('B10').value = buildScianyText(sections);
