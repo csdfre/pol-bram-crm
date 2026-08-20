@@ -109,6 +109,10 @@ function planRoute(customers, { days = 1, dayStart = DEFAULT_DAY_START, dayEnd =
   }
 
   // Menetrend-építés: naponta dayStart-tól dayEnd-ig, útközben az utazási + telepítési idővel.
+  // FONTOS: a napváltás döntése az ÉRKEZÉSI időn (nem a befejezési időn) múlik — ha a telepítés a
+  // tervezett záró időpont UTÁNIG tart, az nem gond (ez a valóságban is gyakran előfordul), csak az
+  // számít, hogy a helyszínre még a nap vége előtt megérkezzenek. Emiatt egy megálló csak akkor
+  // csúszik át a következő napra, ha MÁR AZ ODAUTAZÁS sem férne bele aznapra.
   const dayEndMin = timeStrToMinutes(dayEnd);
   const days_ = [[], []];
   let dayIdx = 0;
@@ -119,17 +123,23 @@ function planRoute(customers, { days = 1, dayStart = DEFAULT_DAY_START, dayEnd =
   for (const stop of orderedStops) {
     const travelMin = prevStop ? travelMinutes(haversineKm(prevStop.lat, prevStop.lng, stop.lat, stop.lng)) : 0;
     const arrival = clock + travelMin;
-    const done = arrival + (stop.installationMin || 90);
 
-    if (done > dayEndMin) {
+    if (arrival > dayEndMin) {
       if (dayIdx === 0 && days === 2) {
-        // Átlépünk a 2. napra, onnan folytatva (a mai utolsó megállótól).
+        // Átlépünk a 2. napra — az odautazás időtartama TOVÁBBRA IS az előző nap utolsó
+        // helyszínéhez (prevStop) képest van kiszámolva (ugyanaz a "travelMin", hiszen a távolság
+        // nem függ az órától), hogy a két nap útvonala ténylegesen összekapcsolódjon.
         dayIdx = 1;
         clock = timeStrToMinutes(dayStart);
-        const travelMin2 = prevStop ? travelMinutes(haversineKm(prevStop.lat, prevStop.lng, stop.lat, stop.lng)) : 0;
-        const arrival2 = clock + travelMin2;
+        const arrival2 = clock + travelMin;
         const done2 = arrival2 + (stop.installationMin || 90);
-        days_[dayIdx].push({ ...stop, eta: minutesToTimeStr(arrival2), doneAt: minutesToTimeStr(done2), travelMin: Math.round(travelMin2) });
+        days_[dayIdx].push({
+          ...stop,
+          eta: minutesToTimeStr(arrival2),
+          doneAt: minutesToTimeStr(done2),
+          travelMin: Math.round(travelMin),
+          overrun: done2 > dayEndMin,
+        });
         clock = done2;
         prevStop = stop;
         continue;
@@ -138,7 +148,14 @@ function planRoute(customers, { days = 1, dayStart = DEFAULT_DAY_START, dayEnd =
       continue;
     }
 
-    days_[dayIdx].push({ ...stop, eta: minutesToTimeStr(arrival), doneAt: minutesToTimeStr(done), travelMin: Math.round(travelMin) });
+    const done = arrival + (stop.installationMin || 90);
+    days_[dayIdx].push({
+      ...stop,
+      eta: minutesToTimeStr(arrival),
+      doneAt: minutesToTimeStr(done),
+      travelMin: Math.round(travelMin),
+      overrun: done > dayEndMin, // a telepítés befejezése átcsúszhat a tervezett záró időponton — ez megengedett, csak jelezzük
+    });
     clock = done;
     prevStop = stop;
   }
