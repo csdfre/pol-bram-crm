@@ -861,15 +861,32 @@ function filterDeliveryCustomerOptions() {
   const matches = allCustomers.filter(c =>
     (c.name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q)
   ).slice(0, 30);
-  select.innerHTML = matches.map(c => `<option value="${c.id}">${esc(c.name || '(név nélkül)')} — ${esc(c.email || '')}</option>`).join('');
+  // FONTOS: egy <select> elem — ha a lista-stílusú (size>1) select opciói frissülnek, a böngésző
+  // automatikusan az ELSŐ opciót jelöli ki kiválasztottként, MÉG AKKOR IS, ha a felhasználó ténylegesen
+  // rá sem kattintott egyikre sem. Emiatt korábban simán a keresési találatok közül az első (esetleg
+  // nem a szándékolt) ügyfél lett hozzáadva, vagy — ha a keresés 0 találatot adott — a "Hozzáadás"
+  // gomb hibaüzenetet dobott, mert nem volt kiválasztható opció. Egy üres, nem-választható
+  // "placeholder" opció elé szúrásával biztosítjuk, hogy a select.value tényleg üres maradjon,
+  // amíg a felhasználó nem kattint aktívan egy konkrét névre.
+  const placeholder = '<option value="" disabled selected>— Válassz a találatok közül —</option>';
+  select.innerHTML = placeholder + matches.map(c => `<option value="${c.id}">${esc(c.name || '(név nélkül)')} — ${esc(c.email || '')}</option>`).join('');
   select.style.display = matches.length ? 'block' : 'none';
+  if (!matches.length) {
+    select.innerHTML = '<option value="" disabled selected>Nincs találat ezzel a névvel/emaillel</option>';
+    select.style.display = 'block';
+  }
 }
 
 async function addToDeliveryList() {
+  if (!allCustomers.length) {
+    // Biztonsági háló: ha a Kiszállítás fület nagyon hamar nyitották meg, és az ügyféllista még
+    // nem töltődött be a háttérben, most pótoljuk, mielőtt hibát dobnánk.
+    await loadCustomers();
+  }
   const select = document.getElementById('deliveryCustomerSelect');
   const customerId = select.value;
   const date = document.getElementById('deliveryNewDate').value;
-  if (!customerId) return alert('Válassz ki egy ügyfelet a listából.');
+  if (!customerId) return alert('Válassz ki egy ügyfelet a listából (kattints rá a keresési találatok közül).');
   if (!date) return alert('Add meg a kiszállítás dátumát.');
   try {
     await api(`/admin/customers/${customerId}/delivery`, {
@@ -878,6 +895,7 @@ async function addToDeliveryList() {
     });
     document.getElementById('deliveryCustomerSearch').value = '';
     document.getElementById('deliveryCustomerSelect').style.display = 'none';
+    document.getElementById('deliveryCustomerSelect').innerHTML = '';
     document.getElementById('deliveryNewDate').value = '';
     await loadDeliveries();
     // Az imént hozzáadott nap szűrőjére állunk, hogy azonnal lássa az admin az új sort.
