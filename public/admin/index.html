@@ -15,6 +15,9 @@
     <form id="loginForm" autocomplete="on">
       <input type="text" id="loginUser" name="username" autocomplete="username" placeholder="Felhasználónév">
       <input type="password" id="loginPass" name="password" autocomplete="current-password" placeholder="Jelszó">
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--graphite-soft);margin:10px 0">
+        <input type="checkbox" id="loginRemember" style="width:auto"> Maradjak bejelentkezve ezen a gépen
+      </label>
       <button id="loginBtn" type="submit">Belépés</button>
     </form>
     <div id="loginError" class="error-text"></div>
@@ -106,9 +109,9 @@
       <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px;margin-bottom:20px">
         <h3>Időszak</h3>
         <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:end">
-          <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Ettől</label><input type="date" id="statsFrom"></div>
-          <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Eddig</label><input type="date" id="statsTo"></div>
-          <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Vagy válassz hónapot</label><input type="month" id="statsMonth"></div>
+          <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Ettől</label><input type="date" id="statsFrom" onchange="document.getElementById('statsMonth').value=''"></div>
+          <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Eddig</label><input type="date" id="statsTo" onchange="document.getElementById('statsMonth').value=''"></div>
+          <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Vagy válassz hónapot</label><input type="month" id="statsMonth" onchange="document.getElementById('statsFrom').value='';document.getElementById('statsTo').value=''"></div>
           <button class="btn-main" onclick="loadStats()">Lekérdezés</button>
         </div>
       </div>

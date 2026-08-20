@@ -37,6 +37,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('loginUser').value;
   const password = document.getElementById('loginPass').value;
+  const remember = document.getElementById('loginRemember').checked;
   const errEl = document.getElementById('loginError');
   errEl.textContent = '';
   try {
@@ -44,7 +45,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, remember }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Hiba történt a bejelentkezés közben.');
@@ -642,7 +643,12 @@ function currentStatsRange(){
     const to = `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
     return { from, to };
   }
-  return { from: document.getElementById('statsFrom').value || '1970-01-01', to: document.getElementById('statsTo').value || '2999-12-31' };
+  let from = document.getElementById('statsFrom').value || '1970-01-01';
+  let to = document.getElementById('statsTo').value || '2999-12-31';
+  // Ha valaki fordítva adta meg a két dátumot (Eddig korábbi, mint Ettől), felcseréljük — enélkül
+  // egy fordított tartomány csendben nulla találatot adna, ami könnyen "nem működik"-ként hatna.
+  if (from > to) { const tmp = from; from = to; to = tmp; }
+  return { from, to };
 }
 
 async function loadStats(){
