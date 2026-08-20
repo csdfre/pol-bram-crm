@@ -30,6 +30,7 @@ app.use('/api/admin/pricing', require('./src/routes/pricing'));
 app.use('/api/admin/stats', require('./src/routes/stats'));
 app.use('/public', require('./src/routes/public'));
 app.use('/driver', require('./src/routes/driver'));
+app.use('/logistics', require('./src/routes/logistics'));
 
 // Tartalék végpont: ha a Render-en free (elalvó) csomagot használtok, a beépített napi ütemező
 // nem feltétlenül fut le pontosan — ilyenkor egy ingyenes külső cron-szolgáltatással (pl. cron-job.org)

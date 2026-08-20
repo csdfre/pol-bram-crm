@@ -122,6 +122,11 @@ addColIfMissing('delivery_completed_at', 'TEXT');       // a sofőr által a dri
                                                          // célra (a kártya máshogy jelenik meg, a lista aljára kerül), a megrendelés státuszát nem érinti
 addColIfMissing('delivery_sequence', 'INTEGER');        // a szállítási sorrend (adott napon belül) — admin állítja be, ez alapján rendeződik mind az admin
                                                          // kiszállítási lista, mind a sofőr-nézet; ha nincs megadva, időpont szerint esik a lista végére
+addColIfMissing('installation_duration_min', 'INTEGER'); // a logisztikus által megadott becsült telepítési időtartam (perc) — az automatikus útvonalterv
+                                                          // ehhez adja hozzá az odautazás idejét, alapértelmezetten 90 perc, ha nincs megadva
+addColIfMissing('logistics_plan_day', 'INTEGER');        // az utoljára legenerált útvonaltervben hányadik napra (1 vagy 2) került ez a megrendelés
+addColIfMissing('logistics_plan_order', 'INTEGER');      // az utoljára legenerált útvonaltervben hányadik megálló volt az adott napon belül
+addColIfMissing('logistics_plan_eta', 'TEXT');           // az utoljára legenerált útvonaltervben számított becsült érkezési időpont (szöveg, "HH:MM")
 
 // Az email_templates táblához: nyomon követjük, hogy a kódban definiált alapértelmezés melyik
 // verzióját szinkronizáltuk utoljára az adott sablonhoz — így ha az admin NEM módosította kézzel
