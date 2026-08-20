@@ -9,6 +9,7 @@ const STATUS_LABELS = {
   elolegszamla_kikuldve: 'Előlegszámla kiküldve',
   telepitve: 'Telepítve',
   garancialis_problema: 'Garanciális probléma',
+  kiszallitas_csak: 'Csak kiszállítás (nincs a rendszerben)',
 };
 
 async function api(path, opts) {
@@ -920,6 +921,28 @@ async function addToDeliveryList() {
     document.getElementById('deliveryNewDate').value = '';
     await loadDeliveries();
     // Az imént hozzáadott nap szűrőjére állunk, hogy azonnal lássa az admin az új sort.
+    document.getElementById('deliveryDateFilter').value = date;
+    renderDeliveryTable(lastDeliveries);
+  } catch (e) { alert(e.message); }
+}
+
+async function quickAddDeliveryCustomer() {
+  const name = document.getElementById('quickAddName').value.trim();
+  const phone = document.getElementById('quickAddPhone').value.trim();
+  const address = document.getElementById('quickAddAddress').value.trim();
+  const date = document.getElementById('quickAddDate').value;
+  if (!name) return alert('A név megadása kötelező.');
+  if (!date) return alert('Add meg a kiszállítás dátumát.');
+  try {
+    await api('/admin/deliveries/quick-add', {
+      method: 'POST',
+      body: JSON.stringify({ name, phone, address, deliveryDate: date, deliveryTime: '', remainingAmount: '' }),
+    });
+    document.getElementById('quickAddName').value = '';
+    document.getElementById('quickAddPhone').value = '';
+    document.getElementById('quickAddAddress').value = '';
+    document.getElementById('quickAddDate').value = '';
+    await loadDeliveries();
     document.getElementById('deliveryDateFilter').value = date;
     renderDeliveryTable(lastDeliveries);
   } catch (e) { alert(e.message); }

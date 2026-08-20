@@ -133,6 +133,18 @@
         </div>
       </div>
 
+      <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px;margin-bottom:20px">
+        <h3>Vagy adj hozzá valakit, aki NINCS a rendszerben</h3>
+        <p style="font-size:0.85rem;color:var(--graphite-soft);margin-top:-6px">Csak a kiszállítási listához és a sofőr-nézethez lesz felvéve — nem lesz belőle valódi garázs-megrendelés, és nincs email cím (a driver-oldalon telefonszámmal/címmel jelenik meg).</p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:end">
+          <div style="flex:1;min-width:160px"><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Név</label><input type="text" id="quickAddName" style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:4px;font-size:0.9rem"></div>
+          <div style="flex:1;min-width:140px"><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Telefon</label><input type="text" id="quickAddPhone" style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:4px;font-size:0.9rem"></div>
+          <div style="flex:2;min-width:220px"><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Cím</label><input type="text" id="quickAddAddress" style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:4px;font-size:0.9rem"></div>
+          <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Kiszállítás dátuma</label><input type="date" id="quickAddDate"></div>
+          <button class="btn-main" onclick="quickAddDeliveryCustomer()">Felvétel és hozzáadás</button>
+        </div>
+      </div>
+
       <div class="preset-panel" style="background:#fff;padding:16px 20px;border-radius:6px;margin-bottom:14px;display:flex;gap:14px;align-items:end;flex-wrap:wrap">
         <div>
           <label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Melyik nap fuvarjait mutassa?</label>

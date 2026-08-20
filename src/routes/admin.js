@@ -650,6 +650,30 @@ router.post('/customers/resend-colleague-reports', async (req, res) => {
 // Kiszállítási lista — ügyfelek dátumhoz rendelése, fennmaradó összeg, időpont, értesítés
 // ---------------------------------------------------------------
 
+// Gyors hozzáadás: olyan "ügyfél" felvétele, aki NINCS a rendszerben (nem futott végig a
+// garázs-igénylési folyamaton) — kizárólag a kiszállítási listához, logisztikai célból. Egy
+// minimális ügyfél-rekordot hozunk létre ('kiszallitas_csak' státusszal, hogy a statisztikákban/
+// egyéb valódi-megrendelés-alapú lekérdezésekben ne keveredjen a tényleges garázs-rendelésekkel),
+// és rögtön hozzá is rendeljük a megadott kiszállítási dátumhoz.
+router.post('/deliveries/quick-add', (req, res) => {
+  const { name, phone, address, deliveryDate, deliveryTime, remainingAmount } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'A név megadása kötelező.' });
+  if (!deliveryDate) return res.status(400).json({ error: 'A kiszállítás dátumának megadása kötelező.' });
+  const now = new Date().toISOString();
+  const info = db.prepare(`
+    INSERT INTO customers
+      (created_at, updated_at, status, name, phone, address,
+       delivery_date, delivery_time, delivery_remaining_amount)
+    VALUES (?, ?, 'kiszallitas_csak', ?, ?, ?, ?, ?, ?)
+  `).run(
+    now, now, name.trim(), phone || null, address || null,
+    deliveryDate,
+    deliveryTime || null,
+    remainingAmount === '' || remainingAmount === undefined || remainingAmount === null ? null : Number(remainingAmount)
+  );
+  res.json({ ok: true, id: info.lastInsertRowid });
+});
+
 // Az összes olyan ügyfél, akihez van hozzárendelt kiszállítási dátum, dátum szerint rendezve.
 router.get('/deliveries', (req, res) => {
   const { buildMapsLink, resolveDeliveryAddress } = require('../services/deliveryLocation');
@@ -718,6 +742,7 @@ router.post('/customers/:id/send-delivery-notice', async (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Nem található.' });
   if (!c.delivery_date) return res.status(400).json({ error: 'Előbb adjon meg kiszállítási dátumot.' });
+  if (!c.email) return res.status(400).json({ error: 'Ehhez az ügyfélhez nincs email cím megadva (pl. gyorsan hozzáadott, nem a rendszerben lévő ügyfél) — emailes értesítő nem küldhető neki, de a driver-listán így is szerepel telefonszámmal.' });
   try {
     await email.sendDeliveryNotice(c);
     db.prepare('UPDATE customers SET delivery_notice_sent_at=?, updated_at=? WHERE id=?')
