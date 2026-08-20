@@ -118,6 +118,8 @@ addColIfMissing('delivery_arrival_time', 'TEXT'); // ÜRES ELŐKÉSZÍTÉS a jö
                                                    // valós idejű finomítás lesz, amit a kolléga ad meg, és amiről az ügyfél email/SMS értesítést kap)
 addColIfMissing('delivery_customer_edited_at', 'TEXT'); // mikor módosította az ÜGYFÉL saját maga a kiszállítási címet/helyszínt (a delivery-location oldalon) — az admin
                                                          // felületen ez egy jelzést/értesítést jelenít meg, amíg az admin nyugtázza (törli ezt az időbélyeget)
+addColIfMissing('delivery_completed_at', 'TEXT');       // a sofőr által a driver-oldalon bepipálva: "kész vagyok ezzel az ügyféllel" — csak megjelenítési/rendezési
+                                                         // célra (a kártya máshogy jelenik meg, a lista aljára kerül), a megrendelés státuszát nem érinti
 
 // Az email_templates táblához: nyomon követjük, hogy a kódban definiált alapértelmezés melyik
 // verzióját szinkronizáltuk utoljára az adott sablonhoz — így ha az admin NEM módosította kézzel

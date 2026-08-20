@@ -205,6 +205,22 @@ const DEFAULT_TEMPLATES = [
   </div>
 </div>`,
   },
+  {
+    key: 'admin_garage_installed',
+    label: 'Admin-értesítő: a sofőr kész jelentést adott (garázs telepítve)',
+    subject: 'Garázs telepítve — {{name}}',
+    html_body: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto">
+  <h2 style="color:#20242A">Garázs telepítve</h2>
+  <p>A sofőr a kiszállítási listában "Kész"-nek jelölte az alábbi megrendelést:</p>
+  <p style="background:#fff7e0;border:1px solid #f2b705;padding:12px 16px;border-radius:4px;font-size:16px">
+    <strong>Ügyfél:</strong> {{name}}<br>
+    <strong>Cím:</strong> {{address}}<br>
+    <strong>Kiszállítás dátuma:</strong> {{deliveryDate}}
+  </p>
+  <p>Ha minden rendben volt a helyszínen, ne felejtsd el a backoffice-ban a "Telepítve" gombbal is lezárni a megrendelést — ez küldi ki az ügyfélnek az elégedettségi/reklamációs linkeket.</p>
+  <p><a href="{{adminUrl}}" style="color:#20242A;font-weight:bold">Megnyitás a backoffice-ban</a></p>
+</div>`,
+  },
 ];
 
 function ensureDefaultTemplates(){

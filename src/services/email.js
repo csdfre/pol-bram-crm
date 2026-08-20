@@ -101,6 +101,27 @@ async function sendInstalledNotice(customer) {
   return sendMail({ to: customer.email, subject, html });
 }
 
+/**
+ * Admin-értesítő, amikor a sofőr a driver-listában "Kész"-nek jelöl egy megrendelést. Ez CSAK egy
+ * tájékoztató e-mail Feri felé — nem módosítja a megrendelés tényleges státuszát, és nem küld
+ * semmit az ügyfélnek (azt továbbra is a backoffice "Telepítve" gombja végzi, admin döntése szerint).
+ */
+async function sendAdminInstalledNotice(customer) {
+  const { resolveDeliveryAddress } = require('./deliveryLocation');
+  const adminUrl = `${process.env.BASE_URL}/admin`;
+  const deliveryDate = customer.delivery_date
+    ? new Date(customer.delivery_date).toLocaleDateString('hu-HU')
+    : '';
+  const { subject, html } = renderTemplate('admin_garage_installed', {
+    name: customer.name || '',
+    address: resolveDeliveryAddress(customer),
+    deliveryDate,
+    adminUrl,
+  });
+  const to = process.env.ADMIN_NOTIFY_EMAIL || process.env.GMAIL_USER;
+  return sendMail({ to, subject, html });
+}
+
 async function sendDeliveryNotice(customer) {
   const { resolveDeliveryAddress, buildMapsLink } = require('./deliveryLocation');
   const { LOGO_B64 } = require('./pdf');
@@ -134,4 +155,5 @@ module.exports = {
   sendAdvanceInvoice,
   sendInstalledNotice,
   sendDeliveryNotice,
+  sendAdminInstalledNotice,
 };

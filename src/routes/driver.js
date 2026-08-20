@@ -39,6 +39,10 @@ function layout(title, bodyHtml) {
     + 'header a { color: #F2B705; font-size: 0.85rem; text-decoration: none; }'
     + 'main { padding: 16px; max-width: 640px; margin: 0 auto; }'
     + '.card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }'
+    + '.card.done { background: #f2f4f3; opacity: 0.65; }'
+    + '.done-badge { display: inline-block; background: #2e7d32; color: #fff; font-size: 0.72rem; font-weight: bold; padding: 2px 8px; border-radius: 10px; vertical-align: middle; }'
+    + '.done-toggle { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #e6e8ea; font-size: 0.9rem; }'
+    + '.done-toggle input { width: 20px; height: 20px; margin: 0; }'
     + '.login-box { background: #fff; border-radius: 8px; padding: 28px 22px; margin: 40px auto; max-width: 340px; border-top: 4px solid #F2B705; }'
     + '.login-box h2 { margin-top: 0; text-align: center; }'
     + 'input[type=text], input[type=password], input[type=date], input[type=time] { width: 100%; padding: 12px; margin: 8px 0 16px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }'
@@ -101,6 +105,33 @@ router.post('/customers/:id/arrival-time', requireDriverAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// A sofőr által a jelölőnégyzettel megjelölt "kész vagyok ezzel az ügyféllel" állapot mentése.
+// Ha ÉPP MOST jelölték késznek (nem korábban volt az, és nem most veszik le a pipát), az adminnak
+// (Feri) egy értesítő emailt küldünk — ez CSAK tájékoztatás, a megrendelés státuszát nem módosítja.
+router.post('/customers/:id/complete', requireDriverAuth, async (req, res) => {
+  const { completed } = req.body;
+  const isNowCompleted = completed === 'true' || completed === true;
+  const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Nem található.' });
+  const wasAlreadyCompleted = !!c.delivery_completed_at;
+
+  db.prepare('UPDATE customers SET delivery_completed_at=?, updated_at=? WHERE id=?')
+    .run(isNowCompleted ? new Date().toISOString() : null, new Date().toISOString(), c.id);
+
+  if (isNowCompleted && !wasAlreadyCompleted) {
+    try {
+      const email = require('../services/email');
+      await email.sendAdminInstalledNotice(c);
+    } catch (err) {
+      // Az admin-értesítő esetleges hibája (pl. email szolgáltatás átmeneti kiesése) ne akadályozza
+      // meg a sofőrt abban, hogy a listáján kész-nek jelölje az ügyfelet.
+      console.error('Admin "telepítve" értesítő küldési hiba:', err.message);
+    }
+  }
+
+  res.json({ ok: true });
+});
+
 router.get('/', requireDriverAuth, (req, res) => {
   // Alapertelmezetten a legkozelebbi (legkorabbi, jovobeli vagy mai) napra allunk ra, hogy a sofor
   // ne egy ures/rossz napi listaval talalkozzon elso megnyitaskor.
@@ -119,16 +150,18 @@ router.get('/', requireDriverAuth, (req, res) => {
 
   const rows = db.prepare(`
     SELECT id, name, phone, address, zip, city, delivery_date, delivery_time,
-           delivery_remaining_amount, delivery_address, delivery_lat, delivery_lng, delivery_arrival_time
+           delivery_remaining_amount, delivery_address, delivery_lat, delivery_lng, delivery_arrival_time,
+           delivery_completed_at
     FROM customers
     WHERE delivery_date = ?
-    ORDER BY delivery_time ASC
+    ORDER BY (delivery_completed_at IS NOT NULL), delivery_time ASC
   `).all(date);
 
   const cardsHtml = rows.length
     ? rows.map(c => {
       const mapsLink = buildMapsLink(c);
       const address = resolveDeliveryAddress(c);
+      const isDone = !!c.delivery_completed_at;
       const amount = c.delivery_remaining_amount != null
         ? '<div class="amount">Do zapłaty na miejscu: ' + Number(c.delivery_remaining_amount).toLocaleString('pl-PL') + ' Ft</div>'
         : '';
@@ -140,21 +173,36 @@ router.get('/', requireDriverAuth, (req, res) => {
         + '<button type="button" class="sms-btn" onclick="sendArrivalSms(' + c.id + ", '" + esc(c.phone) + "', '" + safeName + "')\">Wyślij SMS o godzinie przyjazdu</button>"
         + '</div>'
       ) : '';
+      const doneToggle = (
+        '<label class="done-toggle">'
+        + '<input type="checkbox" ' + (isDone ? 'checked' : '') + ' onchange="toggleComplete(' + c.id + ', this.checked)">'
+        + ' Gotowe z tym klientem'
+        + '</label>'
+      );
       return (
-        '<div class="card">'
+        '<div class="card' + (isDone ? ' done' : '') + '">'
         + '<div class="row"><span class="label">Godzina</span><span><strong>' + (c.delivery_time || '-') + '</strong></span></div>'
-        + '<div class="name">' + esc(c.name || '') + '</div>'
+        + '<div class="name">' + esc(c.name || '') + (isDone ? ' <span class="done-badge">✔ Gotowe</span>' : '') + '</div>'
         + '<div class="row"><span class="label">Adres</span><span>' + esc(address) + '</span></div>'
         + amount
         + (mapsLink ? '<a class="maps-btn" href="' + mapsLink + '" target="_blank">Nawigacja Google Maps</a>' : '')
         + (c.phone ? '<a class="phone-btn" href="tel:' + esc(c.phone) + '">Zadzwoń: ' + esc(c.phone) + '</a>' : '')
         + smsBox
+        + doneToggle
         + '</div>'
       );
     }).join('')
     : '<div class="empty">Brak dostaw na ten dzień.</div>';
 
   const script = '<script>'
+    + 'async function toggleComplete(customerId, checked) {'
+    + "  await fetch('/driver/customers/' + customerId + '/complete', {"
+    + "    method: 'POST',"
+    + "    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },"
+    + "    body: 'completed=' + checked,"
+    + '  });'
+    + '  window.location.reload();'
+    + '}'
     + 'async function sendArrivalSms(customerId, phone, name) {'
     + "  var input = document.getElementById('arrival-' + customerId);"
     + '  var time = input.value;'
@@ -166,7 +214,7 @@ router.get('/', requireDriverAuth, (req, res) => {
     + "      body: 'arrivalTime=' + encodeURIComponent(time),"
     + '    });'
     + '  } catch (e) { /* a mentes esetleges hibaja ne akadalyozza meg az SMS-t */ }'
-    + "  var smsText = (name ? 'Kedves ' + name + '! ' : 'Tisztelt Ugyfelunk! ') + 'Garazsa kiszallitasa ma kb. ' + time + ' orakor varhato. Udvozlettel: Pol-Bram';"
+    + "  var smsText = (name ? 'Kedves ' + name + '! ' : 'Tisztelt Ügyfelünk! ') + 'Garázsa kiszállítása ma kb. ' + time + ' órakor várható. Üdvözlettel: Pol-Bram csapata';"
     + "  window.location.href = 'sms:' + phone + '?body=' + encodeURIComponent(smsText);"
     + '}'
     + '</script>';
