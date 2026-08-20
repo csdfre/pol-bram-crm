@@ -103,11 +103,14 @@ async function sendInstalledNotice(customer) {
 
 async function sendDeliveryNotice(customer) {
   const { resolveDeliveryAddress, buildMapsLink } = require('./deliveryLocation');
+  const { LOGO_B64 } = require('./pdf');
   const deliveryDate = customer.delivery_date
     ? new Date(customer.delivery_date).toLocaleDateString('hu-HU')
     : '';
   const remainingAmount = Number(customer.delivery_remaining_amount || 0).toLocaleString('hu-HU');
   const editLocationUrl = `${process.env.BASE_URL}/public/delivery-location/${customer.accept_token}`;
+  const attachments = [{ filename: 'logo.png', content: Buffer.from(LOGO_B64, 'base64'), cid: 'pol-bram-logo' }];
+  const logoHtml = `<img src="cid:pol-bram-logo" alt="Pol-Bram" style="height:32px;background:#fff;padding:6px 10px;border-radius:4px">`;
   const { subject, html } = renderTemplate('delivery_notice', {
     name: customer.name || '',
     deliveryDate,
@@ -116,8 +119,9 @@ async function sendDeliveryNotice(customer) {
     mapsLink: buildMapsLink(customer) || '',
     editLocationUrl,
     remainingAmount,
+    logoHtml,
   });
-  return sendMail({ to: customer.email, subject, html });
+  return sendMail({ to: customer.email, subject, html, attachments });
 }
 
 module.exports = {

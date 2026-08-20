@@ -656,7 +656,7 @@ router.get('/deliveries', (req, res) => {
   const rows = db.prepare(`
     SELECT id, name, phone, email, address, zip, city, price_breakdown,
            delivery_date, delivery_time, delivery_remaining_amount, delivery_notice_sent_at,
-           delivery_address, delivery_lat, delivery_lng
+           delivery_address, delivery_lat, delivery_lng, delivery_customer_edited_at
     FROM customers
     WHERE delivery_date IS NOT NULL AND delivery_date != ''
     ORDER BY delivery_date ASC, delivery_time ASC
@@ -702,6 +702,15 @@ router.post('/deliveries/parse-maps-link', (req, res) => {
   const parsed = parseLatLngFromMapsLink(req.body.text || '');
   if (!parsed) return res.status(400).json({ error: 'Nem sikerült koordinátát kiolvasni ebből a szövegből/linkből.' });
   res.json({ ok: true, ...parsed });
+});
+
+// Nyugtázza, hogy az admin látta az ügyfél saját maga által végzett cím/helyszín-módosítását —
+// ez csak az értesítő jelzést törli, magát a címet/pin-t nem érinti.
+router.post('/customers/:id/delivery/acknowledge-edit', (req, res) => {
+  const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Nem található.' });
+  db.prepare('UPDATE customers SET delivery_customer_edited_at=NULL WHERE id=?').run(c.id);
+  res.json({ ok: true });
 });
 
 // Kiszállítási értesítő kiküldése az ügyfélnek (dátum + időpont + helyszíni fizetendő összeg).

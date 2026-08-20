@@ -116,6 +116,8 @@ addColIfMissing('delivery_lng', 'REAL');         // pontos helyszín (Google Map
 addColIfMissing('delivery_arrival_time', 'TEXT'); // ÜRES ELŐKÉSZÍTÉS a jövőbeli funkcióhoz: a telepítő kolléga által helyszínről/útközben megadható pontos érkezési időpont
                                                    // (a jelenlegi delivery_time az admin által ELŐRE megadott hozzávetőleges időpont — ez itt majd a
                                                    // valós idejű finomítás lesz, amit a kolléga ad meg, és amiről az ügyfél email/SMS értesítést kap)
+addColIfMissing('delivery_customer_edited_at', 'TEXT'); // mikor módosította az ÜGYFÉL saját maga a kiszállítási címet/helyszínt (a delivery-location oldalon) — az admin
+                                                         // felületen ez egy jelzést/értesítést jelenít meg, amíg az admin nyugtázza (törli ezt az időbélyeget)
 
 // Az email_templates táblához: nyomon követjük, hogy a kódban definiált alapértelmezés melyik
 // verzióját szinkronizáltuk utoljára az adott sablonhoz — így ha az admin NEM módosította kézzel

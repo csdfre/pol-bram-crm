@@ -735,11 +735,12 @@ router.post('/delivery-location/:token', (req, res) => {
   const customer = db.prepare('SELECT * FROM customers WHERE accept_token = ?').get(req.params.token);
   if (!customer) return res.status(404).send(simplePage('A hivatkozás nem érvényes.'));
   const { address, lat, lng } = req.body;
-  db.prepare('UPDATE customers SET delivery_address=?, delivery_lat=?, delivery_lng=?, updated_at=? WHERE id=?')
+  db.prepare('UPDATE customers SET delivery_address=?, delivery_lat=?, delivery_lng=?, delivery_customer_edited_at=?, updated_at=? WHERE id=?')
     .run(
       address && address.trim() ? address.trim() : customer.delivery_address,
       lat ? Number(lat) : null,
       lng ? Number(lng) : null,
+      new Date().toISOString(),
       new Date().toISOString(),
       customer.id
     );
@@ -775,6 +776,7 @@ function deliveryLocationFormPage(token, customer) {
     <input type="text" id="address" name="address" value="${currentAddress.replace(/"/g, '&quot;')}">
     <div class="hint">${hasPin ? 'A térképen már ki van jelölve egy pontos hely — kattintson máshova, ha módosítani szeretné.' : 'Kattintson a térképen a pontos helyre (ha ismeri) — ez nem kötelező, a cím alapján is megtaláljuk.'}</div>
     <div id="map"></div>
+    <div id="geoStatus" class="hint" style="min-height:18px"></div>
     <input type="hidden" id="lat" name="lat" value="${hasPin ? customer.delivery_lat : ''}">
     <input type="hidden" id="lng" name="lng" value="${hasPin ? customer.delivery_lng : ''}">
     <button type="submit">Mentés</button>
@@ -787,11 +789,66 @@ function deliveryLocationFormPage(token, customer) {
       attribution: '&copy; OpenStreetMap közreműködők'
     }).addTo(map);
     let marker = ${hasPin ? `L.marker([${customer.delivery_lat}, ${customer.delivery_lng}]).addTo(map)` : 'null'};
+    const addressInput = document.getElementById('address');
+    const statusEl = document.getElementById('geoStatus');
+
+    // Ingyenes, API-kulcs nélküli geokódolás (OpenStreetMap Nominatim) — mindkét irányban:
+    // ha a térképen kattint, a cím mezőt frissítjük a kattintott pont alapján (reverse geocoding);
+    // ha a cím mezőt szerkeszti (és nem nyúl a térképhez), a térkép ugrik a beírt címre (forward geocoding).
+    let lastEditWasMap = false;
+
+    async function reverseGeocode(lat, lng) {
+      statusEl.textContent = 'Cím keresése a térkép alapján…';
+      try {
+        const res = await fetch(\`https://nominatim.openstreetmap.org/reverse?format=json&lat=\${lat}&lon=\${lng}\`);
+        const data = await res.json();
+        if (data && data.display_name) {
+          lastEditWasMap = true;
+          addressInput.value = data.display_name;
+          statusEl.textContent = 'A cím mező frissült a térképen kijelölt hely alapján.';
+        } else {
+          statusEl.textContent = 'Nem sikerült címet találni ehhez a ponthoz — a koordináta mentésre kerül.';
+        }
+      } catch (e) {
+        statusEl.textContent = 'A cím-keresés most nem érhető el, de a térképen kijelölt pont mentésre kerül.';
+      }
+    }
+
+    async function forwardGeocode(address) {
+      if (!address || !address.trim()) return;
+      statusEl.textContent = 'Térkép frissítése a megadott cím alapján…';
+      try {
+        const res = await fetch(\`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=\${encodeURIComponent(address)}\`);
+        const results = await res.json();
+        if (results && results.length) {
+          const { lat, lon } = results[0];
+          map.setView([lat, lon], 16);
+          if (marker) map.removeLayer(marker);
+          marker = L.marker([lat, lon]).addTo(map);
+          document.getElementById('lat').value = lat;
+          document.getElementById('lng').value = lon;
+          statusEl.textContent = 'A térkép frissült a megadott cím alapján — ha nem pontos, kattintson rá a helyes pontra.';
+        } else {
+          statusEl.textContent = 'A megadott cím alapján nem található pont a térképen — a szöveges cím így is mentésre kerül.';
+        }
+      } catch (e) {
+        statusEl.textContent = 'A térkép-frissítés most nem érhető el, de a szöveges cím mentésre kerül.';
+      }
+    }
+
     map.on('click', function(e){
       if (marker) map.removeLayer(marker);
       marker = L.marker(e.latlng).addTo(map);
       document.getElementById('lat').value = e.latlng.lat;
       document.getElementById('lng').value = e.latlng.lng;
+      reverseGeocode(e.latlng.lat, e.latlng.lng);
+    });
+
+    addressInput.addEventListener('change', function(){
+      // Ha a legutóbbi változás épp a térkép-kattintásból eredt (mi írtuk be a mezőt), ne indítsunk
+      // felesleges forward-geocode kört rá — csak akkor, ha az ügyfél TÉNYLEGESEN a mezőt szerkesztette.
+      if (lastEditWasMap) { lastEditWasMap = false; return; }
+      forwardGeocode(addressInput.value);
     });
   </script>
   </body></html>`;

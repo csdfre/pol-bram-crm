@@ -766,12 +766,20 @@ function renderDeliveryTable(rows) {
       : 'Még nem küldve';
     const currentAddress = c.delivery_address || c.resolved_address || '';
     const pinLabel = (c.delivery_lat != null && c.delivery_lng != null) ? '📍 Pontos hely beállítva' : '📍 Pontos hely megadása';
+    const customerEditedNotice = c.delivery_customer_edited_at ? `
+        <div style="background:#fff7e0;border:1px solid #F2B705;border-radius:4px;padding:6px 8px;margin-top:6px;font-size:0.78rem">
+          ⚠️ Az ügyfél módosította (${new Date(c.delivery_customer_edited_at).toLocaleString('hu-HU')})
+          <button class="btn-ghost" style="font-size:0.72rem;padding:2px 6px;margin-left:4px" onclick="acknowledgeDeliveryEdit(${c.id})">Nyugtázás</button>
+        </div>` : '';
     return `
       <tr>
         <td><input type="date" value="${c.delivery_date || ''}" onchange="updateDeliveryField(${c.id}, {deliveryDate:this.value})" style="width:140px"></td>
         <td><input type="text" value="${esc(c.delivery_time || '')}" placeholder="pl. 10:00" onchange="updateDeliveryField(${c.id}, {deliveryTime:this.value})" style="width:90px"></td>
         <td>${esc(c.name || '')}</td>
-        <td><input type="text" value="${esc(currentAddress)}" onchange="updateDeliveryField(${c.id}, {deliveryAddress:this.value})" style="width:220px" placeholder="Kiszállítási cím"></td>
+        <td>
+          <input type="text" value="${esc(currentAddress)}" onchange="updateDeliveryField(${c.id}, {deliveryAddress:this.value})" style="width:220px" placeholder="Kiszállítási cím">
+          ${customerEditedNotice}
+        </td>
         <td>${esc(c.phone || '')}</td>
         <td><input type="number" value="${c.delivery_remaining_amount ?? ''}" placeholder="0" onchange="updateDeliveryField(${c.id}, {remainingAmount:this.value})" style="width:110px"></td>
         <td style="white-space:nowrap">
@@ -806,6 +814,13 @@ async function setPreciseLocation(customerId) {
 
 async function clearPreciseLocation(customerId) {
   await updateDeliveryField(customerId, { lat: '', lng: '' });
+}
+
+async function acknowledgeDeliveryEdit(customerId) {
+  try {
+    await api(`/admin/customers/${customerId}/delivery/acknowledge-edit`, { method: 'POST' });
+    loadDeliveries();
+  } catch (e) { alert(e.message); }
 }
 
 function openDriverList() {
