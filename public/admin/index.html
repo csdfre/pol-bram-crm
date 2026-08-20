@@ -130,6 +130,13 @@
         </div>
       </div>
 
+      <div class="preset-panel" style="background:#fff;padding:16px 20px;border-radius:6px;margin-bottom:14px;display:flex;gap:14px;align-items:end;flex-wrap:wrap">
+        <div>
+          <label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Melyik nap fuvarjait mutassa?</label>
+          <select id="deliveryDateFilter" onchange="renderDeliveryTable(lastDeliveries)" style="padding:8px 12px;border:1px solid var(--line);border-radius:4px;font-size:0.9rem;min-width:220px"></select>
+        </div>
+      </div>
+
       <table id="deliveryTable">
         <thead>
           <tr>

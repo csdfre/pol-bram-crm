@@ -723,18 +723,44 @@ checkSession();
 // ---------------------------------------------------------------
 // Kiszállítási lista
 // ---------------------------------------------------------------
+let lastDeliveries = [];
 async function loadDeliveries() {
   const data = await api('/admin/deliveries');
-  renderDeliveryTable(data.deliveries);
+  lastDeliveries = data.deliveries;
+  populateDeliveryDateFilter();
+  renderDeliveryTable(lastDeliveries);
+}
+
+function populateDeliveryDateFilter() {
+  const select = document.getElementById('deliveryDateFilter');
+  const uniqueDates = [...new Set(lastDeliveries.map(c => c.delivery_date))].filter(Boolean).sort();
+  const previousValue = select.value;
+  select.innerHTML = '<option value="__all__">Összes nap együtt</option>' +
+    uniqueDates.map(d => {
+      const count = lastDeliveries.filter(c => c.delivery_date === d).length;
+      return `<option value="${d}">${new Date(d).toLocaleDateString('hu-HU')} (${count} fuvar)</option>`;
+    }).join('');
+  // Ha az előzőleg kiválasztott nap még mindig létezik a listában, maradjunk azon — egyébként a
+  // legközelebbi napra álljon rá alapértelmezetten (SOSE "összes nap" legyen az alapértelmezés,
+  // nehogy véletlenül összekeveredjenek a különböző napok fuvarjai egy nézetben).
+  if (previousValue && uniqueDates.includes(previousValue)) {
+    select.value = previousValue;
+  } else if (uniqueDates.length) {
+    select.value = uniqueDates[0];
+  } else {
+    select.value = '__all__';
+  }
 }
 
 function renderDeliveryTable(rows) {
+  const filterValue = document.getElementById('deliveryDateFilter').value;
+  const filtered = (!filterValue || filterValue === '__all__') ? rows : rows.filter(c => c.delivery_date === filterValue);
   const tbody = document.getElementById('deliveryTableBody');
-  if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--graphite-soft)">Még nincs kiszállításhoz rendelt ügyfél.</td></tr>`;
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--graphite-soft)">Erre a napra nincs kiszállításhoz rendelt ügyfél.</td></tr>`;
     return;
   }
-  tbody.innerHTML = rows.map(c => {
+  tbody.innerHTML = filtered.map(c => {
     const sentLabel = c.delivery_notice_sent_at
       ? `Kiküldve (${new Date(c.delivery_notice_sent_at).toLocaleDateString('hu-HU')})`
       : 'Még nem küldve';
@@ -853,6 +879,9 @@ async function addToDeliveryList() {
     document.getElementById('deliveryCustomerSearch').value = '';
     document.getElementById('deliveryCustomerSelect').style.display = 'none';
     document.getElementById('deliveryNewDate').value = '';
-    loadDeliveries();
+    await loadDeliveries();
+    // Az imént hozzáadott nap szűrőjére állunk, hogy azonnal lássa az admin az új sort.
+    document.getElementById('deliveryDateFilter').value = date;
+    renderDeliveryTable(lastDeliveries);
   } catch (e) { alert(e.message); }
 }
