@@ -646,4 +646,55 @@ router.post('/customers/resend-colleague-reports', async (req, res) => {
   res.json({ ok: true, ...results });
 });
 
+// ---------------------------------------------------------------
+// Kiszállítási lista — ügyfelek dátumhoz rendelése, fennmaradó összeg, időpont, értesítés
+// ---------------------------------------------------------------
+
+// Az összes olyan ügyfél, akihez van hozzárendelt kiszállítási dátum, dátum szerint rendezve.
+router.get('/deliveries', (req, res) => {
+  const rows = db.prepare(`
+    SELECT id, name, phone, email, address, zip, city, price_breakdown,
+           delivery_date, delivery_time, delivery_remaining_amount, delivery_notice_sent_at
+    FROM customers
+    WHERE delivery_date IS NOT NULL AND delivery_date != ''
+    ORDER BY delivery_date ASC, delivery_time ASC
+  `).all();
+  res.json({ ok: true, deliveries: rows });
+});
+
+// Egy ügyfél kiszállítási adatainak beállítása/módosítása (dátum, időpont, fennmaradó összeg).
+// Üres delivery_date-tel hívva gyakorlatilag "leveszi" az ügyfelet a kiszállítási listáról.
+router.post('/customers/:id/delivery', (req, res) => {
+  const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Nem található.' });
+  const { deliveryDate, deliveryTime, remainingAmount } = req.body;
+  db.prepare(`
+    UPDATE customers SET delivery_date=?, delivery_time=?, delivery_remaining_amount=?, updated_at=?
+    WHERE id=?
+  `).run(
+    deliveryDate || null,
+    deliveryTime || null,
+    remainingAmount === '' || remainingAmount === undefined || remainingAmount === null ? null : Number(remainingAmount),
+    new Date().toISOString(),
+    c.id
+  );
+  res.json({ ok: true });
+});
+
+// Kiszállítási értesítő kiküldése az ügyfélnek (dátum + időpont + helyszíni fizetendő összeg).
+router.post('/customers/:id/send-delivery-notice', async (req, res) => {
+  const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Nem található.' });
+  if (!c.delivery_date) return res.status(400).json({ error: 'Előbb adjon meg kiszállítási dátumot.' });
+  try {
+    await email.sendDeliveryNotice(c);
+    db.prepare('UPDATE customers SET delivery_notice_sent_at=?, updated_at=? WHERE id=?')
+      .run(new Date().toISOString(), new Date().toISOString(), c.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Kiszállítási értesítő küldési hiba:', err);
+    res.status(500).json({ error: 'Nem sikerült elküldeni az értesítőt: ' + err.message });
+  }
+});
+
 module.exports = router;

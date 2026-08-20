@@ -37,6 +37,7 @@
       <button class="tab-btn" id="tabEmails" onclick="switchTab('emails')">Email sablonok</button>
       <button class="tab-btn" id="tabPricing" onclick="switchTab('pricing')">Árazás</button>
       <button class="tab-btn" id="tabStats" onclick="switchTab('stats')">Statisztika</button>
+      <button class="tab-btn" id="tabDeliveries" onclick="switchTab('deliveries')">Kiszállítás</button>
     </div>
 
     <div id="customersView">
@@ -113,6 +114,31 @@
       </div>
       <div id="statsSummary"></div>
       <div id="statsByStatusResult" style="margin-top:16px"></div>
+    </div>
+
+    <div id="deliveriesView" style="display:none">
+      <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px;margin-bottom:20px">
+        <h3>Ügyfél hozzáadása a kiszállítási listához</h3>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:end">
+          <div style="flex:1;min-width:260px;position:relative">
+            <label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Ügyfél (keresés név/email alapján)</label>
+            <input type="text" id="deliveryCustomerSearch" placeholder="Kezdj el gépelni..." oninput="filterDeliveryCustomerOptions()" autocomplete="off" style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:4px;font-size:0.9rem">
+            <select id="deliveryCustomerSelect" size="6" style="width:100%;margin-top:6px;display:none;border:1px solid var(--line);border-radius:4px"></select>
+          </div>
+          <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Kiszállítás dátuma</label><input type="date" id="deliveryNewDate"></div>
+          <button class="btn-main" onclick="addToDeliveryList()">Hozzáadás a listához</button>
+        </div>
+      </div>
+
+      <table id="deliveryTable">
+        <thead>
+          <tr>
+            <th>Dátum</th><th>Időpont</th><th>Név</th><th>Cím</th><th>Telefon</th>
+            <th>Fennmaradó összeg (Ft)</th><th>Értesítés</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="deliveryTableBody"></tbody>
+      </table>
     </div>
   </main>
 </div>

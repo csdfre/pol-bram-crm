@@ -144,6 +144,26 @@ const DEFAULT_TEMPLATES = [
   <p>Üdvözlettel,<br>Pol-Bram csapata</p>
 </div>`,
   },
+  {
+    key: 'delivery_notice',
+    label: 'Kiszállítás értesítő (dátum, időpont, helyszíni fizetendő összeg)',
+    subject: 'Garázsa kiszállításának időpontja – Pol-Bram',
+    html_body: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
+  <h2 style="color:#20242A">Garázsa kiszállításának időpontja</h2>
+  <p>Kedves {{name}}!</p>
+  <p>Tájékoztatjuk, hogy garázsa kiszállítását az alábbi időpontra ütemeztük:</p>
+  <p style="background:#fff7e0;border:1px solid #f2b705;padding:12px 16px;border-radius:4px;font-size:16px">
+    <strong>Dátum:</strong> {{deliveryDate}}<br>
+    <strong>Hozzávetőleges időpont:</strong> {{deliveryTime}}
+  </p>
+  <p>A helyszínen, a kiszállításkor fizetendő fennmaradó összeg:</p>
+  <p style="background:#f4f5f6;border:1px solid #e6e8ea;padding:12px 16px;border-radius:4px;font-size:16px">
+    <strong>{{remainingAmount}} Ft</strong>
+  </p>
+  <p>Kérjük, a megadott időpontban legyen elérhető a megadott telepítési címen.</p>
+  <p>Üdvözlettel,<br>Pol-Bram csapata</p>
+</div>`,
+  },
 ];
 
 function ensureDefaultTemplates(){

@@ -492,7 +492,7 @@ async function setStatusManually() {
 }
 
 function switchTab(tab){
-  ['Customers','Types','Emails','Pricing','Stats'].forEach(t=>{
+  ['Customers','Types','Emails','Pricing','Stats','Deliveries'].forEach(t=>{
     document.getElementById('tab'+t).classList.toggle('active', tab===t.toLowerCase());
   });
   document.getElementById('customersView').style.display = tab==='customers' ? 'block' : 'none';
@@ -500,10 +500,12 @@ function switchTab(tab){
   document.getElementById('emailsView').style.display = tab==='emails' ? 'block' : 'none';
   document.getElementById('pricingView').style.display = tab==='pricing' ? 'block' : 'none';
   document.getElementById('statsView').style.display = tab==='stats' ? 'block' : 'none';
+  document.getElementById('deliveriesView').style.display = tab==='deliveries' ? 'block' : 'none';
   if(tab==='types') loadGarageTypes();
   if(tab==='emails') loadEmailTemplates();
   if(tab==='pricing') loadPricingConfig();
   if(tab==='stats') loadStats();
+  if(tab==='deliveries') loadDeliveries();
 }
 
 async function loadGarageTypes(){
@@ -717,3 +719,95 @@ function renderStatsByStatusTable(){
 }
 
 checkSession();
+
+// ---------------------------------------------------------------
+// Kiszállítási lista
+// ---------------------------------------------------------------
+async function loadDeliveries() {
+  const data = await api('/admin/deliveries');
+  renderDeliveryTable(data.deliveries);
+}
+
+function renderDeliveryTable(rows) {
+  const tbody = document.getElementById('deliveryTableBody');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--graphite-soft)">Még nincs kiszállításhoz rendelt ügyfél.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(c => {
+    const addr = [c.address, c.zip, c.city].filter(Boolean).join(', ');
+    const sentLabel = c.delivery_notice_sent_at
+      ? `Kiküldve (${new Date(c.delivery_notice_sent_at).toLocaleDateString('hu-HU')})`
+      : 'Még nem küldve';
+    return `
+      <tr>
+        <td><input type="date" value="${c.delivery_date || ''}" onchange="updateDeliveryField(${c.id}, {deliveryDate:this.value, deliveryTime:'${esc(c.delivery_time || '')}', remainingAmount:${c.delivery_remaining_amount ?? 'null'}})" style="width:140px"></td>
+        <td><input type="text" value="${esc(c.delivery_time || '')}" placeholder="pl. 10:00" onchange="updateDeliveryField(${c.id}, {deliveryDate:'${c.delivery_date || ''}', deliveryTime:this.value, remainingAmount:${c.delivery_remaining_amount ?? 'null'}})" style="width:90px"></td>
+        <td>${esc(c.name || '')}</td>
+        <td>${esc(addr)}</td>
+        <td>${esc(c.phone || '')}</td>
+        <td><input type="number" value="${c.delivery_remaining_amount ?? ''}" placeholder="0" onchange="updateDeliveryField(${c.id}, {deliveryDate:'${c.delivery_date || ''}', deliveryTime:'${esc(c.delivery_time || '')}', remainingAmount:this.value})" style="width:110px"></td>
+        <td style="font-size:0.82rem;color:var(--graphite-soft)">${sentLabel}</td>
+        <td style="white-space:nowrap">
+          <button class="btn-secondary" onclick="sendDeliveryNotice(${c.id})">Email küldése</button>
+          <button class="btn-ghost" onclick="removeFromDeliveryList(${c.id})">Eltávolítás</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function updateDeliveryField(customerId, payload) {
+  try {
+    await api(`/admin/customers/${customerId}/delivery`, { method: 'POST', body: JSON.stringify(payload) });
+    loadDeliveries();
+  } catch (e) { alert(e.message); }
+}
+
+async function removeFromDeliveryList(customerId) {
+  if (!confirm('Biztosan eltávolítod ezt az ügyfelet a kiszállítási listáról?')) return;
+  try {
+    await api(`/admin/customers/${customerId}/delivery`, {
+      method: 'POST',
+      body: JSON.stringify({ deliveryDate: '', deliveryTime: '', remainingAmount: '' }),
+    });
+    loadDeliveries();
+  } catch (e) { alert(e.message); }
+}
+
+async function sendDeliveryNotice(customerId) {
+  if (!confirm('Elküldöd az ügyfélnek a kiszállítási értesítő emailt (dátum + helyszíni fizetendő összeg)?')) return;
+  try {
+    await api(`/admin/customers/${customerId}/send-delivery-notice`, { method: 'POST' });
+    alert('Értesítő kiküldve.');
+    loadDeliveries();
+  } catch (e) { alert(e.message); }
+}
+
+function filterDeliveryCustomerOptions() {
+  const q = document.getElementById('deliveryCustomerSearch').value.trim().toLowerCase();
+  const select = document.getElementById('deliveryCustomerSelect');
+  if (!q) { select.style.display = 'none'; select.innerHTML = ''; return; }
+  const matches = allCustomers.filter(c =>
+    (c.name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q)
+  ).slice(0, 30);
+  select.innerHTML = matches.map(c => `<option value="${c.id}">${esc(c.name || '(név nélkül)')} — ${esc(c.email || '')}</option>`).join('');
+  select.style.display = matches.length ? 'block' : 'none';
+}
+
+async function addToDeliveryList() {
+  const select = document.getElementById('deliveryCustomerSelect');
+  const customerId = select.value;
+  const date = document.getElementById('deliveryNewDate').value;
+  if (!customerId) return alert('Válassz ki egy ügyfelet a listából.');
+  if (!date) return alert('Add meg a kiszállítás dátumát.');
+  try {
+    await api(`/admin/customers/${customerId}/delivery`, {
+      method: 'POST',
+      body: JSON.stringify({ deliveryDate: date, deliveryTime: '', remainingAmount: '' }),
+    });
+    document.getElementById('deliveryCustomerSearch').value = '';
+    document.getElementById('deliveryCustomerSelect').style.display = 'none';
+    document.getElementById('deliveryNewDate').value = '';
+    loadDeliveries();
+  } catch (e) { alert(e.message); }
+}

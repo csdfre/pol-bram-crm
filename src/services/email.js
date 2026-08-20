@@ -101,6 +101,20 @@ async function sendInstalledNotice(customer) {
   return sendMail({ to: customer.email, subject, html });
 }
 
+async function sendDeliveryNotice(customer) {
+  const deliveryDate = customer.delivery_date
+    ? new Date(customer.delivery_date).toLocaleDateString('hu-HU')
+    : '';
+  const remainingAmount = Number(customer.delivery_remaining_amount || 0).toLocaleString('hu-HU');
+  const { subject, html } = renderTemplate('delivery_notice', {
+    name: customer.name || '',
+    deliveryDate,
+    deliveryTime: customer.delivery_time || '',
+    remainingAmount,
+  });
+  return sendMail({ to: customer.email, subject, html });
+}
+
 module.exports = {
   sendMail,
   sendInquiryReceived,
@@ -110,4 +124,5 @@ module.exports = {
   sendFinalOrderFormToCustomer,
   sendAdvanceInvoice,
   sendInstalledNotice,
+  sendDeliveryNotice,
 };
