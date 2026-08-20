@@ -652,33 +652,56 @@ router.post('/customers/resend-colleague-reports', async (req, res) => {
 
 // Az összes olyan ügyfél, akihez van hozzárendelt kiszállítási dátum, dátum szerint rendezve.
 router.get('/deliveries', (req, res) => {
+  const { buildMapsLink, resolveDeliveryAddress } = require('../services/deliveryLocation');
   const rows = db.prepare(`
     SELECT id, name, phone, email, address, zip, city, price_breakdown,
-           delivery_date, delivery_time, delivery_remaining_amount, delivery_notice_sent_at
+           delivery_date, delivery_time, delivery_remaining_amount, delivery_notice_sent_at,
+           delivery_address, delivery_lat, delivery_lng
     FROM customers
     WHERE delivery_date IS NOT NULL AND delivery_date != ''
     ORDER BY delivery_date ASC, delivery_time ASC
   `).all();
-  res.json({ ok: true, deliveries: rows });
+  const withMaps = rows.map(c => ({
+    ...c,
+    resolved_address: resolveDeliveryAddress(c),
+    maps_link: buildMapsLink(c),
+  }));
+  res.json({ ok: true, deliveries: withMaps });
 });
 
-// Egy ügyfél kiszállítási adatainak beállítása/módosítása (dátum, időpont, fennmaradó összeg).
-// Üres delivery_date-tel hívva gyakorlatilag "leveszi" az ügyfelet a kiszállítási listáról.
+// Egy ügyfél kiszállítási adatainak beállítása/módosítása (dátum, időpont, fennmaradó összeg,
+// kiszállítási cím felülírás, pontos helyszín koordináták). A payload RÉSZLEGES lehet (csak azok
+// a mezők, amik ténylegesen változtak) — a nem küldött mezők a jelenlegi értéküket megtartják,
+// nem íródnak felül üresre.
 router.post('/customers/:id/delivery', (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Nem található.' });
-  const { deliveryDate, deliveryTime, remainingAmount } = req.body;
+  const { deliveryDate, deliveryTime, remainingAmount, deliveryAddress, lat, lng } = req.body;
+  const newDate = deliveryDate === undefined ? c.delivery_date : (deliveryDate || null);
+  const newTime = deliveryTime === undefined ? c.delivery_time : (deliveryTime || null);
+  const newAmount = remainingAmount === undefined
+    ? c.delivery_remaining_amount
+    : (remainingAmount === '' || remainingAmount === null ? null : Number(remainingAmount));
+  const newAddress = deliveryAddress === undefined ? c.delivery_address : (deliveryAddress || null);
+  const newLat = lat === undefined ? c.delivery_lat : (lat === '' || lat === null ? null : Number(lat));
+  const newLng = lng === undefined ? c.delivery_lng : (lng === '' || lng === null ? null : Number(lng));
   db.prepare(`
-    UPDATE customers SET delivery_date=?, delivery_time=?, delivery_remaining_amount=?, updated_at=?
+    UPDATE customers SET
+      delivery_date=?, delivery_time=?, delivery_remaining_amount=?,
+      delivery_address=?, delivery_lat=?, delivery_lng=?, updated_at=?
     WHERE id=?
-  `).run(
-    deliveryDate || null,
-    deliveryTime || null,
-    remainingAmount === '' || remainingAmount === undefined || remainingAmount === null ? null : Number(remainingAmount),
-    new Date().toISOString(),
-    c.id
-  );
+  `).run(newDate, newTime, newAmount, newAddress, newLat, newLng, new Date().toISOString(), c.id);
   res.json({ ok: true });
+});
+
+// Egy beillesztett Google Maps link/koordináta-szövegből kinyeri a lat/lng-t (nem menti el,
+// csak visszaadja — a mentés a fenti /delivery route-on keresztül, külön kérésként történik,
+// hogy a felhasználó előbb lássa/ellenőrizhesse, mit talált a rendszer).
+router.post('/deliveries/parse-maps-link', (req, res) => {
+  const { parseLatLngFromMapsLink } = require('../services/deliveryLocation');
+  const parsed = parseLatLngFromMapsLink(req.body.text || '');
+  if (!parsed) return res.status(400).json({ error: 'Nem sikerült koordinátát kiolvasni ebből a szövegből/linkből.' });
+  res.json({ ok: true, ...parsed });
 });
 
 // Kiszállítási értesítő kiküldése az ügyfélnek (dátum + időpont + helyszíni fizetendő összeg).

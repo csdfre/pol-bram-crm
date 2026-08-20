@@ -731,22 +731,28 @@ async function loadDeliveries() {
 function renderDeliveryTable(rows) {
   const tbody = document.getElementById('deliveryTableBody');
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--graphite-soft)">Még nincs kiszállításhoz rendelt ügyfél.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--graphite-soft)">Még nincs kiszállításhoz rendelt ügyfél.</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map(c => {
-    const addr = [c.address, c.zip, c.city].filter(Boolean).join(', ');
     const sentLabel = c.delivery_notice_sent_at
       ? `Kiküldve (${new Date(c.delivery_notice_sent_at).toLocaleDateString('hu-HU')})`
       : 'Még nem küldve';
+    const currentAddress = c.delivery_address || c.resolved_address || '';
+    const pinLabel = (c.delivery_lat != null && c.delivery_lng != null) ? '📍 Pontos hely beállítva' : '📍 Pontos hely megadása';
     return `
       <tr>
-        <td><input type="date" value="${c.delivery_date || ''}" onchange="updateDeliveryField(${c.id}, {deliveryDate:this.value, deliveryTime:'${esc(c.delivery_time || '')}', remainingAmount:${c.delivery_remaining_amount ?? 'null'}})" style="width:140px"></td>
-        <td><input type="text" value="${esc(c.delivery_time || '')}" placeholder="pl. 10:00" onchange="updateDeliveryField(${c.id}, {deliveryDate:'${c.delivery_date || ''}', deliveryTime:this.value, remainingAmount:${c.delivery_remaining_amount ?? 'null'}})" style="width:90px"></td>
+        <td><input type="date" value="${c.delivery_date || ''}" onchange="updateDeliveryField(${c.id}, {deliveryDate:this.value})" style="width:140px"></td>
+        <td><input type="text" value="${esc(c.delivery_time || '')}" placeholder="pl. 10:00" onchange="updateDeliveryField(${c.id}, {deliveryTime:this.value})" style="width:90px"></td>
         <td>${esc(c.name || '')}</td>
-        <td>${esc(addr)}</td>
+        <td><input type="text" value="${esc(currentAddress)}" onchange="updateDeliveryField(${c.id}, {deliveryAddress:this.value})" style="width:220px" placeholder="Kiszállítási cím"></td>
         <td>${esc(c.phone || '')}</td>
-        <td><input type="number" value="${c.delivery_remaining_amount ?? ''}" placeholder="0" onchange="updateDeliveryField(${c.id}, {deliveryDate:'${c.delivery_date || ''}', deliveryTime:'${esc(c.delivery_time || '')}', remainingAmount:this.value})" style="width:110px"></td>
+        <td><input type="number" value="${c.delivery_remaining_amount ?? ''}" placeholder="0" onchange="updateDeliveryField(${c.id}, {remainingAmount:this.value})" style="width:110px"></td>
+        <td style="white-space:nowrap">
+          ${c.maps_link ? `<a href="${c.maps_link}" target="_blank" style="display:block;margin-bottom:4px">Megnyitás térképen</a>` : '<span style="color:var(--graphite-soft)">nincs cím</span>'}
+          <button class="btn-ghost" style="font-size:0.75rem;padding:4px 8px" onclick="setPreciseLocation(${c.id})">${pinLabel}</button>
+          ${(c.delivery_lat != null) ? `<button class="btn-ghost" style="font-size:0.75rem;padding:4px 8px" onclick="clearPreciseLocation(${c.id})">Pin törlése</button>` : ''}
+        </td>
         <td style="font-size:0.82rem;color:var(--graphite-soft)">${sentLabel}</td>
         <td style="white-space:nowrap">
           <button class="btn-secondary" onclick="sendDeliveryNotice(${c.id})">Email küldése</button>
@@ -761,6 +767,45 @@ async function updateDeliveryField(customerId, payload) {
     await api(`/admin/customers/${customerId}/delivery`, { method: 'POST', body: JSON.stringify(payload) });
     loadDeliveries();
   } catch (e) { alert(e.message); }
+}
+
+async function setPreciseLocation(customerId) {
+  const text = prompt('Illeszd be ide a Google Maps linket (megosztott hely-link, vagy a böngésző címsorából másolt URL), vagy közvetlenül a koordinátákat "szélesség,hosszúság" formában:');
+  if (!text) return;
+  try {
+    const parsed = await api('/admin/deliveries/parse-maps-link', { method: 'POST', body: JSON.stringify({ text }) });
+    await updateDeliveryField(customerId, { lat: parsed.lat, lng: parsed.lng });
+  } catch (e) { alert(e.message); }
+}
+
+async function clearPreciseLocation(customerId) {
+  await updateDeliveryField(customerId, { lat: '', lng: '' });
+}
+
+function openDriverList() {
+  const date = document.getElementById('driverListDate').value;
+  if (!date) return alert('Válassz dátumot a sofőr-listához.');
+  api('/admin/deliveries').then(data => {
+    const rows = data.deliveries.filter(c => c.delivery_date === date);
+    if (!rows.length) return alert('Erre a dátumra nincs kiszállítás a listában.');
+    const rowsHtml = rows.map(c => `
+      <tr>
+        <td style="padding:8px;border-bottom:1px solid #ddd">${esc(c.delivery_time || '')}</td>
+        <td style="padding:8px;border-bottom:1px solid #ddd">${esc(c.name || '')}</td>
+        <td style="padding:8px;border-bottom:1px solid #ddd">${esc(c.delivery_address || c.resolved_address || '')}</td>
+        <td style="padding:8px;border-bottom:1px solid #ddd">${esc(c.phone || '')}</td>
+        <td style="padding:8px;border-bottom:1px solid #ddd">${c.maps_link ? `<a href="${c.maps_link}" target="_blank">Térkép</a>` : ''}</td>
+      </tr>`).join('');
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html lang="hu"><head><meta charset="UTF-8"><title>Sofőr-lista — ${date}</title>
+      <style>body{font-family:Arial,sans-serif;padding:24px} h1{font-size:1.3rem} table{border-collapse:collapse;width:100%} th{text-align:left;padding:8px;border-bottom:2px solid #333}</style>
+      </head><body>
+      <h1>Sofőr-lista — ${date}</h1>
+      <table><thead><tr><th>Időpont</th><th>Név</th><th>Cím</th><th>Telefon</th><th>Térkép</th></tr></thead>
+      <tbody>${rowsHtml}</tbody></table>
+      </body></html>`);
+    win.document.close();
+  }).catch(e => alert(e.message));
 }
 
 async function removeFromDeliveryList(customerId) {

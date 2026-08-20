@@ -110,5 +110,11 @@ addColIfMissing('delivery_date', 'TEXT');             // kiszállítási lista: 
 addColIfMissing('delivery_time', 'TEXT');             // kiszállítási lista: hozzávetőleges időpont (szabad szöveg, pl. "10:00" vagy "délelőtt")
 addColIfMissing('delivery_remaining_amount', 'INTEGER'); // kiszállítási lista: a helyszínen fizetendő fennmaradó összeg (Ft)
 addColIfMissing('delivery_notice_sent_at', 'TEXT');   // mikor küldtük ki az ügyfélnek a kiszállítási értesítőt
+addColIfMissing('delivery_address', 'TEXT');    // kiszállítási cím felülírása (ha üres, az eredeti address/zip/city az irányadó) — ezt módosíthatja az admin anélkül, hogy a megrendelés eredeti adatait átírná
+addColIfMissing('delivery_lat', 'REAL');         // pontos helyszín (Google Maps pin) szélesség — ha meg van adva, ez élvez elsőbbséget a cím-alapú kereséssel szemben
+addColIfMissing('delivery_lng', 'REAL');         // pontos helyszín (Google Maps pin) hosszúság
+addColIfMissing('delivery_arrival_time', 'TEXT'); // ÜRES ELŐKÉSZÍTÉS a jövőbeli funkcióhoz: a telepítő kolléga által helyszínről/útközben megadható pontos érkezési időpont
+                                                   // (a jelenlegi delivery_time az admin által ELŐRE megadott hozzávetőleges időpont — ez itt majd a
+                                                   // valós idejű finomítás lesz, amit a kolléga ad meg, és amiről az ügyfél email/SMS értesítést kap)
 
 module.exports = db;

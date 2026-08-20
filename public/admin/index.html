@@ -133,12 +133,16 @@
       <table id="deliveryTable">
         <thead>
           <tr>
-            <th>Dátum</th><th>Időpont</th><th>Név</th><th>Cím</th><th>Telefon</th>
-            <th>Fennmaradó összeg (Ft)</th><th>Értesítés</th><th></th>
+            <th>Dátum</th><th>Időpont</th><th>Név</th><th>Kiszállítási cím</th><th>Telefon</th>
+            <th>Fennmaradó összeg (Ft)</th><th>Térkép</th><th>Értesítés</th><th></th>
           </tr>
         </thead>
         <tbody id="deliveryTableBody"></tbody>
       </table>
+      <div class="btn-row" style="margin-top:14px">
+        <div style="flex:1;min-width:220px"><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Sofőr-lista dátuma</label><input type="date" id="driverListDate"></div>
+        <button class="btn-secondary" onclick="openDriverList()">Sofőr-lista megnyitása (nyomtatható)</button>
+      </div>
     </div>
   </main>
 </div>

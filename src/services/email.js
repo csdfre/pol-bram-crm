@@ -102,6 +102,7 @@ async function sendInstalledNotice(customer) {
 }
 
 async function sendDeliveryNotice(customer) {
+  const { resolveDeliveryAddress, buildMapsLink } = require('./deliveryLocation');
   const deliveryDate = customer.delivery_date
     ? new Date(customer.delivery_date).toLocaleDateString('hu-HU')
     : '';
@@ -110,6 +111,8 @@ async function sendDeliveryNotice(customer) {
     name: customer.name || '',
     deliveryDate,
     deliveryTime: customer.delivery_time || '',
+    deliveryAddress: resolveDeliveryAddress(customer),
+    mapsLink: buildMapsLink(customer) || '',
     remainingAmount,
   });
   return sendMail({ to: customer.email, subject, html });

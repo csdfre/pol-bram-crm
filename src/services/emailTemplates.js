@@ -154,8 +154,10 @@ const DEFAULT_TEMPLATES = [
   <p>Tájékoztatjuk, hogy garázsa kiszállítását az alábbi időpontra ütemeztük:</p>
   <p style="background:#fff7e0;border:1px solid #f2b705;padding:12px 16px;border-radius:4px;font-size:16px">
     <strong>Dátum:</strong> {{deliveryDate}}<br>
-    <strong>Hozzávetőleges időpont:</strong> {{deliveryTime}}
+    <strong>Hozzávetőleges időpont:</strong> {{deliveryTime}}<br>
+    <strong>Kiszállítási cím:</strong> {{deliveryAddress}}
   </p>
+  <p><a href="{{mapsLink}}" style="color:#20242A;font-weight:bold" target="_blank">📍 Megnyitás Google Térképen</a></p>
   <p>A helyszínen, a kiszállításkor fizetendő fennmaradó összeg:</p>
   <p style="background:#f4f5f6;border:1px solid #e6e8ea;padding:12px 16px;border-radius:4px;font-size:16px">
     <strong>{{remainingAmount}} Ft</strong>
