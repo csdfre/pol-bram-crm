@@ -8,6 +8,7 @@ const email = require('../services/email');
 const { calculateQuote } = require('../services/pricing');
 const { generateOrderFormPdf, buildOrderFields, sectionHtml, editableSectionHtml, prepareColleagueSketch, priceCardHtml, UNIT_TOGGLE_CSS, UNIT_TOGGLE_SCRIPT } = require('../services/pdf');
 const { CURRENT_CONSENT_VERSION } = require('../services/consent');
+const { resolveDeliveryAddress } = require('../services/deliveryLocation');
 
 const router = express.Router();
 
@@ -719,6 +720,81 @@ function complaintFormPage(token) {
     <button type="submit">Beküldés</button>
   </form>
   </div></body></html>`;
+}
+
+// ---------------------------------------------------------------
+// Kiszállítási cím megerősítése/pontosítása (ügyfél oldalról, a kiszállítás-értesítő emailből)
+// ---------------------------------------------------------------
+router.get('/delivery-location/:token', (req, res) => {
+  const customer = db.prepare('SELECT * FROM customers WHERE accept_token = ?').get(req.params.token);
+  if (!customer) return res.status(404).send(simplePage('A hivatkozás nem érvényes.'));
+  res.send(deliveryLocationFormPage(req.params.token, customer));
+});
+
+router.post('/delivery-location/:token', (req, res) => {
+  const customer = db.prepare('SELECT * FROM customers WHERE accept_token = ?').get(req.params.token);
+  if (!customer) return res.status(404).send(simplePage('A hivatkozás nem érvényes.'));
+  const { address, lat, lng } = req.body;
+  db.prepare('UPDATE customers SET delivery_address=?, delivery_lat=?, delivery_lng=?, updated_at=? WHERE id=?')
+    .run(
+      address && address.trim() ? address.trim() : customer.delivery_address,
+      lat ? Number(lat) : null,
+      lng ? Number(lng) : null,
+      new Date().toISOString(),
+      customer.id
+    );
+  res.send(simplePage('Köszönjük! A kiszállítási címet/helyszínt frissítettük.'));
+});
+
+function deliveryLocationFormPage(token, customer) {
+  const currentAddress = resolveDeliveryAddress(customer);
+  const hasPin = customer.delivery_lat != null && customer.delivery_lng != null;
+  const centerLat = hasPin ? customer.delivery_lat : 47.1625; // Magyarország középpontja, ha nincs korábbi pin
+  const centerLng = hasPin ? customer.delivery_lng : 19.5033;
+  const initialZoom = hasPin ? 16 : 7;
+  return `<!DOCTYPE html><html lang="hu"><head><meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kiszállítási cím pontosítása</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body{font-family:Arial,sans-serif;background:#EEF1F2;margin:0;padding:20px}
+    .box{background:#fff;padding:24px 28px;border-radius:6px;border-top:4px solid #F2B705;max-width:640px;margin:0 auto}
+    h2{margin-top:0}
+    input[type=text]{width:100%;padding:10px;margin:8px 0 16px;box-sizing:border-box;border:1px solid #ccc;border-radius:4px;font-size:1rem}
+    #map{height:360px;border-radius:6px;margin-bottom:16px}
+    button{background:#F2B705;border:none;padding:12px 22px;border-radius:4px;cursor:pointer;font-size:1rem;font-weight:bold}
+    .hint{font-size:0.85rem;color:#666;margin-bottom:10px}
+  </style>
+  </head><body><div class="box">
+  <h2>Kiszállítási cím / helyszín pontosítása</h2>
+  <p>Ha a lenti cím pontatlan, javítsa ki; ha a pontos helyszínt (pl. bejárat, telephely) is meg szeretné jelölni, kattintson a térképen a megfelelő pontra.</p>
+
+  <form method="POST" action="/public/delivery-location/${token}" id="locForm">
+    <label for="address">Kiszállítási cím</label>
+    <input type="text" id="address" name="address" value="${currentAddress.replace(/"/g, '&quot;')}">
+    <div class="hint">${hasPin ? 'A térképen már ki van jelölve egy pontos hely — kattintson máshova, ha módosítani szeretné.' : 'Kattintson a térképen a pontos helyre (ha ismeri) — ez nem kötelező, a cím alapján is megtaláljuk.'}</div>
+    <div id="map"></div>
+    <input type="hidden" id="lat" name="lat" value="${hasPin ? customer.delivery_lat : ''}">
+    <input type="hidden" id="lng" name="lng" value="${hasPin ? customer.delivery_lng : ''}">
+    <button type="submit">Mentés</button>
+  </form>
+  </div>
+
+  <script>
+    const map = L.map('map').setView([${centerLat}, ${centerLng}], ${initialZoom});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap közreműködők'
+    }).addTo(map);
+    let marker = ${hasPin ? `L.marker([${customer.delivery_lat}, ${customer.delivery_lng}]).addTo(map)` : 'null'};
+    map.on('click', function(e){
+      if (marker) map.removeLayer(marker);
+      marker = L.marker(e.latlng).addTo(map);
+      document.getElementById('lat').value = e.latlng.lat;
+      document.getElementById('lng').value = e.latlng.lng;
+    });
+  </script>
+  </body></html>`;
 }
 
 module.exports = router;

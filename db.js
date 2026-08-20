@@ -117,4 +117,15 @@ addColIfMissing('delivery_arrival_time', 'TEXT'); // ÜRES ELŐKÉSZÍTÉS a jö
                                                    // (a jelenlegi delivery_time az admin által ELŐRE megadott hozzávetőleges időpont — ez itt majd a
                                                    // valós idejű finomítás lesz, amit a kolléga ad meg, és amiről az ügyfél email/SMS értesítést kap)
 
+// Az email_templates táblához: nyomon követjük, hogy a kódban definiált alapértelmezés melyik
+// verzióját szinkronizáltuk utoljára az adott sablonhoz — így ha az admin NEM módosította kézzel
+// a sablont, egy kódbeli szöveg-frissítés automatikusan érvényesülhet nála is; ha viszont
+// módosította, a saját szövege sosem íródik felül (lásd emailTemplates.js ensureDefaultTemplates).
+const templateCols = db.prepare("PRAGMA table_info(email_templates)").all().map(c => c.name);
+function addTemplateColIfMissing(name, def) {
+  if (!templateCols.includes(name)) db.exec(`ALTER TABLE email_templates ADD COLUMN ${name} ${def}`);
+}
+addTemplateColIfMissing('default_subject', 'TEXT');
+addTemplateColIfMissing('default_html_body', 'TEXT');
+
 module.exports = db;

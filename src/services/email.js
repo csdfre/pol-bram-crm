@@ -107,12 +107,14 @@ async function sendDeliveryNotice(customer) {
     ? new Date(customer.delivery_date).toLocaleDateString('hu-HU')
     : '';
   const remainingAmount = Number(customer.delivery_remaining_amount || 0).toLocaleString('hu-HU');
+  const editLocationUrl = `${process.env.BASE_URL}/public/delivery-location/${customer.accept_token}`;
   const { subject, html } = renderTemplate('delivery_notice', {
     name: customer.name || '',
     deliveryDate,
     deliveryTime: customer.delivery_time || '',
     deliveryAddress: resolveDeliveryAddress(customer),
     mapsLink: buildMapsLink(customer) || '',
+    editLocationUrl,
     remainingAmount,
   });
   return sendMail({ to: customer.email, subject, html });

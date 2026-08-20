@@ -158,6 +158,7 @@ const DEFAULT_TEMPLATES = [
     <strong>Kiszállítási cím:</strong> {{deliveryAddress}}
   </p>
   <p><a href="{{mapsLink}}" style="color:#20242A;font-weight:bold" target="_blank">📍 Megnyitás Google Térképen</a></p>
+  <p style="font-size:13px;color:#666">Ha a fenti cím vagy helyszín pontatlan, <a href="{{editLocationUrl}}" target="_blank">itt tudja kijavítani / a térképen pontosan megjelölni</a>.</p>
   <p>A helyszínen, a kiszállításkor fizetendő fennmaradó összeg:</p>
   <p style="background:#f4f5f6;border:1px solid #e6e8ea;padding:12px 16px;border-radius:4px;font-size:16px">
     <strong>{{remainingAmount}} Ft</strong>
@@ -171,10 +172,44 @@ const DEFAULT_TEMPLATES = [
 function ensureDefaultTemplates(){
   const now = new Date().toISOString();
   DEFAULT_TEMPLATES.forEach(t=>{
-    const existing = db.prepare('SELECT id FROM email_templates WHERE key = ?').get(t.key);
+    const existing = db.prepare('SELECT * FROM email_templates WHERE key = ?').get(t.key);
     if(!existing){
-      db.prepare('INSERT INTO email_templates (key, label, subject, html_body, updated_at) VALUES (?,?,?,?,?)')
-        .run(t.key, t.label, t.subject, t.html_body, now);
+      db.prepare(`
+        INSERT INTO email_templates (key, label, subject, html_body, default_subject, default_html_body, updated_at)
+        VALUES (?,?,?,?,?,?,?)
+      `).run(t.key, t.label, t.subject, t.html_body, t.subject, t.html_body, now);
+      return;
+    }
+    // Ha az admin még sosem módosította kézzel a sablont (a jelenlegi szöveg pontosan megegyezik
+    // az utoljára szinkronizált alapértelmezéssel), és a kódban időközben megváltozott az
+    // alapértelmezett szöveg, akkor automatikusan frissítjük — enélkül egy kódbeli javítás (pl. új
+    // {{deliveryAddress}}/{{mapsLink}} placeholder hozzáadása) sosem jutott volna el a már meglévő,
+    // korábban létrehozott adatbázis-sorokhoz. Ha az admin viszont saját szövegre írta át, azt
+    // SOHA nem írjuk felül automatikusan.
+    const untouched = existing.subject === existing.default_subject && existing.html_body === existing.default_html_body;
+    const changed = existing.subject !== t.subject || existing.html_body !== t.html_body;
+    if (untouched && changed) {
+      db.prepare(`
+        UPDATE email_templates SET subject=?, html_body=?, default_subject=?, default_html_body=?, updated_at=?
+        WHERE key=?
+      `).run(t.subject, t.html_body, t.subject, t.html_body, now, t.key);
+    } else if (existing.default_subject === null) {
+      // Régebbi rekord, aminek még nincs default_subject/default_html_body mentve (a mostani
+      // verziókövetés bevezetése előtt jött létre). Alapesetben csak a KÖVETŐ mezőket töltjük fel a
+      // jelenlegi kódbeli alapértelmezéssel, a tényleges subject/html_body tartalmát NEM érintjük —
+      // hiszen nem tudhatjuk biztosan, hogy az admin kézzel szerkesztette-e már. Kivétel a
+      // 'delivery_notice': ez a sablon ismerten csak az imént jött létre kódból (még mielőtt ez a
+      // verziókövetés bekerült), tehát biztonsággal feltételezhető, hogy még senki nem módosította —
+      // ennél a tartalmat is frissítjük, hogy a cím/térkép-link mezők tényleg megjelenjenek.
+      if (t.key === 'delivery_notice') {
+        db.prepare(`
+          UPDATE email_templates SET subject=?, html_body=?, default_subject=?, default_html_body=?, updated_at=?
+          WHERE key=?
+        `).run(t.subject, t.html_body, t.subject, t.html_body, now, t.key);
+      } else {
+        db.prepare('UPDATE email_templates SET default_subject=?, default_html_body=? WHERE key=?')
+          .run(t.subject, t.html_body, t.key);
+      }
     }
   });
 }
