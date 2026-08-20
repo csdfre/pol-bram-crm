@@ -764,7 +764,7 @@ function renderDeliveryTable(rows) {
   const filtered = (!filterValue || filterValue === '__all__') ? rows : rows.filter(c => c.delivery_date === filterValue);
   const tbody = document.getElementById('deliveryTableBody');
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--graphite-soft)">Erre a napra nincs kiszállításhoz rendelt ügyfél.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--graphite-soft)">Erre a napra nincs kiszállításhoz rendelt ügyfél.</td></tr>`;
     return;
   }
   tbody.innerHTML = filtered.map(c => {
@@ -780,6 +780,7 @@ function renderDeliveryTable(rows) {
         </div>` : '';
     return `
       <tr>
+        <td><input type="number" value="${c.delivery_sequence ?? ''}" placeholder="—" onchange="updateDeliveryField(${c.id}, {sequence:this.value})" style="width:60px"></td>
         <td><input type="date" value="${c.delivery_date || ''}" onchange="updateDeliveryField(${c.id}, {deliveryDate:this.value})" style="width:140px"></td>
         <td><input type="text" value="${esc(c.delivery_time || '')}" placeholder="pl. 10:00" onchange="updateDeliveryField(${c.id}, {deliveryTime:this.value})" style="width:90px"></td>
         <td>${esc(c.name || '')}</td>
@@ -807,6 +808,15 @@ async function updateDeliveryField(customerId, payload) {
   try {
     await api(`/admin/customers/${customerId}/delivery`, { method: 'POST', body: JSON.stringify(payload) });
     loadDeliveries();
+  } catch (e) { alert(e.message); }
+}
+
+async function openFullRoute() {
+  const date = document.getElementById('deliveryDateFilter').value;
+  if (!date || date === '__all__') return alert('Válassz ki egy konkrét napot a szűrőben (nem "Összes nap együtt"-et), hogy az útvonalat meg tudjuk nyitni.');
+  try {
+    const data = await api(`/admin/deliveries/route?date=${date}`);
+    window.open(data.routeLink, '_blank');
   } catch (e) { alert(e.message); }
 }
 
@@ -908,17 +918,19 @@ async function addToDeliveryList() {
   const select = document.getElementById('deliveryCustomerSelect');
   const customerId = select.value;
   const date = document.getElementById('deliveryNewDate').value;
+  const sequence = document.getElementById('deliveryNewSequence').value;
   if (!customerId) return alert('Válassz ki egy ügyfelet a listából (kattints rá a keresési találatok közül).');
   if (!date) return alert('Add meg a kiszállítás dátumát.');
   try {
     await api(`/admin/customers/${customerId}/delivery`, {
       method: 'POST',
-      body: JSON.stringify({ deliveryDate: date, deliveryTime: '', remainingAmount: '' }),
+      body: JSON.stringify({ deliveryDate: date, deliveryTime: '', remainingAmount: '', sequence }),
     });
     document.getElementById('deliveryCustomerSearch').value = '';
     document.getElementById('deliveryCustomerSelect').style.display = 'none';
     document.getElementById('deliveryCustomerSelect').innerHTML = '';
     document.getElementById('deliveryNewDate').value = '';
+    document.getElementById('deliveryNewSequence').value = '';
     await loadDeliveries();
     // Az imént hozzáadott nap szűrőjére állunk, hogy azonnal lássa az admin az új sort.
     document.getElementById('deliveryDateFilter').value = date;
@@ -931,17 +943,19 @@ async function quickAddDeliveryCustomer() {
   const phone = document.getElementById('quickAddPhone').value.trim();
   const address = document.getElementById('quickAddAddress').value.trim();
   const date = document.getElementById('quickAddDate').value;
+  const sequence = document.getElementById('quickAddSequence').value;
   if (!name) return alert('A név megadása kötelező.');
   if (!date) return alert('Add meg a kiszállítás dátumát.');
   try {
     await api('/admin/deliveries/quick-add', {
       method: 'POST',
-      body: JSON.stringify({ name, phone, address, deliveryDate: date, deliveryTime: '', remainingAmount: '' }),
+      body: JSON.stringify({ name, phone, address, deliveryDate: date, deliveryTime: '', remainingAmount: '', sequence }),
     });
     document.getElementById('quickAddName').value = '';
     document.getElementById('quickAddPhone').value = '';
     document.getElementById('quickAddAddress').value = '';
     document.getElementById('quickAddDate').value = '';
+    document.getElementById('quickAddSequence').value = '';
     await loadDeliveries();
     document.getElementById('deliveryDateFilter').value = date;
     renderDeliveryTable(lastDeliveries);

@@ -656,20 +656,21 @@ router.post('/customers/resend-colleague-reports', async (req, res) => {
 // egyéb valódi-megrendelés-alapú lekérdezésekben ne keveredjen a tényleges garázs-rendelésekkel),
 // és rögtön hozzá is rendeljük a megadott kiszállítási dátumhoz.
 router.post('/deliveries/quick-add', (req, res) => {
-  const { name, phone, address, deliveryDate, deliveryTime, remainingAmount } = req.body;
+  const { name, phone, address, deliveryDate, deliveryTime, remainingAmount, sequence } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'A név megadása kötelező.' });
   if (!deliveryDate) return res.status(400).json({ error: 'A kiszállítás dátumának megadása kötelező.' });
   const now = new Date().toISOString();
   const info = db.prepare(`
     INSERT INTO customers
       (created_at, updated_at, status, name, phone, address,
-       delivery_date, delivery_time, delivery_remaining_amount)
-    VALUES (?, ?, 'kiszallitas_csak', ?, ?, ?, ?, ?, ?)
+       delivery_date, delivery_time, delivery_remaining_amount, delivery_sequence)
+    VALUES (?, ?, 'kiszallitas_csak', ?, ?, ?, ?, ?, ?, ?)
   `).run(
     now, now, name.trim(), phone || null, address || null,
     deliveryDate,
     deliveryTime || null,
-    remainingAmount === '' || remainingAmount === undefined || remainingAmount === null ? null : Number(remainingAmount)
+    remainingAmount === '' || remainingAmount === undefined || remainingAmount === null ? null : Number(remainingAmount),
+    sequence === '' || sequence === undefined || sequence === null ? null : Number(sequence)
   );
   res.json({ ok: true, id: info.lastInsertRowid });
 });
@@ -680,10 +681,10 @@ router.get('/deliveries', (req, res) => {
   const rows = db.prepare(`
     SELECT id, name, phone, email, address, zip, city, price_breakdown,
            delivery_date, delivery_time, delivery_remaining_amount, delivery_notice_sent_at,
-           delivery_address, delivery_lat, delivery_lng, delivery_customer_edited_at
+           delivery_address, delivery_lat, delivery_lng, delivery_customer_edited_at, delivery_sequence
     FROM customers
     WHERE delivery_date IS NOT NULL AND delivery_date != ''
-    ORDER BY delivery_date ASC, delivery_time ASC
+    ORDER BY delivery_date ASC, (delivery_sequence IS NULL), delivery_sequence ASC, delivery_time ASC
   `).all();
   const withMaps = rows.map(c => ({
     ...c,
@@ -693,6 +694,22 @@ router.get('/deliveries', (req, res) => {
   res.json({ ok: true, deliveries: withMaps });
 });
 
+// Egy adott nap összes kiszállítási helyszíne, EGYETLEN, sorban összekötött Google Maps útvonalként —
+// a jelenlegi (delivery_sequence, majd delivery_time szerinti) sorrendben.
+router.get('/deliveries/route', (req, res) => {
+  const { buildRouteLink } = require('../services/deliveryLocation');
+  const { date } = req.query;
+  if (!date) return res.status(400).json({ error: 'Hiányzik a dátum paraméter.' });
+  const rows = db.prepare(`
+    SELECT * FROM customers
+    WHERE delivery_date = ?
+    ORDER BY (delivery_sequence IS NULL), delivery_sequence ASC, delivery_time ASC
+  `).all(date);
+  const routeLink = buildRouteLink(rows);
+  if (!routeLink) return res.status(400).json({ error: 'Erre a napra nincs egyetlen érvényes cím/helyszín sem.' });
+  res.json({ ok: true, routeLink, stopCount: rows.length });
+});
+
 // Egy ügyfél kiszállítási adatainak beállítása/módosítása (dátum, időpont, fennmaradó összeg,
 // kiszállítási cím felülírás, pontos helyszín koordináták). A payload RÉSZLEGES lehet (csak azok
 // a mezők, amik ténylegesen változtak) — a nem küldött mezők a jelenlegi értéküket megtartják,
@@ -700,7 +717,7 @@ router.get('/deliveries', (req, res) => {
 router.post('/customers/:id/delivery', (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Nem található.' });
-  const { deliveryDate, deliveryTime, remainingAmount, deliveryAddress, lat, lng } = req.body;
+  const { deliveryDate, deliveryTime, remainingAmount, deliveryAddress, lat, lng, sequence } = req.body;
   const newDate = deliveryDate === undefined ? c.delivery_date : (deliveryDate || null);
   const newTime = deliveryTime === undefined ? c.delivery_time : (deliveryTime || null);
   const newAmount = remainingAmount === undefined
@@ -709,12 +726,13 @@ router.post('/customers/:id/delivery', (req, res) => {
   const newAddress = deliveryAddress === undefined ? c.delivery_address : (deliveryAddress || null);
   const newLat = lat === undefined ? c.delivery_lat : (lat === '' || lat === null ? null : Number(lat));
   const newLng = lng === undefined ? c.delivery_lng : (lng === '' || lng === null ? null : Number(lng));
+  const newSequence = sequence === undefined ? c.delivery_sequence : (sequence === '' || sequence === null ? null : Number(sequence));
   db.prepare(`
     UPDATE customers SET
       delivery_date=?, delivery_time=?, delivery_remaining_amount=?,
-      delivery_address=?, delivery_lat=?, delivery_lng=?, updated_at=?
+      delivery_address=?, delivery_lat=?, delivery_lng=?, delivery_sequence=?, updated_at=?
     WHERE id=?
-  `).run(newDate, newTime, newAmount, newAddress, newLat, newLng, new Date().toISOString(), c.id);
+  `).run(newDate, newTime, newAmount, newAddress, newLat, newLng, newSequence, new Date().toISOString(), c.id);
   res.json({ ok: true });
 });
 

@@ -47,4 +47,22 @@ function parseLatLngFromMapsLink(text) {
   return null;
 }
 
-module.exports = { resolveDeliveryAddress, buildMapsLink, parseLatLngFromMapsLink };
+/**
+ * Több megálló egyetlen, sorrendben megnyitható Google Maps útvonalává fűzése. A Google Maps a
+ * .../maps/dir/hely1/hely2/hely3 formátumú URL-t automatikusan egy, a megadott SORRENDBEN
+ * összekötött útvonalként nyitja meg — ezt használjuk ki, mindegyik állomáshoz vagy a pontos
+ * pin-koordinátát (ha van), vagy a szöveges címet adva meg.
+ */
+function buildRouteLink(customers) {
+  const stops = customers
+    .map((c) => {
+      if (c.delivery_lat != null && c.delivery_lng != null) return `${c.delivery_lat},${c.delivery_lng}`;
+      const address = resolveDeliveryAddress(c);
+      return address ? encodeURIComponent(address) : null;
+    })
+    .filter(Boolean);
+  if (!stops.length) return null;
+  return `https://www.google.com/maps/dir/${stops.join('/')}`;
+}
+
+module.exports = { resolveDeliveryAddress, buildMapsLink, parseLatLngFromMapsLink, buildRouteLink };

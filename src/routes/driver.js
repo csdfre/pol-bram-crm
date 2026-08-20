@@ -1,7 +1,7 @@
 const express = require('express');
 const cookieSession = require('cookie-session');
 const db = require('../../db');
-const { buildMapsLink, resolveDeliveryAddress } = require('../services/deliveryLocation');
+const { buildMapsLink, resolveDeliveryAddress, buildRouteLink } = require('../services/deliveryLocation');
 
 const router = express.Router();
 
@@ -151,17 +151,23 @@ router.get('/', requireDriverAuth, (req, res) => {
   const rows = db.prepare(`
     SELECT id, name, phone, address, zip, city, delivery_date, delivery_time,
            delivery_remaining_amount, delivery_address, delivery_lat, delivery_lng, delivery_arrival_time,
-           delivery_completed_at
+           delivery_completed_at, delivery_sequence
     FROM customers
     WHERE delivery_date = ?
-    ORDER BY (delivery_completed_at IS NOT NULL), delivery_time ASC
+    ORDER BY (delivery_completed_at IS NOT NULL), (delivery_sequence IS NULL), delivery_sequence ASC, delivery_time ASC
   `).all(date);
 
+  const routeLink = buildRouteLink(rows);
+  const routeButton = routeLink
+    ? '<a class="maps-btn" style="margin-bottom:14px" href="' + routeLink + '" target="_blank">Zobacz całą trasę na Mapach Google</a>'
+    : '';
+
   const cardsHtml = rows.length
-    ? rows.map(c => {
+    ? rows.map((c, idx) => {
       const mapsLink = buildMapsLink(c);
       const address = resolveDeliveryAddress(c);
       const isDone = !!c.delivery_completed_at;
+      const stopNumber = idx + 1;
       const amount = c.delivery_remaining_amount != null
         ? '<div class="amount">Do zapłaty na miejscu: ' + Number(c.delivery_remaining_amount).toLocaleString('pl-PL') + ' Ft</div>'
         : '';
@@ -181,7 +187,7 @@ router.get('/', requireDriverAuth, (req, res) => {
       );
       return (
         '<div class="card' + (isDone ? ' done' : '') + '">'
-        + '<div class="row"><span class="label">Godzina</span><span><strong>' + (c.delivery_time || '-') + '</strong></span></div>'
+        + '<div class="row"><span class="label">Kolejność / Godzina</span><span><strong>#' + stopNumber + ' — ' + (c.delivery_time || '-') + '</strong></span></div>'
         + '<div class="name">' + esc(c.name || '') + (isDone ? ' <span class="done-badge">✔ Gotowe</span>' : '') + '</div>'
         + '<div class="row"><span class="label">Adres</span><span>' + esc(address) + '</span></div>'
         + amount
@@ -226,6 +232,7 @@ router.get('/', requireDriverAuth, (req, res) => {
     + '<input type="date" name="date" value="' + date + '">'
     + '<button type="submit">Pokaż</button>'
     + '</form>'
+    + routeButton
     + cardsHtml
     + '</main>'
     + script

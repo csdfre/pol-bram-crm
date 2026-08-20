@@ -129,6 +129,7 @@
             <select id="deliveryCustomerSelect" size="6" style="width:100%;margin-top:6px;display:none;border:1px solid var(--line);border-radius:4px"></select>
           </div>
           <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Kiszállítás dátuma</label><input type="date" id="deliveryNewDate"></div>
+          <div style="width:90px"><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Sorrend</label><input type="number" id="deliveryNewSequence" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:4px" placeholder="pl. 1"></div>
           <button class="btn-main" onclick="addToDeliveryList()">Hozzáadás a listához</button>
         </div>
       </div>
@@ -141,6 +142,7 @@
           <div style="flex:1;min-width:140px"><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Telefon</label><input type="text" id="quickAddPhone" style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:4px;font-size:0.9rem"></div>
           <div style="flex:2;min-width:220px"><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Cím</label><input type="text" id="quickAddAddress" style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:4px;font-size:0.9rem"></div>
           <div><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Kiszállítás dátuma</label><input type="date" id="quickAddDate"></div>
+          <div style="width:90px"><label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Sorrend</label><input type="number" id="quickAddSequence" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:4px" placeholder="pl. 1"></div>
           <button class="btn-main" onclick="quickAddDeliveryCustomer()">Felvétel és hozzáadás</button>
         </div>
       </div>
@@ -150,12 +152,13 @@
           <label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Melyik nap fuvarjait mutassa?</label>
           <select id="deliveryDateFilter" onchange="renderDeliveryTable(lastDeliveries)" style="padding:8px 12px;border:1px solid var(--line);border-radius:4px;font-size:0.9rem;min-width:220px"></select>
         </div>
+        <button class="btn-secondary" style="width:auto" onclick="openFullRoute()">Teljes útvonal megnyitása Google Térképen</button>
       </div>
 
       <table id="deliveryTable">
         <thead>
           <tr>
-            <th>Dátum</th><th>Időpont</th><th>Név</th><th>Kiszállítási cím</th><th>Telefon</th>
+            <th>Sorrend</th><th>Dátum</th><th>Időpont</th><th>Név</th><th>Kiszállítási cím</th><th>Telefon</th>
             <th>Fennmaradó összeg (Ft)</th><th>Térkép</th><th>Értesítés</th><th></th>
           </tr>
         </thead>

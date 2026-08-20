@@ -120,6 +120,8 @@ addColIfMissing('delivery_customer_edited_at', 'TEXT'); // mikor módosította a
                                                          // felületen ez egy jelzést/értesítést jelenít meg, amíg az admin nyugtázza (törli ezt az időbélyeget)
 addColIfMissing('delivery_completed_at', 'TEXT');       // a sofőr által a driver-oldalon bepipálva: "kész vagyok ezzel az ügyféllel" — csak megjelenítési/rendezési
                                                          // célra (a kártya máshogy jelenik meg, a lista aljára kerül), a megrendelés státuszát nem érinti
+addColIfMissing('delivery_sequence', 'INTEGER');        // a szállítási sorrend (adott napon belül) — admin állítja be, ez alapján rendeződik mind az admin
+                                                         // kiszállítási lista, mind a sofőr-nézet; ha nincs megadva, időpont szerint esik a lista végére
 
 // Az email_templates táblához: nyomon követjük, hogy a kódban definiált alapértelmezés melyik
 // verzióját szinkronizáltuk utoljára az adott sablonhoz — így ha az admin NEM módosította kézzel
