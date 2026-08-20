@@ -3,6 +3,7 @@ const cookieSession = require('cookie-session');
 const db = require('../../db');
 const { resolveDeliveryAddress } = require('../services/deliveryLocation');
 const { planRoute } = require('../services/routePlanner');
+const { buildOrderFields } = require('../services/pdf');
 
 const router = express.Router();
 
@@ -17,6 +18,38 @@ const LOGISTICS_USERNAME = 'Logistyka';
 const LOGISTICS_PASSWORD = '9876543';
 
 const LOGISTICS_STATUSES = ['megrendelolap_kikuldve', 'megrendelolap_elfogadva', 'elolegszamla_kikuldve'];
+
+/**
+ * Rövid, lengyel nyelvű specifikáció-összefoglaló a garázsról — a logisztikusnak ez alapján kell
+ * tudnia megbecsülni/ellenőrizni a telepítési időt (egy nagyobb, több kapus, összetettebb garázs
+ * nyilván tovább tart, mint egy egyszerű, kisebb). Ugyanazt a karbantartott HU/PL fordítási
+ * szótárat használja (buildOrderFields, pdf.js), amit a kolléganő-Excel és a PL PDF is használ.
+ */
+function buildSpecSummary(formDataJson) {
+  if (!formDataJson) return '-';
+  let fd;
+  try { fd = JSON.parse(formDataJson); } catch (e) { return '-'; }
+  const sections = buildOrderFields(fd, 'pl', false, null);
+  function val(sectionName, label) {
+    const sec = sections.find(function (s) { return s.section === sectionName; });
+    if (!sec) return null;
+    const item = sec.items.find(function (i) { return i.label === label; });
+    return item ? item.value : null;
+  }
+  const w = (parseFloat(fd.width) || 0) / 100;
+  const l = (parseFloat(fd.length) || 0) / 100;
+  const h = fd.height || 213;
+  const roofType = val('Dach', 'Typ dachu') || '-';
+  const gateSection = sections.find(function (s) { return s.section === 'Brama garażowa'; });
+  let gateInfo = 'brak bramy';
+  if (gateSection && !gateSection.isEmpty) {
+    const count = val('Brama garażowa', 'Ilość bram (szt.)') || 1;
+    const gw = val('Brama garażowa', 'Szerokość bramy') || '-';
+    gateInfo = count + 'x brama (' + gw + ')';
+  }
+  const structType = val('Konstrukcja', 'Typ') || '-';
+  return w + 'x' + l + ' m (wys. ' + h + ' cm), dach: ' + roofType + ', ' + gateInfo + ', konstrukcja: ' + structType;
+}
 
 function requireLogisticsAuth(req, res, next) {
   if (req.session && req.session.logisticsAuthed) return next();
@@ -128,14 +161,20 @@ router.get('/api/customers', requireLogisticsAuth, async function (req, res) {
   const placeholders = LOGISTICS_STATUSES.map(function () { return '?'; }).join(',');
   const stmt = db.prepare(
     'SELECT id, name, phone, email, address, zip, city, price_huf, created_at, offer_sent_at, '
-    + 'delivery_lat, delivery_lng, delivery_address, installation_duration_min, '
+    + 'delivery_lat, delivery_lng, delivery_address, installation_duration_min, form_data, '
     + 'logistics_plan_day, logistics_plan_order, logistics_plan_eta '
     + 'FROM customers WHERE status IN (' + placeholders + ') ORDER BY created_at ASC'
   );
   const rows = stmt.all(...LOGISTICS_STATUSES);
   await ensureCoordinates(rows);
   const withAddress = rows.map(function (c) {
-    return Object.assign({}, c, { resolved_address: resolveDeliveryAddress(c) });
+    const specSummary = buildSpecSummary(c.form_data);
+    const clean = Object.assign({}, c);
+    delete clean.form_data;
+    return Object.assign(clean, {
+      resolved_address: resolveDeliveryAddress(c),
+      spec_summary: specSummary,
+    });
   });
   res.json({ ok: true, customers: withAddress });
 });
@@ -216,7 +255,7 @@ function buildClientScript() {
     + '    wrap.innerHTML = "<p style=\\"color:#7a828a\\">Brak zamowien oczekujacych na montaz.</p>";'
     + '    return;'
     + '  }'
-    + '  let html = "<table><thead><tr><th></th><th>Klient</th><th>Adres</th><th>Telefon</th><th>Cena</th><th>Zgloszono</th><th>Czas montazu (min)</th><th>Ostatni plan</th></tr></thead><tbody>";'
+    + '  let html = "<table><thead><tr><th></th><th>Klient</th><th>Adres</th><th>Specyfikacja</th><th>Telefon</th><th>Cena</th><th>Zgloszono</th><th>Czas montazu (min)</th><th>Ostatni plan</th></tr></thead><tbody>";'
     + '  customersData.forEach(function (c) {'
     + '    const price = c.price_huf ? Number(c.price_huf).toLocaleString("pl-PL") + " Ft" : "-";'
     + '    const created = new Date(c.created_at).toLocaleDateString("pl-PL");'
@@ -225,6 +264,7 @@ function buildClientScript() {
     + '      + "<td><input type=\\"checkbox\\" class=\\"planCheck\\" value=\\"" + c.id + "\\" checked></td>"'
     + '      + "<td>" + escapeHtml(c.name || "") + "</td>"'
     + '      + "<td>" + escapeHtml(c.resolved_address || "") + "</td>"'
+    + '      + "<td style=\\"max-width:260px\\">" + escapeHtml(c.spec_summary || "-") + "</td>"'
     + '      + "<td>" + escapeHtml(c.phone || "") + "</td>"'
     + '      + "<td>" + price + "</td>"'
     + '      + "<td>" + created + "</td>"'
@@ -248,7 +288,7 @@ function buildClientScript() {
     + '  markers = [];'
     + '  customersData.forEach(function (c) {'
     + '    if (c.delivery_lat != null && c.delivery_lng != null) {'
-    + '      const m = L.marker([c.delivery_lat, c.delivery_lng]).addTo(map).bindPopup(escapeHtml(c.name || "") + "<br>" + escapeHtml(c.resolved_address || ""));'
+    + '      const m = L.marker([c.delivery_lat, c.delivery_lng]).addTo(map).bindPopup(escapeHtml(c.name || "") + "<br>" + escapeHtml(c.resolved_address || "") + "<br><small>" + escapeHtml(c.spec_summary || "") + "</small>");'
     + '      markers.push(m);'
     + '    }'
     + '  });'
