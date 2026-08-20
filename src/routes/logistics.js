@@ -182,6 +182,8 @@ router.get('/api/customers', requireLogisticsAuth, async function (req, res) {
 router.post('/api/generate-plan', requireLogisticsAuth, function (req, res) {
   const customerIds = req.body.customerIds;
   const days = req.body.days;
+  const dayStart = req.body.dayStart || '04:30';
+  const dayEnd = req.body.dayEnd || '20:30';
   if (!Array.isArray(customerIds) || !customerIds.length) return res.status(400).json({ error: 'Nincs kivalasztott megrendeles.' });
   const placeholders = customerIds.map(function () { return '?'; }).join(',');
   const stmt = db.prepare('SELECT * FROM customers WHERE id IN (' + placeholders + ')');
@@ -196,7 +198,7 @@ router.post('/api/generate-plan', requireLogisticsAuth, function (req, res) {
       installationMin: c.installation_duration_min || 90,
     };
   });
-  const plan = planRoute(input, { days: days === 2 ? 2 : 1 });
+  const plan = planRoute(input, { days: days === 2 ? 2 : 1, dayStart: dayStart, dayEnd: dayEnd });
 
   const now = new Date().toISOString();
   [plan.day1, plan.day2].forEach(function (dayStops, dayIdx) {
@@ -229,6 +231,8 @@ router.get('/', requireLogisticsAuth, function (req, res) {
     + '<h3 style="margin-top:0">Automatyczny plan trasy</h3>'
     + '<div class="plan-controls">'
     + '<div><label>Liczba dni</label><br><select id="planDays"><option value="1">1 dzien</option><option value="2">2 dni</option></select></div>'
+    + '<div><label>Godzina rozpoczecia</label><br><input type="time" id="planDayStart" value="04:30"></div>'
+    + '<div><label>Godzina zakonczenia</label><br><input type="time" id="planDayEnd" value="20:30"></div>'
     + '<button onclick="generatePlan()">Wygeneruj plan trasy</button>'
     + '</div>'
     + '<div id="planResult"></div>'
@@ -295,17 +299,49 @@ function buildClientScript() {
     + '    }'
     + '  });'
     + '}'
+    + 'let routeLayers = [];'
+    + 'function renderRouteOnMap(plan) {'
+    + '  routeLayers.forEach(function (l) { map.removeLayer(l); });'
+    + '  routeLayers = [];'
+    + '  const dayStyles = [ { color: "#2a72c4", label: "1" }, { color: "#c4622a", label: "2" } ];'
+    + '  [plan.day1, plan.day2].forEach(function (stops, dayIdx) {'
+    + '    if (!stops.length) return;'
+    + '    const style = dayStyles[dayIdx];'
+    + '    const latlngs = stops.filter(function(s){return s.lat!=null && s.lng!=null;}).map(function (s) { return [s.lat, s.lng]; });'
+    + '    if (latlngs.length > 1) {'
+    + '      const line = L.polyline(latlngs, { color: style.color, weight: 4, opacity: 0.8, dashArray: dayIdx === 1 ? "8,6" : null }).addTo(map);'
+    + '      routeLayers.push(line);'
+    + '    }'
+    + '    stops.forEach(function (s, i) {'
+    + '      if (s.lat == null || s.lng == null) return;'
+    + '      const icon = L.divIcon({'
+    + '        className: "",'
+    + '        html: "<div style=\\"background:" + style.color + ";color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)\\">" + (i+1) + "</div>",'
+    + '        iconSize: [26, 26], iconAnchor: [13, 13],'
+    + '      });'
+    + '      const marker = L.marker([s.lat, s.lng], { icon: icon }).addTo(map)'
+    + '        .bindPopup("Dzien " + style.label + ", #" + (i+1) + " - " + s.eta + "<br>" + escapeHtml(s.name || ""));'
+    + '      routeLayers.push(marker);'
+    + '    });'
+    + '  });'
+    + '  const allLatLngs = [];'
+    + '  [plan.day1, plan.day2].forEach(function (stops) { stops.forEach(function (s) { if (s.lat != null && s.lng != null) allLatLngs.push([s.lat, s.lng]); }); });'
+    + '  if (allLatLngs.length) map.fitBounds(allLatLngs, { padding: [30, 30] });'
+    + '}'
     + 'async function generatePlan() {'
     + '  const ids = Array.from(document.querySelectorAll(".planCheck:checked")).map(function (el) { return Number(el.value); });'
     + '  if (!ids.length) { alert("Zaznacz przynajmniej jedno zamowienie."); return; }'
     + '  const days = Number(document.getElementById("planDays").value);'
+    + '  const dayStart = document.getElementById("planDayStart").value || "04:30";'
+    + '  const dayEnd = document.getElementById("planDayEnd").value || "20:30";'
     + '  const res = await fetch("/logistics/api/generate-plan", {'
     + '    method: "POST", headers: { "Content-Type": "application/json" },'
-    + '    body: JSON.stringify({ customerIds: ids, days: days }),'
+    + '    body: JSON.stringify({ customerIds: ids, days: days, dayStart: dayStart, dayEnd: dayEnd }),'
     + '  });'
     + '  const data = await res.json();'
     + '  if (!res.ok) { alert(data.error || "Blad"); return; }'
     + '  renderPlan(data.plan);'
+    + '  renderRouteOnMap(data.plan);'
     + '  loadCustomers();'
     + '}'
     + 'function renderPlan(plan) {'

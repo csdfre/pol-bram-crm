@@ -23,8 +23,8 @@
  */
 
 const AVG_SPEED_KMH = 55; // óvatos átlagsebesség-becslés (vegyes autópálya/vidéki út, megállásokkal)
-const DAY_START = '04:30';
-const DAY_END = '20:30';
+const DEFAULT_DAY_START = '04:30';
+const DEFAULT_DAY_END = '20:30';
 const MAX_PRIORITY_BONUS_KM = 35; // ennyi "km-nyi" előnyt kaphat legfeljebb a legrégebb óta váró megrendelés
 
 function haversineKm(lat1, lng1, lat2, lng2) {
@@ -55,10 +55,10 @@ function minutesToTimeStr(totalMin) {
 
 /**
  * @param {Array} customers - { id, name, lat, lng, createdAt (ISO string), installationMin }
- * @param {Object} options - { days: 1|2 }
+ * @param {Object} options - { days: 1|2, dayStart: "HH:MM", dayEnd: "HH:MM" }
  * @returns {Object} { day1: [...], day2: [...], unscheduled: [...] }
  */
-function planRoute(customers, { days = 1 } = {}) {
+function planRoute(customers, { days = 1, dayStart = DEFAULT_DAY_START, dayEnd = DEFAULT_DAY_END } = {}) {
   const valid = customers.filter((c) => typeof c.lat === 'number' && typeof c.lng === 'number' && !Number.isNaN(c.lat) && !Number.isNaN(c.lng));
   const skippedNoLocation = customers.filter((c) => !valid.includes(c));
 
@@ -108,11 +108,11 @@ function planRoute(customers, { days = 1 } = {}) {
     orderedStops.push(current);
   }
 
-  // Menetrend-építés: naponta DAY_START-tól DAY_END-ig, útközben az utazási + telepítési idővel.
-  const dayEndMin = timeStrToMinutes(DAY_END);
+  // Menetrend-építés: naponta dayStart-tól dayEnd-ig, útközben az utazási + telepítési idővel.
+  const dayEndMin = timeStrToMinutes(dayEnd);
   const days_ = [[], []];
   let dayIdx = 0;
-  let clock = timeStrToMinutes(DAY_START);
+  let clock = timeStrToMinutes(dayStart);
   let prevStop = null;
   const unscheduled = [];
 
@@ -125,7 +125,7 @@ function planRoute(customers, { days = 1 } = {}) {
       if (dayIdx === 0 && days === 2) {
         // Átlépünk a 2. napra, onnan folytatva (a mai utolsó megállótól).
         dayIdx = 1;
-        clock = timeStrToMinutes(DAY_START);
+        clock = timeStrToMinutes(dayStart);
         const travelMin2 = prevStop ? travelMinutes(haversineKm(prevStop.lat, prevStop.lng, stop.lat, stop.lng)) : 0;
         const arrival2 = clock + travelMin2;
         const done2 = arrival2 + (stop.installationMin || 90);
@@ -146,4 +146,4 @@ function planRoute(customers, { days = 1 } = {}) {
   return { day1: days_[0], day2: days_[1], unscheduled, skippedNoLocation };
 }
 
-module.exports = { planRoute, haversineKm, travelMinutes, AVG_SPEED_KMH, DAY_START, DAY_END };
+module.exports = { planRoute, haversineKm, travelMinutes, AVG_SPEED_KMH, DEFAULT_DAY_START, DEFAULT_DAY_END };
