@@ -51,6 +51,9 @@ function layout(title, bodyHtml) {
     + '.name { font-size: 1.15rem; font-weight: bold; margin-bottom: 6px; }'
     + '.row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.95rem; }'
     + '.row .label { color: #7a828a; }'
+    + '.address-box { background: #eaf3fb; border-left: 4px solid #2a72c4; border-radius: 6px; padding: 10px 12px; margin: 10px 0; }'
+    + '.address-box .label { display: block; color: #2a72c4; font-size: 0.72rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; }'
+    + '.address-box .value { font-size: 1.05rem; font-weight: bold; color: #14304d; }'
     + '.amount { font-size: 1.3rem; font-weight: bold; color: #20242A; margin-top: 8px; }'
     + '.maps-btn { display: block; text-align: center; background: #20242A; color: #fff; text-decoration: none; padding: 12px; border-radius: 6px; margin-top: 12px; font-weight: bold; }'
     + '.phone-btn { display: block; text-align: center; background: #fafbfb; border: 1px solid #e6e8ea; color: #20242A; text-decoration: none; padding: 10px; border-radius: 6px; margin-top: 8px; font-size: 0.9rem; }'
@@ -189,7 +192,7 @@ router.get('/', requireDriverAuth, (req, res) => {
         '<div class="card' + (isDone ? ' done' : '') + '">'
         + '<div class="row"><span class="label">Kolejność / Godzina</span><span><strong>#' + stopNumber + ' — ' + (c.delivery_time || '-') + '</strong></span></div>'
         + '<div class="name">' + esc(c.name || '') + (isDone ? ' <span class="done-badge">✔ Gotowe</span>' : '') + '</div>'
-        + '<div class="row"><span class="label">Adres</span><span>' + esc(address) + '</span></div>'
+        + '<div class="address-box"><span class="label">Adres</span><span class="value">' + esc(address) + '</span></div>'
         + amount
         + (mapsLink ? '<a class="maps-btn" href="' + mapsLink + '" target="_blank">Nawigacja Google Maps</a>' : '')
         + (c.phone ? '<a class="phone-btn" href="tel:' + esc(c.phone) + '">Zadzwoń: ' + esc(c.phone) + '</a>' : '')
