@@ -2,7 +2,7 @@ const express = require('express');
 const cookieSession = require('cookie-session');
 const db = require('../../db');
 const { resolveDeliveryAddress } = require('../services/deliveryLocation');
-const { planRoute } = require('../services/routePlanner');
+const { generatePlanOptions } = require('../services/routePlanner');
 const { buildOrderFields } = require('../services/pdf');
 
 const router = express.Router();
@@ -198,21 +198,30 @@ router.post('/api/generate-plan', requireLogisticsAuth, function (req, res) {
       installationMin: c.installation_duration_min || 90,
     };
   });
-  const plan = planRoute(input, { days: days === 2 ? 2 : 1, dayStart: dayStart, dayEnd: dayEnd });
+  // Nem EGYETLEN, kötelezően elfogadandó tervet adunk vissza, hanem több, eltérő hangsúlyú
+  // változatot — a logisztikus összehasonlíthatja őket, és a /api/apply-plan végponton keresztül
+  // választja ki, melyiket alkalmazza ténylegesen (addig semmi nem kerül mentésre az adatbázisba).
+  const options = generatePlanOptions(input, { days: days === 2 ? 2 : 1, dayStart: dayStart, dayEnd: dayEnd });
+  res.json({ ok: true, options: options });
+});
 
+// A logisztikus által kiválasztott konkrét terv-változat véglegesítése — csak ekkor írjuk vissza
+// az adatbázisba a nap/sorrend/ETA mezőket.
+router.post('/api/apply-plan', requireLogisticsAuth, function (req, res) {
+  const plan = req.body.plan;
+  if (!plan) return res.status(400).json({ error: 'Hianyzik a terv.' });
   const now = new Date().toISOString();
-  [plan.day1, plan.day2].forEach(function (dayStops, dayIdx) {
+  [plan.day1 || [], plan.day2 || []].forEach(function (dayStops, dayIdx) {
     dayStops.forEach(function (stop, orderIdx) {
       db.prepare('UPDATE customers SET logistics_plan_day=?, logistics_plan_order=?, logistics_plan_eta=?, updated_at=? WHERE id=?')
         .run(dayIdx + 1, orderIdx + 1, stop.eta, now, stop.id);
     });
   });
-  plan.unscheduled.forEach(function (stop) {
+  (plan.unscheduled || []).forEach(function (stop) {
     db.prepare('UPDATE customers SET logistics_plan_day=NULL, logistics_plan_order=NULL, logistics_plan_eta=NULL, updated_at=? WHERE id=?')
       .run(now, stop.id);
   });
-
-  res.json({ ok: true, plan: plan });
+  res.json({ ok: true });
 });
 
 router.get('/', requireLogisticsAuth, function (req, res) {
@@ -349,12 +358,50 @@ function buildClientScript() {
     + '  });'
     + '  const data = await res.json();'
     + '  if (!res.ok) { alert(data.error || "Blad"); return; }'
-    + '  renderPlan(data.plan);'
-    + '  renderRouteOnMap(data.plan);'
+    + '  lastPlanOptions = data.options;'
+    + '  renderPlanOptions(data.options);'
+    + '}'
+    + 'let lastPlanOptions = [];'
+    + 'function renderPlanOptions(options) {'
+    + '  const el = document.getElementById("planResult");'
+    + '  let html = "<p style=\\"color:#7a828a;font-size:0.85rem\\">Wybierz jedna z ponizszych opcji trasy - zadna nie zostanie zastosowana, dopoki nie klikniesz \\"Zastosuj ten plan\\".</p>";'
+    + '  html += "<div style=\\"display:flex;gap:16px;flex-wrap:wrap\\">";'
+    + '  options.forEach(function (opt, idx) {'
+    + '    const s = opt.summary;'
+    + '    html += "<div class=\\"panel\\" style=\\"flex:1;min-width:280px;border:2px solid #e6e8ea\\">";'
+    + '    html += "<h4 style=\\"margin-top:0\\">" + escapeHtml(opt.label) + "</h4>";'
+    + '    html += "<div style=\\"font-size:0.85rem;color:#454C54;margin-bottom:10px\\">";'
+    + '    html += "Zatrzymania: " + s.stopCount + (s.unscheduledCount ? (" (" + s.unscheduledCount + " nie zmiescilo sie)") : "") + "<br>";'
+    + '    html += "Koniec: dzien " + s.finishDay + ", " + (s.finishTime || "-") + "<br>";'
+    + '    html += "Laczny czas dojazdu: " + s.totalTravelMin + " min";'
+    + '    if (s.overrunCount) html += "<br><span style=\\"color:#b23a3a\\">" + s.overrunCount + " zatrzymanie(a) przekracza planowana godzine</span>";'
+    + '    html += "</div>";'
+    + '    html += "<button onclick=\\"previewPlanOption(" + idx + ")\\" style=\\"background:#fafbfb;border:1px solid #e6e8ea;margin-bottom:8px\\">Podglad na mapie / liscie</button> ";'
+    + '    html += "<button onclick=\\"applyPlanOption(" + idx + ")\\">Zastosuj ten plan</button>";'
+    + '    html += "<div id=\\"planDetail" + idx + "\\"></div>";'
+    + '    html += "</div>";'
+    + '  });'
+    + '  html += "</div>";'
+    + '  el.innerHTML = html;'
+    + '}'
+    + 'function previewPlanOption(idx) {'
+    + '  const opt = lastPlanOptions[idx];'
+    + '  renderRouteOnMap(opt.plan);'
+    + '  document.getElementById("planDetail" + idx).innerHTML = renderPlanDetailHtml(opt.plan);'
+    + '}'
+    + 'async function applyPlanOption(idx) {'
+    + '  const opt = lastPlanOptions[idx];'
+    + '  const res = await fetch("/logistics/api/apply-plan", {'
+    + '    method: "POST", headers: { "Content-Type": "application/json" },'
+    + '    body: JSON.stringify({ plan: opt.plan }),'
+    + '  });'
+    + '  const data = await res.json();'
+    + '  if (!res.ok) { alert(data.error || "Blad"); return; }'
+    + '  alert("Plan zastosowany: " + opt.label);'
+    + '  renderRouteOnMap(opt.plan);'
     + '  loadCustomers();'
     + '}'
-    + 'function renderPlan(plan) {'
-    + '  const el = document.getElementById("planResult");'
+    + 'function renderPlanDetailHtml(plan) {'
     + '  function renderDay(title, stops) {'
     + '    if (!stops.length) return "";'
     + '    let html = "<div class=\\"day-col\\"><h4>" + title + "</h4>";'
@@ -364,7 +411,7 @@ function buildClientScript() {
     + '    html += "</div>";'
     + '    return html;'
     + '  }'
-    + '  let html = "<div style=\\"display:flex;gap:20px;flex-wrap:wrap\\">";'
+    + '  let html = "<div style=\\"display:flex;gap:20px;flex-wrap:wrap;margin-top:10px\\">";'
     + '  html += renderDay("Dzien 1", plan.day1);'
     + '  html += renderDay("Dzien 2", plan.day2);'
     + '  html += "</div>";'
@@ -374,7 +421,7 @@ function buildClientScript() {
     + '  if (plan.skippedNoLocation && plan.skippedNoLocation.length) {'
     + '    html += "<div class=\\"warn\\">Brak lokalizacji (nie udalo sie zgeokodowac adresu): " + plan.skippedNoLocation.map(function(s){return escapeHtml(s.name||"");}).join(", ") + "</div>";'
     + '  }'
-    + '  el.innerHTML = html;'
+    + '  return html;'
     + '}'
     + 'function escapeHtml(s) {'
     + '  const d = document.createElement("div"); d.innerText = s; return d.innerHTML;'
