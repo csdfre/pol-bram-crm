@@ -1577,7 +1577,10 @@ function renderSketch(){
       const alongLen = Math.hypot(alongRaw.x, alongRaw.y) || 1;
       const along = { x: alongRaw.x / alongLen, y: alongRaw.y / alongLen };
       const handle = hEl.value;
-      const hingeSign = handle==='left' ? 1 : -1; // a zsanér a kilincs ellentétes oldalán van
+      // FONTOS: a "kilincs oldala" (bal/jobb) a fal KÜLSŐ oldaláról nézve értendő (mintha kívülről,
+      // a garázzsal szemben állna valaki) — ez alapján számoltuk újra a zsanér irányát; ha ez a
+      // konvenció mégsem stimmelne egy konkrét esetben, ez az előjel az, amit módosítani kell.
+      const hingeSign = handle==='left' ? -1 : 1; // a zsanér a kilincs ellentétes oldalán van
       const R = Math.max(6, doorWidthCm*scale*0.9);
       const halfDoorPx = Math.max(4, doorWidthCm*scale)/2;
       // zsanér a falon (a nyílás egyik szélén, a kilincstől távolabb) — pontosan a jelölő sarkával egyvonalban
