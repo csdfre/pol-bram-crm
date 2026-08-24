@@ -25,13 +25,38 @@ function getBrowser() {
         '--disable-setuid-sandbox',
         // Kis memóriájú szerveren (pl. Render alapcsomag) segítenek csökkenteni a Chromium
         // memóriaigényét — megosztott memória korlátozása és felesleges háttérfolyamatok tiltása.
+        // FONTOS: a "--single-process" kapcsolót SZÁNDÉKOSAN nem használjuk (bár tovább
+        // csökkentené a memóriaigényt) — kipróbálva instabilnak bizonyult (a Chromium
+        // összeomlott vele, "Protocol error: Connection closed" hibát okozva minden, a megosztott
+        // böngészőre épülő funkciónál), tehát itt a stabilitás fontosabb, mint a további
+        // memória-megtakarítás.
         '--disable-dev-shm-usage',
         '--disable-gpu',
-        '--single-process',
       ],
     });
+    browserPromise.then((browser) => {
+      // Ha a böngésző összeomlik/kilép, azonnal jelezzük ezt magunknak (ne várjuk meg a következő
+      // kérést) — a legközelebbi getBrowser()-hívás így friss példányt indít újra.
+      browser.on('disconnected', () => { browserPromise = null; });
+    }).catch(() => { browserPromise = null; });
   }
   return browserPromise;
 }
 
-module.exports = { getBrowser };
+/**
+ * A megosztott böngésző-példány ELÉRÉSE úgy, hogy közben ellenőrizzük: még ténylegesen működik-e
+ * (nem omlott-e össze/szakadt-e meg a kapcsolat). Ha igen, automatikusan újraindítjuk — enélkül egy
+ * egyszeri Chromium-összeomlás TARTÓSAN elrontana minden Puppeteer-re épülő funkciót (élő rajz, PDF,
+ * kolléganő-Excel), amíg valaki manuálisan újra nem indítja a teljes szervert.
+ */
+async function getHealthyBrowser() {
+  let browser = await getBrowser();
+  if (!browser.isConnected()) {
+    console.error('[browserPool] A megosztott Chromium-példány megszakadt/összeomlott — újraindítás.');
+    browserPromise = null;
+    browser = await getBrowser();
+  }
+  return browser;
+}
+
+module.exports = { getBrowser: getHealthyBrowser };
