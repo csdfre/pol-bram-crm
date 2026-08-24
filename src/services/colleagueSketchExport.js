@@ -1,4 +1,4 @@
-const puppeteer = require('puppeteer');
+const { getBrowser } = require('./browserPool');
 const { translateSketchToPolish } = require('./pdf');
 const { renderLiveSketchSvg } = require('./liveSketch');
 
@@ -9,15 +9,10 @@ const { renderLiveSketchSvg } = require('./liveSketch');
  * rendszer által már elmentett/generált SVG-t (customer.sketch_svg, vagy ha az hiányzik,
  * renderLiveSketchSvg-vel frissen legenerálva) alakítjuk át pusztán színben/stílusban, a
  * geometria (méretek, kapu/ajtó/ablak pozíciók) TELJESEN VÁLTOZATLAN marad.
+ *
+ * A böngésző-példányt a browserPool.js-ből kapja (megosztva a rendszer többi Puppeteer-használatával
+ * — liveSketch.js, pdf.js), NEM indít saját, külön Chromium-folyamatot.
  */
-
-let browserPromise = null;
-function getBrowser() {
-  if (!browserPromise) {
-    browserPromise = puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-  }
-  return browserPromise;
-}
 
 /**
  * A megadott (már lengyelre fordított feliratú) SVG-t fehér hátterű, fekete vonalas, nagyfelbontású

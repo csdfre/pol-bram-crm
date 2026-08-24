@@ -1,17 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('puppeteer');
-
-let browserPromise = null;
-function getBrowser() {
-  if (!browserPromise) {
-    browserPromise = puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-  }
-  return browserPromise;
-}
+const { getBrowser } = require('./browserPool');
 
 // A valódi ügyfél-oldali form HTML-jét egyszer betöltjük memóriába (nem kell minden hívásnál fájlból olvasni)
 const CUSTOMER_FORM_PATH = path.join(__dirname, '..', '..', 'public', 'site', 'index.html');
@@ -29,64 +18,74 @@ function getCustomerFormHtml() {
 async function preparePage(formData) {
   const browser = await getBrowser();
   const page = await browser.newPage();
-  const pageErrors = [];
-  page.on('pageerror', (err) => pageErrors.push('pageerror: ' + err.message));
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') {
-      // A Puppeteer néha csak "JSHandle@error"-t ad vissza objektum-argumentumoknál — megpróbáljuk
-      // a tényleges hibaszöveget is kiolvasni, ha lehetséges.
-      Promise.all(msg.args().map(a => a.jsonValue().catch(() => a.toString())))
-        .then(vals => pageErrors.push('console.error: ' + vals.map(v => typeof v === 'object' ? JSON.stringify(v) : v).join(' ')))
-        .catch(() => pageErrors.push('console.error: ' + msg.text()));
-    }
-  });
-  // Fontos: egy valós asztali böngészőnek megfelelő ablakméretet állítunk be — a rajz-motor a
-  // konténer tényleges megjelenített méretéből számolja a méretarányt (cm -> pixel), és Puppeteer
-  // alapértelmezett (kis) ablakmérete ezt a számítást elronthatja, aminek a rajz szétesése a következménye.
-  await page.setViewport({ width: 1400, height: 1000 });
-  await page.setRequestInterception(true);
-  page.on('request', (req) => {
-    if (req.url().includes('/public/garage-types')) {
-      // Nem elutasítjuk (abort) a kérést, mert az hibát dobhat a form saját kódjában, ami
-      // megszakíthatja a további inicializálást (pl. a rajz renderelését is). Ehelyett egy
-      // ártalmatlan, sikeres, de üres választ adunk — a form ezt normál esetként kezeli.
-      req.respond({ status: 200, contentType: 'application/json', body: '[]' }).catch(() => {});
-    } else {
-      req.continue().catch(() => {});
-    }
-  });
-  await page.setContent(getCustomerFormHtml(), { waitUntil: 'load', timeout: 15000 });
-  // Biztosra megyünk, hogy a form saját induló inicializálása (választógombok bekötése, kezdeti rajz)
-  // teljesen lefutott — ez tartalmazhat egy kis (setTimeout-alapú) késleltetést is a form saját kódjában.
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  const evalResult = await page.evaluate((data) => {
-    try {
-      if (typeof window.applyFormState !== 'function') {
-        return { error: 'applyFormState nem található a form oldalán.' };
+  try {
+    const pageErrors = [];
+    page.on('pageerror', (err) => pageErrors.push('pageerror: ' + err.message));
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        // A Puppeteer néha csak "JSHandle@error"-t ad vissza objektum-argumentumoknál — megpróbáljuk
+        // a tényleges hibaszöveget is kiolvasni, ha lehetséges.
+        Promise.all(msg.args().map(a => a.jsonValue().catch(() => a.toString())))
+          .then(vals => pageErrors.push('console.error: ' + vals.map(v => typeof v === 'object' ? JSON.stringify(v) : v).join(' ')))
+          .catch(() => pageErrors.push('console.error: ' + msg.text()));
       }
-      window.applyFormState(data);
-      if (typeof window.refreshAll === 'function') window.refreshAll();
-      if (typeof window.renderSketch === 'function') window.renderSketch();
-      const container = document.getElementById('sketch');
-      return {
-        ok: true,
-        diag: {
-          hasContainer: !!container,
-          containerHtmlLength: container ? container.innerHTML.length : -1,
-          containerHtmlSample: container ? container.innerHTML.slice(0, 200) : '',
-        },
-      };
-    } catch (e) {
-      return { error: 'Kliens-oldali hiba: ' + e.message + ' | Stack: ' + (e.stack||'').slice(0,300) };
-    }
-  }, formData);
+    });
+    // Fontos: egy valós asztali böngészőnek megfelelő ablakméretet állítunk be — a rajz-motor a
+    // konténer tényleges megjelenített méretéből számolja a méretarányt (cm -> pixel), és Puppeteer
+    // alapértelmezett (kis) ablakmérete ezt a számítást elronthatja, aminek a rajz szétesése a következménye.
+    await page.setViewport({ width: 1400, height: 1000 });
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      if (req.url().includes('/public/garage-types')) {
+        // Nem elutasítjuk (abort) a kérést, mert az hibát dobhat a form saját kódjában, ami
+        // megszakíthatja a további inicializálást (pl. a rajz renderelését is). Ehelyett egy
+        // ártalmatlan, sikeres, de üres választ adunk — a form ezt normál esetként kezeli.
+        req.respond({ status: 200, contentType: 'application/json', body: '[]' }).catch(() => {});
+      } else {
+        req.continue().catch(() => {});
+      }
+    });
+    await page.setContent(getCustomerFormHtml(), { waitUntil: 'load', timeout: 15000 });
+    // Biztosra megyünk, hogy a form saját induló inicializálása (választógombok bekötése, kezdeti rajz)
+    // teljesen lefutott — ez tartalmazhat egy kis (setTimeout-alapú) késleltetést is a form saját kódjában.
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
-  if (evalResult.error) {
-    await page.close();
-    throw new Error(evalResult.error + (pageErrors.length ? ' | Oldal hibák: ' + pageErrors.join('; ') : ''));
+    const evalResult = await page.evaluate((data) => {
+      try {
+        if (typeof window.applyFormState !== 'function') {
+          return { error: 'applyFormState nem található a form oldalán.' };
+        }
+        window.applyFormState(data);
+        if (typeof window.refreshAll === 'function') window.refreshAll();
+        if (typeof window.renderSketch === 'function') window.renderSketch();
+        const container = document.getElementById('sketch');
+        return {
+          ok: true,
+          diag: {
+            hasContainer: !!container,
+            containerHtmlLength: container ? container.innerHTML.length : -1,
+            containerHtmlSample: container ? container.innerHTML.slice(0, 200) : '',
+          },
+        };
+      } catch (e) {
+        return { error: 'Kliens-oldali hiba: ' + e.message + ' | Stack: ' + (e.stack||'').slice(0,300) };
+      }
+    }, formData);
+
+    if (evalResult.error) {
+      throw new Error(evalResult.error + (pageErrors.length ? ' | Oldal hibák: ' + pageErrors.join('; ') : ''));
+    }
+    // FONTOS: itt (sikeres eset) SZÁNDÉKOSAN nem zárjuk be a lapot — a hívó fél (renderLiveSketchSvg/
+    // renderLiveSketchPng) kapja meg és zárja be a saját try/finally blokkjában, miután felhasználta.
+    return { page, pageErrors, diag: evalResult.diag };
+  } catch (err) {
+    // Bármilyen hiba történjen is a fenti előkészítés SORÁN (pl. setContent időtúllépés, evaluate
+    // hiba) — korábban ez a lap-bezárás elmaradásához (memóriaszivárgáshoz) vezetett, mert csak az
+    // explicit "evalResult.error" ág zárta be a lapot. Most egy közös try/catch garantálja, hogy a
+    // lap MINDEN hibaágon bezáródik, mielőtt a hiba továbbdobódik.
+    await page.close().catch(() => {});
+    throw err;
   }
-  return { page, pageErrors, diag: evalResult.diag };
 }
 
 /**

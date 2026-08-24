@@ -1,15 +1,4 @@
-const puppeteer = require('puppeteer');
-
-let browserPromise = null;
-function getBrowser() {
-  if (!browserPromise) {
-    browserPromise = puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-  }
-  return browserPromise;
-}
+const { getBrowser } = require('./browserPool');
 
 async function renderHtmlToPdf(html) {
   const browser = await getBrowser();
