@@ -127,6 +127,9 @@ addColIfMissing('installation_duration_min', 'INTEGER'); // a logisztikus által
 addColIfMissing('logistics_plan_day', 'INTEGER');        // az utoljára legenerált útvonaltervben hányadik napra (1 vagy 2) került ez a megrendelés
 addColIfMissing('logistics_plan_order', 'INTEGER');      // az utoljára legenerált útvonaltervben hányadik megálló volt az adott napon belül
 addColIfMissing('logistics_plan_eta', 'TEXT');           // az utoljára legenerált útvonaltervben számított becsült érkezési időpont (szöveg, "HH:MM")
+addColIfMissing('install_availability_date', 'TEXT');    // az ügyfél által jelzett dátum, amikor a telepítő kimehet hozzá (admin rögzíti az ügyféllel
+                                                          // folytatott egyeztetés alapján) — ez az ÜGYFÉL saját elérhetősége, nem a ténylegesen
+                                                          // beütemezett kiszállítási dátum (az a Kiszállítás fülön, delivery_date mezőben van)
 
 // Az email_templates táblához: nyomon követjük, hogy a kódban definiált alapértelmezés melyik
 // verzióját szinkronizáltuk utoljára az adott sablonhoz — így ha az admin NEM módosította kézzel

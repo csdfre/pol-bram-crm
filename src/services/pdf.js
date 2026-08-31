@@ -63,6 +63,7 @@ const SECTION_LABELS = {
   window: { hu: 'Bukó ablak (80×60)', pl: 'Okno uchylne (80×60)' },
   gutter: { hu: 'Ereszcsatorna', pl: 'Rynna' },
   felt: { hu: 'Páralecsapódás-gátló filc', pl: 'Filc antykondensacyjny' },
+  skylight: { hu: 'Ablakbetét / bevilágító (60×27 cm)', pl: 'Świetlik (60×27 cm)' },
   company: { hu: 'Cégadatok (áfás számlához)', pl: 'Dane firmy (do faktury VAT)' },
 };
 const FIELD_LABELS = {
@@ -433,6 +434,17 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
       E(L('windowColor')+(lang==='pl'?' (patrz wyżej: Okno uchylne)':' (lásd fent: Bukó ablak)'), colorName(fd.colorWindow||'RAL9005', lang)),
       ...placementRows('win50150', win50150Count),
     ], isEmpty: win50150Count===0 });
+  }
+
+  const skylightCount = parseInt(fd.skylight)||0;
+  if(skylightCount>0 || includeEmpty){
+    // KORÁBBAN ez a szekció teljesen hiányzott a buildOrderFields-ből — a bevilágító a rajzon
+    // (SVG) megjelent, de sem a PDF-en, sem a kolléganő-oldalon, sem a kolléganő-Excelben nem
+    // szerepelt, mert mindhárom ebből a listából dolgozik. Most már itt is szerepel.
+    sections.push({ section: S('skylight'), items: [
+      E(lang==='pl'?'Ilość (szt.)':'Darabszám', skylightCount, 'skylight', skylightCount, 'number'),
+      ...placementRows('skylight', skylightCount),
+    ], isEmpty: skylightCount===0 });
   }
 
   if(fd.gutterYes || includeEmpty){

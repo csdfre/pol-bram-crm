@@ -169,6 +169,11 @@ function renderModal() {
       <div><label>Város</label><input id="f_city" value="${esc(c.city)}"></div>
       <div><label>Cím</label><input id="f_address" value="${esc(c.address)}"></div>
     </div>
+    <div style="margin-top:10px;background:#fff7e0;border:1px solid #F2B705;border-radius:6px;padding:10px 12px">
+      <label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Telepítésre alkalmas időpont (az ügyfél saját elérhetősége, amit ő jelzett)</label>
+      <input type="date" id="f_install_availability" value="${esc(c.install_availability_date)}" style="max-width:200px">
+      <div style="font-size:0.72rem;color:var(--graphite-soft);margin-top:4px">Ez csak az ügyfél saját jelzett elérhetősége — a ténylegesen beütemezett kiszállítási dátumot a Kiszállítás fülön lehet beállítani.</div>
+    </div>
     ${c.form_data && c.form_data.truckParkingDistance ? `<p style="background:#fff7e0;border:1px solid #f2b705;padding:8px 12px;border-radius:4px;font-size:0.85rem"><strong>Teherautó-parkolás a telepítés helyszínén:</strong> ${esc(c.form_data.truckParkingDistance)}</p>` : ''}
     <label>Összefoglaló / garázs adatai (szabadon szerkeszthető)</label>
     <textarea id="f_summary" style="width:100%;min-height:160px;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;padding:8px;border:1px solid var(--line);border-radius:4px">${esc(c.summary_text)}</textarea>
@@ -369,6 +374,7 @@ async function saveCustomer() {
     zip: document.getElementById('f_zip').value,
     city: document.getElementById('f_city').value,
     address: document.getElementById('f_address').value,
+    installAvailabilityDate: document.getElementById('f_install_availability').value,
     formData: currentCustomer.form_data,
     summaryText: document.getElementById('f_summary').value,
     sketchSvg: currentCustomer.sketch_svg,

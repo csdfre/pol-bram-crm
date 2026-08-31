@@ -215,10 +215,6 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
             </label>
           </div>
           <div>
-            <label class="field"><span>Tartóoszlop 3,5m (db)</span>
-              <input type="number" id="supportPoleQty" value="0" min="0">
-              <div class="hint">8 méternél hosszabb garázsnál javasolt legalább 1 db.</div>
-            </label>
           </div>
         </div>
 
@@ -436,8 +432,8 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
           <div class="qty-line"><div class="lbl">Fix ablak 50×150 (db)<small class="hint" style="margin:0">≈83 100 Ft/db</small></div><input type="number" id="win50150" value="0" min="0"></div>
           <div class="toggle-extra" id="win50150PosField"><div id="win50150PosList"></div></div>
 
-          <div class="qty-line"><div class="lbl">Ablaknyílás (keret nélkül, db)<small class="hint" style="margin:0">≈8 300 Ft/db</small></div><input type="number" id="winOpening" value="0" min="0"></div>
-          <div class="toggle-extra" id="winOpeningPosField"><div id="winOpeningPosList"></div></div>
+          <div class="qty-line" style="display:none"><div class="lbl">Ablaknyílás (keret nélkül, db)<small class="hint" style="margin:0">≈8 300 Ft/db</small></div><input type="number" id="winOpening" value="0" min="0"></div>
+          <div class="toggle-extra" id="winOpeningPosField" style="display:none"><div id="winOpeningPosList"></div></div>
 
           <div class="qty-line"><div class="lbl">Ablakbetét / bevilágító (60×27 cm, db)<small class="hint" style="margin:0">≈16 600 Ft/db</small></div><input type="number" id="skylight" value="0" min="0"></div>
           <div class="toggle-extra" id="skylightPosField"><div id="skylightPosList"></div></div>
@@ -1577,10 +1573,14 @@ function renderSketch(){
       const alongLen = Math.hypot(alongRaw.x, alongRaw.y) || 1;
       const along = { x: alongRaw.x / alongLen, y: alongRaw.y / alongLen };
       const handle = hEl.value;
-      // FONTOS: a "kilincs oldala" (bal/jobb) a fal KÜLSŐ oldaláról nézve értendő (mintha kívülről,
-      // a garázzsal szemben állna valaki) — ez alapján számoltuk újra a zsanér irányát; ha ez a
-      // konvenció mégsem stimmelne egy konkrét esetben, ez az előjel az, amit módosítani kell.
-      const hingeSign = handle==='left' ? -1 : 1; // a zsanér a kilincs ellentétes oldalán van
+      // MEGJEGYZÉS Ferinek: a "kilincs oldala" (bal/jobb) értelmezése önmagában nem egyértelmű
+      // geometriailag (attól függ, melyik irányból nézzük a falat) — ezt a képletet már kétszer
+      // próbáltam korrigálni vizuális visszajelzés nélkül, sikertelenül. Most visszaálltam az
+      // EREDETI konvencióra (a felülnézeti alaprajzon, ahogy papíron olvasva balra/jobbra esik).
+      // Ha még mindig fordítva van: kérlek írd meg pontosan egy konkrét esetre (pl. "az elülső
+      // (kapu oldali) falon, kilincs jobb oldalt" mit kellene mutatnia), és küldj egy képet magáról
+      // a RAJZRÓL (nem a formról) — ebből tudom biztosan, egyértelműen kalibrálni.
+      const hingeSign = handle==='left' ? 1 : -1; // a zsanér a kilincs ellentétes oldalán van
       const R = Math.max(6, doorWidthCm*scale*0.9);
       const halfDoorPx = Math.max(4, doorWidthCm*scale)/2;
       // zsanér a falon (a nyílás egyik szélén, a kilincstől távolabb) — pontosan a jelölő sarkával egyvonalban

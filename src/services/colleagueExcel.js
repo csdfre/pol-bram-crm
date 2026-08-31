@@ -31,10 +31,8 @@ function buildFurtkaText(sections) {
     const corner = unitVal(doorSection, i, 'róg', '—');
     const dist = unitVal(doorSection, i, 'odległość (cm)', '—');
     const handle = unitVal(doorSection, i, 'strona klamki', 'Lewa strona');
-    const opensLeft = /prawa/i.test(handle);
-    const openDir = opensLeft ? 'lewa (klamka po prawej)' : 'prawa (klamka po lewej)';
     const prefix = count > 1 ? `${i + 1}) ` : '';
-    lines.push(`${prefix}${size} / ${color} / ${pattern} / na ${wall}, ${dist} cm ${corner} — otwiera się w ${openDir}`);
+    lines.push(`${prefix}${size} / ${color} / ${pattern} / na ${wall}, ${dist} cm ${corner} — klamka: ${handle}`);
   }
   return lines.join('\n');
 }
@@ -60,6 +58,16 @@ function buildOknoText(sections) {
       const corner = unitVal(fixSection, i, 'róg', '—');
       const dist = unitVal(fixSection, i, 'odległość (cm)', '—');
       lines.push(`Stałe 50x150${count > 1 ? ` ${i + 1})` : ''} — na ${wall}, ${dist} cm ${corner} / ${sharedColor}`);
+    }
+  }
+  const skylightSection = findSection(sections, 'Świetlik (60×27 cm)');
+  if (skylightSection && !skylightSection.isEmpty) {
+    const count = parseInt(val(skylightSection, 'Ilość (szt.)', 1), 10) || 1;
+    for (let i = 0; i < count; i++) {
+      const wall = unitVal(skylightSection, i, 'ściana', '—');
+      const corner = unitVal(skylightSection, i, 'róg', '—');
+      const dist = unitVal(skylightSection, i, 'odległość (cm)', '—');
+      lines.push(`Świetlik 60x27${count > 1 ? ` ${i + 1})` : ''} — na ${wall}, ${dist} cm ${corner}`);
     }
   }
   return lines.length ? lines.join('\n') : 'brak';

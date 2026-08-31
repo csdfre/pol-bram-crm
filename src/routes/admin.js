@@ -57,13 +57,14 @@ router.get('/customers/:id', (req, res) => {
 // Ügyféladatok módosítása és mentése (a felugró ablakban szerkesztve)
 // ---------------------------------------------------------------
 router.put('/customers/:id', (req, res) => {
-  const { name, phone, email: custEmail, zip, city, address, formData, summaryText, sketchSvg } = req.body;
+  const { name, phone, email: custEmail, zip, city, address, formData, summaryText, sketchSvg, installAvailabilityDate } = req.body;
   db.prepare(`
     UPDATE customers SET name=?, phone=?, email=?, zip=?, city=?, address=?,
-      form_data=?, summary_text=?, sketch_svg=?, updated_at=?
+      form_data=?, summary_text=?, sketch_svg=?, install_availability_date=?, updated_at=?
     WHERE id=?
   `).run(name, phone, custEmail, zip, city, address,
-    JSON.stringify(formData || {}), summaryText || '', sketchSvg || '', new Date().toISOString(), req.params.id);
+    JSON.stringify(formData || {}), summaryText || '', sketchSvg || '',
+    installAvailabilityDate || null, new Date().toISOString(), req.params.id);
   res.json({ ok: true });
 });
 
