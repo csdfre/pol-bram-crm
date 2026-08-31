@@ -83,7 +83,7 @@ function buildBramaText(sections) {
   const width = val(gateSection, 'Szerokość bramy', '300 cm');
   const height = val(gateSection, 'Wysokość bramy', '185 cm');
   const placementMode = val(gateSection, 'Umiejscowienie bram(y)', '—');
-  const lines = [`${color} / ${pattern} / ${type} x${count} (${width} x ${height}) / ${placementMode}`];
+  const lines = [`${color} / ${pattern} / ${type} x${count} (${width} x ${height})`];
   if (/własna/i.test(placementMode)) {
     for (let i = 0; i < count; i++) {
       const corner = unitVal(gateSection, i, 'brama — od której ściany', '—');

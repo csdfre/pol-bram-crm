@@ -496,6 +496,9 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
           <label class="field"><span>Irányítószám</span><input type="text" id="custZip" placeholder="2000" required></label>
           <label class="field"><span>Város</span><input type="text" id="custCity" placeholder="Szentendre" required></label>
           <label class="field"><span>Szállítási cím</span><input type="text" id="custAddress" placeholder="utca, házszám" required></label>
+          <label class="field"><span>Mettől tudja fogadni a telepítőt? (opcionális)</span>
+            <input type="date" id="custInstallAvailability">
+          </label>
           <label class="field" style="grid-column:1/-1"><span>Milyen közel tud leparkolni egy kisebb teherautó a telepítés helyszínéhez?</span>
             <input type="text" id="truckParkingDistance" placeholder="pl. közvetlenül a telek elé, vagy kb. 20 méterre, egy szűk utcában">
             <small class="hint" style="margin:2px 0 0">Ez segít a szállítást megszervezni — kérjük, minél pontosabban írja le.</small>
@@ -2152,6 +2155,7 @@ document.getElementById('submitBtn').addEventListener('click', ()=>{
     zip: document.getElementById('custZip').value || '',
     city: document.getElementById('custCity').value || '',
     address: document.getElementById('custAddress').value || '',
+    installAvailabilityDate: document.getElementById('custInstallAvailability').value || '',
     formData: captureFormState(),
     summaryText: summary,
     sketchSvg: sketchSvg,

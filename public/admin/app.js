@@ -75,7 +75,8 @@ async function checkSession() {
 let allCustomers = [];
 async function loadCustomers() {
   allCustomers = await api('/admin/customers');
-  renderCustomerTable(allCustomers);
+  populateStatusFilter();
+  filterCustomers();
 }
 
 function renderCustomerTable(rows) {
@@ -117,13 +118,29 @@ async function dismissStatusAlert(id){
 
 function filterCustomers() {
   const q = document.getElementById('customerSearchInput').value.trim().toLowerCase();
-  if (!q) { renderCustomerTable(allCustomers); return; }
-  const filtered = allCustomers.filter(r =>
-    (r.name || '').toLowerCase().includes(q) ||
-    (r.email || '').toLowerCase().includes(q) ||
-    (r.phone || '').toLowerCase().includes(q)
-  );
+  const status = document.getElementById('customerStatusFilter').value;
+  let filtered = allCustomers;
+  if (status) filtered = filtered.filter(r => r.status === status);
+  if (q) {
+    filtered = filtered.filter(r =>
+      (r.name || '').toLowerCase().includes(q) ||
+      (r.email || '').toLowerCase().includes(q) ||
+      (r.phone || '').toLowerCase().includes(q)
+    );
+  }
   renderCustomerTable(filtered);
+}
+
+function populateStatusFilter() {
+  const select = document.getElementById('customerStatusFilter');
+  const previousValue = select.value;
+  const statusesPresent = [...new Set(allCustomers.map(c => c.status))];
+  select.innerHTML = '<option value="">Összes státusz</option>' +
+    statusesPresent.map(s => {
+      const count = allCustomers.filter(c => c.status === s).length;
+      return `<option value="${s}">${STATUS_LABELS[s] || s} (${count})</option>`;
+    }).join('');
+  if (statusesPresent.includes(previousValue)) select.value = previousValue;
 }
 
 function esc(s) {
@@ -172,7 +189,7 @@ function renderModal() {
     <div style="margin-top:10px;background:#fff7e0;border:1px solid #F2B705;border-radius:6px;padding:10px 12px">
       <label style="display:block;font-size:0.78rem;color:var(--graphite-soft);margin-bottom:4px">Telepítésre alkalmas időpont (az ügyfél saját elérhetősége, amit ő jelzett)</label>
       <input type="date" id="f_install_availability" value="${esc(c.install_availability_date)}" style="max-width:200px">
-      <div style="font-size:0.72rem;color:var(--graphite-soft);margin-top:4px">Ez csak az ügyfél saját jelzett elérhetősége — a ténylegesen beütemezett kiszállítási dátumot a Kiszállítás fülön lehet beállítani.</div>
+      <div style="font-size:0.72rem;color:var(--graphite-soft);margin-top:4px">Ezt az ügyfél maga adta meg a tervező oldalon, az ajánlatkéréskor — itt szükség esetén felülírható/szerkeszthető. A ténylegesen beütemezett kiszállítási dátumot a Kiszállítás fülön lehet beállítani.</div>
     </div>
     ${c.form_data && c.form_data.truckParkingDistance ? `<p style="background:#fff7e0;border:1px solid #f2b705;padding:8px 12px;border-radius:4px;font-size:0.85rem"><strong>Teherautó-parkolás a telepítés helyszínén:</strong> ${esc(c.form_data.truckParkingDistance)}</p>` : ''}
     <label>Összefoglaló / garázs adatai (szabadon szerkeszthető)</label>

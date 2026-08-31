@@ -51,7 +51,7 @@ router.get('/garage-types/:id', (req, res) => {
 // ---------------------------------------------------------------
 router.post('/submit', async (req, res) => {
   try {
-    const { name, phone, email: custEmail, zip, city, address, formData, summaryText, sketchSvg, garageTypeUsed, gdprConsent } = req.body;
+    const { name, phone, email: custEmail, zip, city, address, formData, summaryText, sketchSvg, garageTypeUsed, gdprConsent, installAvailabilityDate } = req.body;
 
     if (!custEmail) return res.status(400).json({ error: 'Hiányzik az e-mail cím.' });
     // Szerver-oldali ellenőrzés is kell — a kliens-oldali alert() kikerülhető (pl. közvetlen API-hívással),
@@ -66,11 +66,12 @@ router.post('/submit', async (req, res) => {
     const info = db.prepare(`
       INSERT INTO customers
         (created_at, updated_at, status, name, phone, email, zip, city, address, form_data, summary_text, sketch_svg,
-         accept_token, satisfaction_token, complaint_token, garage_type_used, consent_accepted_at, consent_version)
-      VALUES (?, ?, 'ajanlatra_var', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         accept_token, satisfaction_token, complaint_token, garage_type_used, consent_accepted_at, consent_version, install_availability_date)
+      VALUES (?, ?, 'ajanlatra_var', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(now, now, name, phone, custEmail, zip, city, address,
       JSON.stringify(formData || {}), summaryText || '', sketchSvg || '',
-      acceptToken, satisfactionToken, complaintToken, garageTypeUsed || null, now, CURRENT_CONSENT_VERSION);
+      acceptToken, satisfactionToken, complaintToken, garageTypeUsed || null, now, CURRENT_CONSENT_VERSION,
+      installAvailabilityDate || null);
 
     logStatus(info.lastInsertRowid, 'ajanlatra_var', 'Igény beérkezett');
     markStatusAlert(info.lastInsertRowid, 'Új ajánlatkérés érkezett');
