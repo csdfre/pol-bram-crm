@@ -1583,14 +1583,21 @@ function renderSketch(){
       // Ha még mindig fordítva van: kérlek írd meg pontosan egy konkrét esetre (pl. "az elülső
       // (kapu oldali) falon, kilincs jobb oldalt" mit kellene mutatnia), és küldj egy képet magáról
       // a RAJZRÓL (nem a formról) — ebből tudom biztosan, egyértelműen kalibrálni.
-      const hingeSign = handle==='left' ? 1 : -1; // a zsanér a kilincs ellentétes oldalán van
+      // A szaggatott ív (a nyitás-szimbólum) MINDIG a kilincs oldalán jelenjen meg — ezt a
+      // felhasználó pontosan, egyértelműen így specifikálta (jobb kilincs -> ív jobbra, bal
+      // kilincs -> ív balra). Az ív a "hinge" pont körül rajzolódik (lásd lejjebb), ezért a
+      // "hinge" nevű pontot most szándékosan a KILINCS oldalára helyezzük (nem a zsanér tényleges,
+      // fizikai oldalára) — a változó neve technikailag pontatlan maradt, de a viselkedés a kért
+      // specifikációnak megfelel.
+      const hingeSign = handle==='left' ? -1 : 1;
       const R = Math.max(6, doorWidthCm*scale*0.9);
       const halfDoorPx = Math.max(4, doorWidthCm*scale)/2;
-      // zsanér a falon (a nyílás egyik szélén, a kilincstől távolabb) — pontosan a jelölő sarkával egyvonalban
+      // Az ív pivot-pontja (elnevezése "hinge" maradt technikai okokból, de a fenti specifikáció
+      // szerint most a KILINCS oldalán van) — pontosan a jelölő sarkával egyvonalban.
       const hinge = { x:p.x+along.x*hingeSign*halfDoorPx, y:p.y+along.y*hingeSign*halfDoorPx };
       // a nyitott ajtószárny merőlegesen áll ki a falból (mint a mellékelt szabvány jelölésen)
       const leafEnd = { x:hinge.x+outDir.x*R, y:hinge.y+outDir.y*R };
-      // a zárt (fal menti) végpont a kilincs felőli oldalon
+      // a zárt (fal menti) végpont a pivot-ponttól (kilincs oldalától) távolabb, a nyílás túlsó vége felé
       const wallEnd = { x:hinge.x+along.x*(-hingeSign)*R, y:hinge.y+along.y*(-hingeSign)*R };
       doorArc += `<line x1="${hinge.x}" y1="${hinge.y}" x2="${leafEnd.x}" y2="${leafEnd.y}" stroke="#c98a2e" stroke-width="2"/>`;
       doorArc += quarterArcPath(hinge, R, leafEnd, wallEnd);
