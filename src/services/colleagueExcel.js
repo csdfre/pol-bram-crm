@@ -96,11 +96,6 @@ function buildBramaText(sections) {
     const qty = val(autoSection, 'Ilość automatyki (szt.)', 1);
     lines.push(`Automatyka bramy: tak (${qty} szt.)`);
   }
-  const gateLightQty = val(gateSection, 'Świetlik w bramie (szt./bramę)', null);
-  if (gateLightQty) {
-    const arrangement = val(gateSection, 'Rozmieszczenie świetlika w bramie', '—');
-    lines.push(`Świetlik w bramie: ${gateLightQty} szt./bramę — ${arrangement}`);
-  }
   return lines.join('\n');
 }
 
