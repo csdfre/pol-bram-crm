@@ -309,6 +309,22 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
         E(`${i+1}. ${lang==='pl'?'brama — odległość (cm)':'kapu — távolság (cm)'}`, fd['gateCustomDistance'+i]||(50+i*350), 'gateCustomDistance'+i, fd['gateCustomDistance'+i]||(50+i*350), 'number', rowAttrs),
       );
     }
+    // KORÁBBAN a kapun lévő bevilágító (fix betét a kapulemezbe) csak a rajzon (SVG) és a kliens-
+    // oldali, informális szövegben jelent meg — a formális leírásból (PDF, kolléganő-oldal,
+    // kolléganő-Excel) teljesen hiányzott, mert ez a buildOrderFields-ből is hiányzott. Most már itt
+    // is szerepel, a darabszámmal ÉS az elrendezéssel (elhelyezkedéssel) együtt.
+    if(fd.gateLightYes){
+      const arrangementOptions = {
+        hu: { sides: 'Kapu két oldalán, egy szinten', 'left-stack': 'Kapu bal oldalán, egymás alatt', 'right-stack': 'Kapu jobb oldalán, egymás alatt' },
+        pl: { sides: 'Po obu stronach bramy, na jednym poziomie', 'left-stack': 'Po lewej stronie bramy, jeden nad drugim', 'right-stack': 'Po prawej stronie bramy, jeden nad drugim' },
+      };
+      const arrangementKey = fd.gateLightArrangement || 'sides';
+      items.push(
+        E(lang==='pl'?'Świetlik w bramie (szt./bramę)':'Bevilágító a kapun (db/kapu)', Math.max(1, parseInt(fd.gateLightQty)||1), 'gateLightQty', Math.max(1, parseInt(fd.gateLightQty)||1), 'number'),
+        ESEL(lang==='pl'?'Rozmieszczenie świetlika w bramie':'Bevilágító elhelyezkedése a kapun', 'gateLightArrangement', arrangementKey,
+          Object.entries(arrangementOptions[lang]).map(([k,v])=>[k,v]), arrangementOptions[lang][arrangementKey] || arrangementKey),
+      );
+    }
     sections.push({ section: S('gate'), items, isEmpty: gateType==='none' });
 
     // Az automatika külön, önmagában összecsukható tétel — a kiküldött (nem szerkeszthető)

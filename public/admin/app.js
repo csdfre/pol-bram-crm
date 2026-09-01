@@ -192,7 +192,10 @@ function renderModal() {
       <div style="font-size:0.72rem;color:var(--graphite-soft);margin-top:4px">Ezt az ügyfél maga adta meg a tervező oldalon, az ajánlatkéréskor — itt szükség esetén felülírható/szerkeszthető. A ténylegesen beütemezett kiszállítási dátumot a Kiszállítás fülön lehet beállítani.</div>
     </div>
     ${c.form_data && c.form_data.truckParkingDistance ? `<p style="background:#fff7e0;border:1px solid #f2b705;padding:8px 12px;border-radius:4px;font-size:0.85rem"><strong>Teherautó-parkolás a telepítés helyszínén:</strong> ${esc(c.form_data.truckParkingDistance)}</p>` : ''}
-    <label>Összefoglaló / garázs adatai (szabadon szerkeszthető)</label>
+    <label style="display:flex;justify-content:space-between;align-items:center">
+      <span>Összefoglaló / garázs adatai (szabadon szerkeszthető)</span>
+      <button type="button" onclick="regenerateSummary()" style="font-size:0.75rem;padding:4px 10px;background:#fafbfb;border:1px solid var(--line)">🔄 Frissítés a jelenlegi adatokból</button>
+    </label>
     <textarea id="f_summary" style="width:100%;min-height:160px;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;padding:8px;border:1px solid var(--line);border-radius:4px">${esc(c.summary_text)}</textarea>
 
     <div class="sketch-box" id="modalSketchBox">${c.sketch_svg || ''}</div>
@@ -381,6 +384,14 @@ async function saveEditablePrice(){
     statusEl.textContent = 'Hiba: '+e.message;
     statusEl.style.color = '#b23a3a';
   }
+}
+
+async function regenerateSummary() {
+  try {
+    const data = await api(`/admin/customers/${currentCustomer.id}/regenerate-summary`);
+    document.getElementById('f_summary').value = data.summaryText;
+    alert('Az összefoglaló frissítve a jelenlegi adatokból — ellenőrizd, majd mentsd a "Mentés" gombbal, ha jónak találod.');
+  } catch (e) { alert(e.message); }
 }
 
 async function saveCustomer() {

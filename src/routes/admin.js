@@ -36,6 +36,27 @@ router.get('/customers', (req, res) => {
 // ---------------------------------------------------------------
 // Egy ügyfél teljes adatlapja
 // ---------------------------------------------------------------
+// A "Megrendelés összefoglalása" mező egy STATIKUS, az ügyfél beküldésekor rögzített szöveg — régebbi
+// megrendeléseknél ez elavulhat, ha időközben a rendszer (pl. a leírás-generáló logika) frissült.
+// Ez a végpont a form_data-ból ÉLŐBEN, a jelenlegi (legfrissebb) fordító/leíró logikával
+// újraszámolja a szöveget, hogy admin egy gombnyomással frissíthesse, ha elavultnak látja.
+router.get('/customers/:id/regenerate-summary', (req, res) => {
+  const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
+  if (!c) return res.status(404).json({ error: 'Nem található.' });
+  const fd = JSON.parse(c.form_data || '{}');
+  const sections = buildOrderFields(fd, 'hu', false, null);
+  const lines = [];
+  sections.forEach((section) => {
+    if (section.isEmpty) return;
+    lines.push(section.section.toUpperCase() + ':');
+    section.items.forEach((item) => {
+      lines.push(`  ${item.label}: ${item.value}`);
+    });
+    lines.push('');
+  });
+  res.json({ ok: true, summaryText: lines.join('\n').trim() });
+});
+
 router.get('/customers/:id', (req, res) => {
   const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
   if (!c) return res.status(404).json({ error: 'Nem található.' });
