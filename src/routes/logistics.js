@@ -157,11 +157,22 @@ router.post('/customers/:id/installation-duration', requireLogisticsAuth, functi
   res.json({ ok: true });
 });
 
+// A telepítésre-alkalmas dátum (amit vagy az ügyfél adott meg a tervező oldalon, vagy amit itt a
+// logisztikus manuálisan felülír/pontosít) szerkesztése — ugyanabba az install_availability_date
+// mezőbe ír, amit az admin ügyfél-adatlap is lát/szerkeszthet.
+router.post('/customers/:id/availability-date', requireLogisticsAuth, function (req, res) {
+  const date = req.body.date;
+  db.prepare('UPDATE customers SET install_availability_date=?, updated_at=? WHERE id=?')
+    .run(date || null, new Date().toISOString(), req.params.id);
+  res.json({ ok: true });
+});
+
 router.get('/api/customers', requireLogisticsAuth, async function (req, res) {
   const placeholders = LOGISTICS_STATUSES.map(function () { return '?'; }).join(',');
   const stmt = db.prepare(
     'SELECT id, name, phone, email, address, zip, city, price_huf, created_at, offer_sent_at, '
     + 'delivery_lat, delivery_lng, delivery_address, installation_duration_min, form_data, colleague_token, '
+    + 'install_availability_date, delivery_completed_at, '
     + 'logistics_plan_day, logistics_plan_order, logistics_plan_eta '
     + 'FROM customers WHERE status IN (' + placeholders + ') ORDER BY created_at ASC'
   );
@@ -171,9 +182,19 @@ router.get('/api/customers', requireLogisticsAuth, async function (req, res) {
     const specSummary = buildSpecSummary(c.form_data);
     const clean = Object.assign({}, c);
     delete clean.form_data;
+    // Ha az ügyfél (vagy az admin manuálisan) megadott egy telepítésre-alkalmas dátumot, amíg az még
+    // több mint 14 napra van, ne "ajánljuk" alapból bejelölve az útvonaltervezéshez — az admin
+    // persze kézzel bepipálhatja, ha mégis szeretné, de alapból ne kerüljön bele egy soron
+    // következő tervbe egy olyan ügyfél, aki még nem is ér rá.
+    const daysUntilAvailable = c.install_availability_date
+      ? Math.ceil((new Date(c.install_availability_date) - new Date()) / (1000 * 60 * 60 * 24))
+      : null;
+    const tooFarInFuture = daysUntilAvailable != null && daysUntilAvailable > 14;
     return Object.assign(clean, {
       resolved_address: resolveDeliveryAddress(c),
       spec_summary: specSummary,
+      too_far_in_future: tooFarInFuture,
+      is_installed: !!c.delivery_completed_at,
     });
   });
   res.json({ ok: true, customers: withAddress });
@@ -268,20 +289,25 @@ function buildClientScript() {
     + '    wrap.innerHTML = "<p style=\\"color:#7a828a\\">Brak zamowien oczekujacych na montaz.</p>";'
     + '    return;'
     + '  }'
-    + '  let html = "<table><thead><tr><th></th><th>Klient</th><th>Adres</th><th>Szczegóły</th><th>Telefon</th><th>Cena</th><th>Zgloszono</th><th>Czas montazu (min)</th><th>Ostatni plan</th></tr></thead><tbody>";'
+    + '  let html = "<table><thead><tr><th></th><th>Klient</th><th>Status</th><th>Adres</th><th>Szczegóły</th><th>Telefon</th><th>Cena</th><th>Zgloszono</th><th>Dostepny od</th><th>Czas montazu (min)</th><th>Ostatni plan</th></tr></thead><tbody>";'
     + '  customersData.forEach(function (c) {'
     + '    const price = c.price_huf ? Number(c.price_huf).toLocaleString("pl-PL") + " Ft" : "-";'
     + '    const created = new Date(c.created_at).toLocaleDateString("pl-PL");'
     + '    const planInfo = c.logistics_plan_day ? ("Dzien " + c.logistics_plan_day + ", #" + c.logistics_plan_order + " (" + c.logistics_plan_eta + ")") : "-";'
     + '    const detailsBtn = c.colleague_token ? ("<a href=\\"/public/colleague/" + c.colleague_token + "\\" target=\\"_blank\\" style=\\"display:inline-block;background:#20242A;color:#fff;text-decoration:none;padding:6px 10px;border-radius:4px;font-size:0.78rem\\">Zobacz szczegóły + rysunek</a>") : "<span style=\\"color:#7a828a;font-size:0.78rem\\">brak danych</span>";'
-    + '    html += "<tr>"'
-    + '      + "<td><input type=\\"checkbox\\" class=\\"planCheck\\" value=\\"" + c.id + "\\" checked></td>"'
+    + '    const statusBadge = c.is_installed ? "<span style=\\"background:#2F6B4F;color:#fff;font-size:0.72rem;font-weight:bold;padding:3px 8px;border-radius:10px\\">Zamontowane</span>" : "<span style=\\"color:#7a828a;font-size:0.78rem\\">w toku</span>";'
+    + '    const farNote = c.too_far_in_future ? "<div style=\\"color:#b23a3a;font-size:0.7rem;margin-top:2px\\">ponad 14 dni</div>" : "";'
+    + '    const checkedAttr = c.too_far_in_future ? "" : "checked";'
+    + '    html += "<tr" + (c.is_installed ? " style=\\"opacity:0.55\\"" : "") + ">"'
+    + '      + "<td><input type=\\"checkbox\\" class=\\"planCheck\\" value=\\"" + c.id + "\\" " + checkedAttr + "></td>"'
     + '      + "<td>" + escapeHtml(c.name || "") + "</td>"'
+    + '      + "<td>" + statusBadge + "</td>"'
     + '      + "<td>" + escapeHtml(c.resolved_address || "") + "</td>"'
     + '      + "<td>" + detailsBtn + "</td>"'
     + '      + "<td>" + escapeHtml(c.phone || "") + "</td>"'
     + '      + "<td>" + price + "</td>"'
     + '      + "<td>" + created + "</td>"'
+    + '      + "<td><input type=\\"date\\" value=\\"" + (c.install_availability_date || "") + "\\" style=\\"width:130px\\" onchange=\\"saveAvailability(" + c.id + ", this.value)\\">" + farNote + "</td>"'
     + '      + "<td><input type=\\"number\\" value=\\"" + (c.installation_duration_min || 90) + "\\" style=\\"width:70px\\" onchange=\\"saveDuration(" + c.id + ", this.value)\\"></td>"'
     + '      + "<td>" + planInfo + "</td>"'
     + '      + "</tr>";'
@@ -294,6 +320,13 @@ function buildClientScript() {
     + '    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },'
     + '    body: "minutes=" + encodeURIComponent(minutes),'
     + '  });'
+    + '}'
+    + 'async function saveAvailability(id, date) {'
+    + '  await fetch("/logistics/customers/" + id + "/availability-date", {'
+    + '    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },'
+    + '    body: "date=" + encodeURIComponent(date),'
+    + '  });'
+    + '  loadCustomers();'
     + '}'
     + 'function renderMap() {'
     + '  if (!map) { map = L.map("map").setView([47.1625, 19.5033], 7);'
