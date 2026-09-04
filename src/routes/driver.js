@@ -122,6 +122,10 @@ router.post('/customers/:id/complete', requireDriverAuth, async (req, res) => {
     .run(isNowCompleted ? new Date().toISOString() : null, new Date().toISOString(), c.id);
 
   if (isNowCompleted && !wasAlreadyCompleted) {
+    // Ugyanaz a jelvény-mechanizmus, amit pl. az "ügyfél módosított" esemény is használ a backoffice
+    // ügyféllistájában (a név mellett megjelenő 🔔 jelvény) — itt a sofőr "kész" jelölése indítja el.
+    db.prepare('UPDATE customers SET status_alert_at=?, status_alert_note=? WHERE id=?')
+      .run(new Date().toISOString(), 'Sofőr: garázs kész', c.id);
     try {
       const email = require('../services/email');
       await email.sendAdminInstalledNotice(c);
