@@ -130,6 +130,11 @@ addColIfMissing('logistics_plan_eta', 'TEXT');           // az utoljára legener
 addColIfMissing('install_availability_date', 'TEXT');    // az ügyfél által jelzett dátum, amikor a telepítő kimehet hozzá (admin rögzíti az ügyféllel
                                                           // folytatott egyeztetés alapján) — ez az ÜGYFÉL saját elérhetősége, nem a ténylegesen
                                                           // beütemezett kiszállítási dátum (az a Kiszállítás fülön, delivery_date mezőben van)
+addColIfMissing('complaint_alert_at', 'TEXT');           // mikor küldött be az ügyfél reklamációt — amíg ez be van állítva, a logisztikus felületén
+                                                          // egy jelzés/panel mutatja, amíg meg nem nézi/nyugtázza
+addColIfMissing('complaint_text_pl', 'TEXT');            // a reklamáció szövegének gépi fordítása lengyelre (a logisztikus felületén jelenik meg) —
+                                                          // csak gyorsítótárazás célból tároljuk (ne kelljen minden megnyitáskor újra fordítani);
+                                                          // ha a fordítás sikertelen, ez a mező üresen marad, és az eredeti szöveg jelenik meg
 
 // Az email_templates táblához: nyomon követjük, hogy a kódban definiált alapértelmezés melyik
 // verzióját szinkronizáltuk utoljára az adott sablonhoz — így ha az admin NEM módosította kézzel

@@ -129,13 +129,21 @@ router.get('/complaint/:token', (req, res) => {
   res.send(complaintFormPage(req.params.token));
 });
 
-router.post('/complaint/:token', upload.array('photos', 8), (req, res) => {
+router.post('/complaint/:token', upload.array('photos', 8), async (req, res) => {
   const customer = db.prepare('SELECT * FROM customers WHERE complaint_token = ?').get(req.params.token);
   if (!customer) return res.status(404).send(simplePage('A hivatkozás nem érvényes.'));
 
   const files = (req.files || []).map(f => `/uploads/complaints/${path.basename(f.path)}`);
-  db.prepare('UPDATE customers SET status = ?, complaint_text = ?, complaint_files = ?, updated_at = ? WHERE id = ?')
-    .run('garancialis_problema', req.body.text || '', JSON.stringify(files), new Date().toISOString(), customer.id);
+  const complaintText = req.body.text || '';
+
+  // Legjobb-erőfeszítés fordítás lengyelre a logisztikus felületéhez — ha nem sikerül (pl. a
+  // fordító szolgáltatás átmenetileg nem elérhető), a mező üresen marad, a logisztikus felülete
+  // ilyenkor az eredeti (magyar) szöveget mutatja majd helyette.
+  const { translateToPolish } = require('../services/translate');
+  const complaintTextPl = await translateToPolish(complaintText);
+
+  db.prepare('UPDATE customers SET status = ?, complaint_text = ?, complaint_text_pl = ?, complaint_files = ?, complaint_alert_at = ?, updated_at = ? WHERE id = ?')
+    .run('garancialis_problema', complaintText, complaintTextPl, JSON.stringify(files), new Date().toISOString(), new Date().toISOString(), customer.id);
   logStatus(customer.id, 'garancialis_problema', 'Ügyfél reklamációt küldött be');
   markStatusAlert(customer.id, 'Ügyfél reklamációt küldött be');
 

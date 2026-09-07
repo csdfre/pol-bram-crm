@@ -2,7 +2,7 @@ const express = require('express');
 const cookieSession = require('cookie-session');
 const db = require('../../db');
 const { resolveDeliveryAddress } = require('../services/deliveryLocation');
-const { generatePlanOptions } = require('../services/routePlanner');
+const { planRoute } = require('../services/routePlanner');
 const { buildOrderFields } = require('../services/pdf');
 
 const router = express.Router();
@@ -174,7 +174,7 @@ router.get('/api/customers', requireLogisticsAuth, async function (req, res) {
     + 'delivery_lat, delivery_lng, delivery_address, installation_duration_min, form_data, colleague_token, '
     + 'install_availability_date, delivery_completed_at, '
     + 'logistics_plan_day, logistics_plan_order, logistics_plan_eta '
-    + 'FROM customers WHERE status IN (' + placeholders + ') ORDER BY created_at ASC'
+    + 'FROM customers WHERE status IN (' + placeholders + ') AND delivery_completed_at IS NULL ORDER BY created_at ASC'
   );
   const rows = stmt.all(...LOGISTICS_STATUSES);
   await ensureCoordinates(rows);
@@ -200,11 +200,47 @@ router.get('/api/customers', requireLogisticsAuth, async function (req, res) {
   res.json({ ok: true, customers: withAddress });
 });
 
+// Külön, egyszerű nézet a már kész (a sofőr által "Gotowe"-nek jelölt) telepítéseknek — ezek nem
+// zavarják a fő tervezési listát/térképet, de a logisztikus itt bármikor visszanézheti őket.
+router.get('/api/completed', requireLogisticsAuth, function (req, res) {
+  const rows = db.prepare(`
+    SELECT id, name, phone, address, zip, city, price_huf, delivery_completed_at, delivery_date, colleague_token
+    FROM customers
+    WHERE delivery_completed_at IS NOT NULL
+    ORDER BY delivery_completed_at DESC
+  `).all();
+  const withAddress = rows.map((c) => Object.assign({}, c, { resolved_address: resolveDeliveryAddress(c) }));
+  res.json({ ok: true, customers: withAddress });
+});
+
+// Reklamációk, amiket az ügyfél a "sikeres telepítés" emailben kapott linken keresztül küldött be —
+// a logisztikusnak is látnia kell ezeket, mert ő tudja leghamarabb elérni a helyszínt. A szöveget
+// (ha sikerült) lefordítva, lengyelül mutatjuk — ha a fordítás nem sikerült, az eredeti (magyar)
+// szöveg jelenik meg.
+router.get('/api/complaints', requireLogisticsAuth, function (req, res) {
+  const rows = db.prepare(`
+    SELECT id, name, phone, address, zip, city, complaint_text, complaint_text_pl, complaint_alert_at, complaint_files
+    FROM customers
+    WHERE complaint_alert_at IS NOT NULL
+    ORDER BY complaint_alert_at DESC
+  `).all();
+  const withAddress = rows.map((c) => Object.assign({}, c, { resolved_address: resolveDeliveryAddress(c) }));
+  res.json({ ok: true, complaints: withAddress });
+});
+
+// A logisztikus nyugtázza, hogy látta a reklamációt — ez csak a SAJÁT felületén lévő jelzést törli,
+// az admin felületén lévő (status_alert_at alapú) jelzést nem érinti.
+router.post('/api/complaints/:id/acknowledge', requireLogisticsAuth, function (req, res) {
+  db.prepare('UPDATE customers SET complaint_alert_at=NULL WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 router.post('/api/generate-plan', requireLogisticsAuth, function (req, res) {
   const customerIds = req.body.customerIds;
   const days = req.body.days;
   const dayStart = req.body.dayStart || '04:30';
   const dayEnd = req.body.dayEnd || '20:30';
+  const priorityDirection = req.body.priorityDirection === 'newest' ? 'newest' : 'oldest';
   if (!Array.isArray(customerIds) || !customerIds.length) return res.status(400).json({ error: 'Nincs kivalasztott megrendeles.' });
   const placeholders = customerIds.map(function () { return '?'; }).join(',');
   const stmt = db.prepare('SELECT * FROM customers WHERE id IN (' + placeholders + ')');
@@ -219,11 +255,11 @@ router.post('/api/generate-plan', requireLogisticsAuth, function (req, res) {
       installationMin: c.installation_duration_min || 90,
     };
   });
-  // Nem EGYETLEN, kötelezően elfogadandó tervet adunk vissza, hanem több, eltérő hangsúlyú
-  // változatot — a logisztikus összehasonlíthatja őket, és a /api/apply-plan végponton keresztül
-  // választja ki, melyiket alkalmazza ténylegesen (addig semmi nem kerül mentésre az adatbázisba).
-  const options = generatePlanOptions(input, { days: days === 2 ? 2 : 1, dayStart: dayStart, dayEnd: dayEnd });
-  res.json({ ok: true, options: options });
+  // Egyetlen, a legrövidebb útvonalat célzó terv — a régebbi (vagy a priorityDirection="newest"
+  // esetén a frissebb) megrendeléseknek adva egy mérsékelt előnyt, amíg az nem töri meg a
+  // dél-észak haladást. A tényleges mentés csak az /api/apply-plan végponton keresztül történik.
+  const plan = planRoute(input, { days: days === 2 ? 2 : 1, dayStart: dayStart, dayEnd: dayEnd, priorityDirection: priorityDirection });
+  res.json({ ok: true, plan: plan });
 });
 
 // A logisztikus által kiválasztott konkrét terv-változat véglegesítése — csak ekkor írjuk vissza
@@ -251,6 +287,7 @@ router.get('/', requireLogisticsAuth, function (req, res) {
     + '<main>'
     + '<div class="panel">'
     + '<h3 style="margin-top:0">Zamowienia oczekujace na montaz</h3>'
+    + '<div style="margin-bottom:10px"><label style="font-size:0.85rem">Filtruj po regionie (miasto / kod pocztowy): </label><input type="text" id="regionFilter" oninput="renderTable()" placeholder="np. Budapeszt lub 1000" style="padding:6px 10px;border:1px solid #ccc;border-radius:4px"></div>'
     + '<div id="customerTableWrap">Ladowanie...</div>'
     + '</div>'
     + '<div class="panel">'
@@ -263,9 +300,18 @@ router.get('/', requireLogisticsAuth, function (req, res) {
     + '<div><label>Liczba dni</label><br><select id="planDays"><option value="1">1 dzien</option><option value="2">2 dni</option></select></div>'
     + '<div><label>Godzina rozpoczecia</label><br><input type="time" id="planDayStart" value="04:30"></div>'
     + '<div><label>Godzina zakonczenia</label><br><input type="time" id="planDayEnd" value="20:30"></div>'
-    + '<button onclick="generatePlan()">Wygeneruj plan trasy</button>'
+    + '<div><label>Priorytet</label><br><select id="planPriority"><option value="oldest">Najstarsze zamówienia</option><option value="newest">Najnowsze zamówienia</option></select></div>'
+    + '<button onclick="generatePlan()">Wygeneruj plan trasy (najkrótsza trasa)</button>'
     + '</div>'
     + '<div id="planResult"></div>'
+    + '</div>'
+    + '<div class="panel">'
+    + '<h3 style="margin-top:0">Reklamacje <button onclick="toggleComplaints()" style="font-size:0.75rem;padding:4px 10px;margin-left:8px">Pokaz / ukryj</button></h3>'
+    + '<div id="complaintsTableWrap" style="display:none">Ladowanie...</div>'
+    + '</div>'
+    + '<div class="panel">'
+    + '<h3 style="margin-top:0">Zakonczone montaze <button onclick="toggleCompleted()" style="font-size:0.75rem;padding:4px 10px;margin-left:8px">Pokaz / ukryj</button></h3>'
+    + '<div id="completedTableWrap" style="display:none">Ladowanie...</div>'
     + '</div>'
     + '</main>'
     + buildClientScript()
@@ -289,8 +335,16 @@ function buildClientScript() {
     + '    wrap.innerHTML = "<p style=\\"color:#7a828a\\">Brak zamowien oczekujacych na montaz.</p>";'
     + '    return;'
     + '  }'
+    + '  const regionQuery = (document.getElementById("regionFilter").value || "").trim().toLowerCase();'
+    + '  const rowsToShow = regionQuery'
+    + '    ? customersData.filter(function (c) { return (c.resolved_address || "").toLowerCase().indexOf(regionQuery) !== -1 || (c.zip || "").toLowerCase().indexOf(regionQuery) !== -1 || (c.city || "").toLowerCase().indexOf(regionQuery) !== -1; })'
+    + '    : customersData;'
+    + '  if (!rowsToShow.length) {'
+    + '    wrap.innerHTML = "<p style=\\"color:#7a828a\\">Brak wynikow dla tego regionu.</p>";'
+    + '    return;'
+    + '  }'
     + '  let html = "<table><thead><tr><th></th><th>Klient</th><th>Status</th><th>Adres</th><th>Szczegóły</th><th>Telefon</th><th>Cena</th><th>Zgloszono</th><th>Dostepny od</th><th>Czas montazu (min)</th><th>Ostatni plan</th></tr></thead><tbody>";'
-    + '  customersData.forEach(function (c) {'
+    + '  rowsToShow.forEach(function (c) {'
     + '    const price = c.price_huf ? Number(c.price_huf).toLocaleString("pl-PL") + " Ft" : "-";'
     + '    const created = new Date(c.created_at).toLocaleDateString("pl-PL");'
     + '    const planInfo = c.logistics_plan_day ? ("Dzien " + c.logistics_plan_day + ", #" + c.logistics_plan_order + " (" + c.logistics_plan_eta + ")") : "-";'
@@ -379,59 +433,53 @@ function buildClientScript() {
     + '  [plan.day1, plan.day2].forEach(function (stops) { stops.forEach(function (s) { if (s.lat != null && s.lng != null) allLatLngs.push([s.lat, s.lng]); }); });'
     + '  if (allLatLngs.length) map.fitBounds(allLatLngs, { padding: [30, 30] });'
     + '}'
+    + 'let lastPlan = null;'
     + 'async function generatePlan() {'
     + '  const ids = Array.from(document.querySelectorAll(".planCheck:checked")).map(function (el) { return Number(el.value); });'
     + '  if (!ids.length) { alert("Zaznacz przynajmniej jedno zamowienie."); return; }'
     + '  const days = Number(document.getElementById("planDays").value);'
     + '  const dayStart = document.getElementById("planDayStart").value || "04:30";'
     + '  const dayEnd = document.getElementById("planDayEnd").value || "20:30";'
+    + '  const priorityDirection = document.getElementById("planPriority").value || "oldest";'
     + '  const res = await fetch("/logistics/api/generate-plan", {'
     + '    method: "POST", headers: { "Content-Type": "application/json" },'
-    + '    body: JSON.stringify({ customerIds: ids, days: days, dayStart: dayStart, dayEnd: dayEnd }),'
+    + '    body: JSON.stringify({ customerIds: ids, days: days, dayStart: dayStart, dayEnd: dayEnd, priorityDirection: priorityDirection }),'
     + '  });'
     + '  const data = await res.json();'
     + '  if (!res.ok) { alert(data.error || "Blad"); return; }'
-    + '  lastPlanOptions = data.options;'
-    + '  renderPlanOptions(data.options);'
+    + '  lastPlan = data.plan;'
+    + '  renderRouteOnMap(data.plan);'
+    + '  renderPlanResult(data.plan);'
     + '}'
-    + 'let lastPlanOptions = [];'
-    + 'function renderPlanOptions(options) {'
+    + 'function renderPlanResult(plan) {'
     + '  const el = document.getElementById("planResult");'
-    + '  let html = "<p style=\\"color:#7a828a;font-size:0.85rem\\">Wybierz jedna z ponizszych opcji trasy - zadna nie zostanie zastosowana, dopoki nie klikniesz \\"Zastosuj ten plan\\".</p>";'
-    + '  html += "<div style=\\"display:flex;gap:16px;flex-wrap:wrap\\">";'
-    + '  options.forEach(function (opt, idx) {'
-    + '    const s = opt.summary;'
-    + '    html += "<div class=\\"panel\\" style=\\"flex:1;min-width:280px;border:2px solid #e6e8ea\\">";'
-    + '    html += "<h4 style=\\"margin-top:0\\">" + escapeHtml(opt.label) + "</h4>";'
-    + '    html += "<div style=\\"font-size:0.85rem;color:#454C54;margin-bottom:10px\\">";'
-    + '    html += "Zatrzymania: " + s.stopCount + (s.unscheduledCount ? (" (" + s.unscheduledCount + " nie zmiescilo sie)") : "") + "<br>";'
-    + '    html += "Koniec: dzien " + s.finishDay + ", " + (s.finishTime || "-") + "<br>";'
-    + '    html += "Laczny czas dojazdu: " + s.totalTravelMin + " min";'
-    + '    if (s.overrunCount) html += "<br><span style=\\"color:#b23a3a\\">" + s.overrunCount + " zatrzymanie(a) przekracza planowana godzine</span>";'
-    + '    html += "</div>";'
-    + '    html += "<button onclick=\\"previewPlanOption(" + idx + ")\\" style=\\"background:#fafbfb;border:1px solid #e6e8ea;margin-bottom:8px\\">Podglad na mapie / liscie</button> ";'
-    + '    html += "<button onclick=\\"applyPlanOption(" + idx + ")\\">Zastosuj ten plan</button>";'
-    + '    html += "<div id=\\"planDetail" + idx + "\\"></div>";'
-    + '    html += "</div>";'
-    + '  });'
+    + '  const s = summarizePlanClient(plan);'
+    + '  let html = "<div style=\\"font-size:0.85rem;color:#454C54;margin-bottom:10px\\">";'
+    + '  html += "Zatrzymania: " + s.stopCount + (s.unscheduledCount ? (" (" + s.unscheduledCount + " nie zmiescilo sie)") : "") + "<br>";'
+    + '  html += "Koniec: dzien " + s.finishDay + ", " + (s.finishTime || "-") + "<br>";'
+    + '  html += "Laczny czas dojazdu: " + s.totalTravelMin + " min";'
+    + '  if (s.overrunCount) html += "<br><span style=\\"color:#b23a3a\\">" + s.overrunCount + " zatrzymanie(a) przekracza planowana godzine</span>";'
     + '  html += "</div>";'
+    + '  html += "<button onclick=\\"applyPlan()\\">Zastosuj ten plan</button>";'
+    + '  html += renderPlanDetailHtml(plan);'
     + '  el.innerHTML = html;'
     + '}'
-    + 'function previewPlanOption(idx) {'
-    + '  const opt = lastPlanOptions[idx];'
-    + '  renderRouteOnMap(opt.plan);'
-    + '  document.getElementById("planDetail" + idx).innerHTML = renderPlanDetailHtml(opt.plan);'
+    + 'function summarizePlanClient(plan) {'
+    + '  const allStops = plan.day1.concat(plan.day2);'
+    + '  const totalTravelMin = allStops.reduce(function(sum, s){ return sum + (s.travelMin || 0); }, 0);'
+    + '  const overrunCount = allStops.filter(function(s){ return s.overrun; }).length;'
+    + '  const lastStop = plan.day2.length ? plan.day2[plan.day2.length - 1] : plan.day1[plan.day1.length - 1];'
+    + '  return { stopCount: allStops.length, unscheduledCount: plan.unscheduled.length, totalTravelMin: Math.round(totalTravelMin), overrunCount: overrunCount, finishDay: plan.day2.length ? 2 : 1, finishTime: lastStop ? lastStop.doneAt : null };'
     + '}'
-    + 'async function applyPlanOption(idx) {'
-    + '  const opt = lastPlanOptions[idx];'
+    + 'async function applyPlan() {'
+    + '  if (!lastPlan) return;'
     + '  const res = await fetch("/logistics/api/apply-plan", {'
     + '    method: "POST", headers: { "Content-Type": "application/json" },'
-    + '    body: JSON.stringify({ plan: opt.plan }),'
+    + '    body: JSON.stringify({ plan: lastPlan }),'
     + '  });'
     + '  const data = await res.json();'
     + '  if (!res.ok) { alert(data.error || "Blad"); return; }'
-    + '  alert("Plan zastosowany: " + opt.label);'
-    + '  renderRouteOnMap(opt.plan);'
+    + '  alert("Plan zastosowany.");'
     + '  loadCustomers();'
     + '}'
     + 'function renderPlanDetailHtml(plan) {'
@@ -458,6 +506,74 @@ function buildClientScript() {
     + '}'
     + 'function escapeHtml(s) {'
     + '  const d = document.createElement("div"); d.innerText = s; return d.innerHTML;'
+    + '}'
+    + 'let completedLoaded = false;'
+    + 'async function toggleCompleted() {'
+    + '  const wrap = document.getElementById("completedTableWrap");'
+    + '  if (wrap.style.display === "none") {'
+    + '    wrap.style.display = "block";'
+    + '    if (!completedLoaded) { await loadCompleted(); completedLoaded = true; }'
+    + '  } else {'
+    + '    wrap.style.display = "none";'
+    + '  }'
+    + '}'
+    + 'async function loadCompleted() {'
+    + '  const wrap = document.getElementById("completedTableWrap");'
+    + '  const res = await fetch("/logistics/api/completed");'
+    + '  const data = await res.json();'
+    + '  const rows = data.customers;'
+    + '  if (!rows.length) { wrap.innerHTML = "<p style=\\"color:#7a828a\\">Meg nincs lezart montaz.</p>"; return; }'
+    + '  let html = "<table><thead><tr><th>Klient</th><th>Adres</th><th>Telefon</th><th>Cena</th><th>Zakonczono</th><th>Szczegoly</th></tr></thead><tbody>";'
+    + '  rows.forEach(function (c) {'
+    + '    const price = c.price_huf ? Number(c.price_huf).toLocaleString("pl-PL") + " Ft" : "-";'
+    + '    const completedDate = new Date(c.delivery_completed_at).toLocaleString("pl-PL");'
+    + '    const detailsBtn = c.colleague_token ? ("<a href=\\"/public/colleague/" + c.colleague_token + "\\" target=\\"_blank\\">Zobacz szczegoly</a>") : "-";'
+    + '    html += "<tr>"'
+    + '      + "<td>" + escapeHtml(c.name || "") + "</td>"'
+    + '      + "<td>" + escapeHtml(c.resolved_address || "") + "</td>"'
+    + '      + "<td>" + escapeHtml(c.phone || "") + "</td>"'
+    + '      + "<td>" + price + "</td>"'
+    + '      + "<td>" + completedDate + "</td>"'
+    + '      + "<td>" + detailsBtn + "</td>"'
+    + '      + "</tr>";'
+    + '  });'
+    + '  html += "</tbody></table>";'
+    + '  wrap.innerHTML = html;'
+    + '}'
+    + 'let complaintsLoaded = false;'
+    + 'async function toggleComplaints() {'
+    + '  const wrap = document.getElementById("complaintsTableWrap");'
+    + '  if (wrap.style.display === "none") {'
+    + '    wrap.style.display = "block";'
+    + '    await loadComplaints();'
+    + '  } else {'
+    + '    wrap.style.display = "none";'
+    + '  }'
+    + '}'
+    + 'async function loadComplaints() {'
+    + '  const wrap = document.getElementById("complaintsTableWrap");'
+    + '  const res = await fetch("/logistics/api/complaints");'
+    + '  const data = await res.json();'
+    + '  const rows = data.complaints;'
+    + '  if (!rows.length) { wrap.innerHTML = "<p style=\\"color:#7a828a\\">Brak zgloszonych reklamacji.</p>"; return; }'
+    + '  let html = "";'
+    + '  rows.forEach(function (c) {'
+    + '    const reportedDate = new Date(c.complaint_alert_at).toLocaleString("pl-PL");'
+    + '    const text = c.complaint_text_pl || c.complaint_text || "";'
+    + '    const originalNote = c.complaint_text_pl ? ("<div style=\\"font-size:0.72rem;color:#7a828a;margin-top:6px\\">Oryginal (HU): " + escapeHtml(c.complaint_text || "") + "</div>") : "<div style=\\"font-size:0.72rem;color:#b23a3a;margin-top:6px\\">(nie udalo sie przetlumaczyc, powyzej oryginalny tekst)</div>";'
+    + '    html += "<div class=\\"stop\\" style=\\"border-left:4px solid #b23a3a\\">"'
+    + '      + "<strong>" + escapeHtml(c.name || "") + "</strong> — " + escapeHtml(c.resolved_address || "") + " — " + escapeHtml(c.phone || "") + "<br>"'
+    + '      + "<span style=\\"color:#7a828a;font-size:0.78rem\\">Zgloszono: " + reportedDate + "</span>"'
+    + '      + "<p style=\\"margin:8px 0\\">" + escapeHtml(text) + "</p>"'
+    + '      + originalNote'
+    + '      + "<button onclick=\\"acknowledgeComplaint(" + c.id + ")\\" style=\\"font-size:0.75rem;padding:4px 10px;margin-top:6px\\">Oznacz jako przeczytane</button>"'
+    + '      + "</div>";'
+    + '  });'
+    + '  wrap.innerHTML = html;'
+    + '}'
+    + 'async function acknowledgeComplaint(id) {'
+    + '  await fetch("/logistics/api/complaints/" + id + "/acknowledge", { method: "POST" });'
+    + '  loadComplaints();'
     + '}'
     + 'loadCustomers();'
     + '</script>';

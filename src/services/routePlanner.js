@@ -55,10 +55,10 @@ function minutesToTimeStr(totalMin) {
 
 /**
  * @param {Array} customers - { id, name, lat, lng, createdAt (ISO string), installationMin }
- * @param {Object} options - { days: 1|2, dayStart: "HH:MM", dayEnd: "HH:MM", priorityWeightKm: number }
+ * @param {Object} options - { days: 1|2, dayStart: "HH:MM", dayEnd: "HH:MM", priorityDirection: 'oldest'|'newest' }
  * @returns {Object} { day1: [...], day2: [...], unscheduled: [...] }
  */
-function planRoute(customers, { days = 1, dayStart = DEFAULT_DAY_START, dayEnd = DEFAULT_DAY_END, priorityWeightKm = MAX_PRIORITY_BONUS_KM } = {}) {
+function planRoute(customers, { days = 1, dayStart = DEFAULT_DAY_START, dayEnd = DEFAULT_DAY_END, priorityDirection = 'oldest' } = {}) {
   const valid = customers.filter((c) => typeof c.lat === 'number' && typeof c.lng === 'number' && !Number.isNaN(c.lat) && !Number.isNaN(c.lng));
   const skippedNoLocation = customers.filter((c) => !valid.includes(c));
 
@@ -66,17 +66,18 @@ function planRoute(customers, { days = 1, dayStart = DEFAULT_DAY_START, dayEnd =
     return { day1: [], day2: [], unscheduled: [], skippedNoLocation };
   }
 
-  // Prioritás-bónusz kiszámítása: a legrégebbi megrendelés kapja a teljes priorityWeightKm-et,
-  // a legújabb 0-t, a többi lineárisan skálázva — ez "közelebbinek tünteti fel" a régóta várakozókat.
-  // A súly (priorityWeightKm) kívülről paraméterezhető, hogy több, eltérő hangsúlyú változatot is
-  // elő lehessen állítani (lásd generatePlanOptions).
+  // Prioritás-bónusz kiszámítása: alapesetben ("oldest") a legrégebbi megrendelés kapja a teljes
+  // MAX_PRIORITY_BONUS_KM-et, a legújabb 0-t — ez "közelebbinek tünteti fel" a régóta várakozókat.
+  // A priorityDirection="newest" opcióval ez megfordítható: ilyenkor a LEGÚJABB megrendelés kapja
+  // a bónuszt (pl. ha egy sürgős, frissen beérkezett rendelést szeretnénk előrébb sorolni).
   const ages = valid.map((c) => new Date(c.createdAt).getTime());
   const oldest = Math.min(...ages);
   const newest = Math.max(...ages);
   const ageRange = newest - oldest || 1;
   const withBonus = valid.map((c) => {
     const age = new Date(c.createdAt).getTime();
-    const priorityBonusKm = ((newest - age) / ageRange) * priorityWeightKm;
+    const ageScore = priorityDirection === 'newest' ? (age - oldest) : (newest - age);
+    const priorityBonusKm = (ageScore / ageRange) * MAX_PRIORITY_BONUS_KM;
     return { ...c, priorityBonusKm };
   });
 
@@ -166,8 +167,8 @@ function planRoute(customers, { days = 1, dayStart = DEFAULT_DAY_START, dayEnd =
 }
 
 /**
- * Összefoglaló egy elkészült tervről (a variánsok összehasonlításához): hány megálló fér bele,
- * mikor végeznek összesen, mennyi az összes becsült utazási idő.
+ * Összefoglaló egy elkészült tervről: hány megálló fér bele, mikor végeznek összesen, mennyi az
+ * összes becsült utazási idő.
  */
 function summarizePlan(plan) {
   const allStops = [...plan.day1, ...plan.day2];
@@ -184,31 +185,8 @@ function summarizePlan(plan) {
   };
 }
 
-/**
- * Több, eltérő hangsúlyú útvonalterv-változatot állít elő egyszerre, hogy a logisztikus
- * összehasonlíthassa és kiválaszthassa a neki megfelelőt — nem csak egyetlen, kötelezően
- * elfogadandó tervet kap.
- *  - "balanced": az alapértelmezett, mérsékelt prioritás-súllyal (a jelenlegi normál viselkedés)
- *  - "oldest_first": erősebben előnyben részesíti a régóta váró megrendeléseket, akár kisebb
- *    földrajzi kitérők árán is
- *  - "shortest_route": kizárólag a földrajzi közelség/dél-észak haladás számít, a várakozási idő
- *    egyáltalán nem befolyásolja a sorrendet — ez adja a legrövidebb becsült útvonalat
- */
-function generatePlanOptions(customers, options = {}) {
-  const variants = [
-    { key: 'balanced', label: 'Zrównoważony (priorytet + geografia)', priorityWeightKm: MAX_PRIORITY_BONUS_KM },
-    { key: 'oldest_first', label: 'Priorytet: najstarsze zamówienia', priorityWeightKm: MAX_PRIORITY_BONUS_KM * 2.5 },
-    { key: 'shortest_route', label: 'Priorytet: najkrótsza trasa', priorityWeightKm: 0 },
-  ];
-  return variants.map((v) => {
-    const plan = planRoute(customers, { ...options, priorityWeightKm: v.priorityWeightKm });
-    return { key: v.key, label: v.label, plan, summary: summarizePlan(plan) };
-  });
-}
-
 module.exports = {
   planRoute,
-  generatePlanOptions,
   summarizePlan,
   haversineKm,
   travelMinutes,
