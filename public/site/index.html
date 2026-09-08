@@ -702,6 +702,15 @@ async function loadGarageTypes(){
       card.addEventListener('click', ()=>{ presetSelect.value = t.id; presetSelect.dispatchEvent(new Event('change')); });
       presetGallery.appendChild(card);
     });
+    // Ha az oldal egy "?tipus=<garázstípus-azonosító>" paraméterrel nyílt meg (pl. a marketing
+    // weboldalról mutató linkről), automatikusan betöltjük és alkalmazzuk azt a típust — így minden
+    // típusgarázsnak van egy saját, közvetlenül linkelhető URL-je, anélkül hogy külön HTML-fájlt
+    // kellene karbantartani mindegyikhez.
+    const requestedTypeId = new URLSearchParams(window.location.search).get('tipus');
+    if (requestedTypeId && types.some(t => String(t.id) === requestedTypeId)) {
+      presetSelect.value = requestedTypeId;
+      presetSelect.dispatchEvent(new Event('change'));
+    }
   } catch(e){ console.error('Nem sikerült betölteni a típusgarázs-listát:', e); }
 }
 loadGarageTypes();
