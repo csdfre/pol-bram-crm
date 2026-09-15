@@ -312,8 +312,10 @@ function calculateQuote(formData) {
   if (skylight > 0) lines.push(line(`Ablakbetét / bevilágító ×${skylight}`, ADDON.skylight * skylight));
 
   if (formData.gateLightYes) {
-    const qty = Math.max(1, parseInt(formData.gateLightQty) || 1);
-    lines.push(line(`Bevilágító a kapun ×${qty}`, ADDON.skylight * qty));
+    const qtyPerGate = Math.max(1, parseInt(formData.gateLightQty) || 1);
+    const gateCountForLight = Math.max(1, parseInt(formData.gateCount) || 1);
+    const totalLights = qtyPerGate * gateCountForLight;
+    lines.push(line(`Bevilágító a kapun ×${qtyPerGate}/kapu × ${gateCountForLight} kapu = ${totalLights} db`, ADDON.skylight * totalLights));
   }
 
   // Ereszcsatorna

@@ -1303,19 +1303,24 @@ function renderSketch(){
       }
     }
     if(document.getElementById('gateLightYes').checked){
-      const gw = gwCm*scale;
       const qty = Math.max(1, parseInt(document.getElementById('gateLightQty').value)||1);
       const arr = document.getElementById('gateLightArrangement').value;
       const lightSize=7, gateBarY=y0+rl;
-      if(arr==='sides'){
-        gateEls += `<rect x="${firstGateX+3}" y="${gateBarY-lightSize/2}" width="${lightSize}" height="${lightSize}" fill="#6fb7e0"/>`;
-        gateEls += `<rect x="${firstGateX+gw-lightSize-3}" y="${gateBarY-lightSize/2}" width="${lightSize}" height="${lightSize}" fill="#6fb7e0"/>`;
-      } else {
-        const stackX = arr==='left-stack' ? firstGateX+3 : firstGateX+gw-lightSize-3;
-        for(let i=0;i<qty;i++){
-          gateEls += `<rect x="${stackX}" y="${gateBarY-lightSize/2-i*(lightSize+3)}" width="${lightSize}" height="${lightSize}" fill="#6fb7e0"/>`;
+      // Minden egyes kapun megjelenítjük a bevilágítót — korábban ez tévesen csak az ELSŐ kapun
+      // (firstGateX) rajzolódott ki, a többi kapun soha nem jelent meg.
+      gateStartCms.forEach((startCm)=>{
+        const gateX = x0 + startCm*scale;
+        const gw = Math.min(gwCm, w)*scale;
+        if(arr==='sides'){
+          gateEls += `<rect x="${gateX+3}" y="${gateBarY-lightSize/2}" width="${lightSize}" height="${lightSize}" fill="#6fb7e0"/>`;
+          gateEls += `<rect x="${gateX+gw-lightSize-3}" y="${gateBarY-lightSize/2}" width="${lightSize}" height="${lightSize}" fill="#6fb7e0"/>`;
+        } else {
+          const stackX = arr==='left-stack' ? gateX+3 : gateX+gw-lightSize-3;
+          for(let i=0;i<qty;i++){
+            gateEls += `<rect x="${stackX}" y="${gateBarY-lightSize/2-i*(lightSize+3)}" width="${lightSize}" height="${lightSize}" fill="#6fb7e0"/>`;
+          }
         }
-      }
+      });
     }
   }
 

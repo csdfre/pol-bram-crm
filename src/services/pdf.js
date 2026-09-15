@@ -265,9 +265,9 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'canopyYes', canopyActive, canopyActive ? YES[lang] : VALUE_NONE[lang]),
       E(L('width'), (fd.canopyWidth||'—')+' cm', 'canopyWidth', fd.canopyWidth, 'number'),
       E(L('length'), (fd.canopyLength||'—')+' cm', 'canopyLength', fd.canopyLength, 'number'),
-      E(L('backWallCover'), fd.canopyBackWall==='solid'?{hu:'Teli fal',pl:'Ściana pełna'}[lang]:fd.canopyBackWall==='lamella'?{hu:'Lamellás',pl:'Lamelowa'}[lang]:VALUE_NONE[lang], 'canopyBackWall', fd.canopyBackWall),
+      E(L('backWallCover'), fd.canopyBackWall==='solid'?{hu:'Teli fal',pl:'Ściana pełna'}[lang]:fd.canopyBackWall==='lamella'?{hu:'Lamellás',pl:'Panele'}[lang]:VALUE_NONE[lang], 'canopyBackWall', fd.canopyBackWall),
       ESEL(L('backWallColor'), 'colorCanopyBack', fd.colorCanopyBack||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorCanopyBack, lang)),
-      E(L('sideWallCover'), fd.canopySideWall==='solid'?{hu:'Teli fal',pl:'Ściana pełna'}[lang]:fd.canopySideWall==='lamella'?{hu:'Lamellás',pl:'Lamelowa'}[lang]:VALUE_NONE[lang], 'canopySideWall', fd.canopySideWall),
+      E(L('sideWallCover'), fd.canopySideWall==='solid'?{hu:'Teli fal',pl:'Ściana pełna'}[lang]:fd.canopySideWall==='lamella'?{hu:'Lamellás',pl:'Panele'}[lang]:VALUE_NONE[lang], 'canopySideWall', fd.canopySideWall),
       ESEL(L('sideWallColor'), 'colorCanopySide', fd.colorCanopySide||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorCanopySide, lang)),
     ], isEmpty: !canopyActive });
   }

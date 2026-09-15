@@ -342,7 +342,7 @@ async function buildColleagueReportBuffer(customer) {
   const widthM = (parseFloat(fd.width) || 0) / 100;
   const lengthM = (parseFloat(fd.length) || 0) / 100;
   const heightCm = fd.height || '213';
-  ws.getCell('B7').value = `${widthM} x ${lengthM} (oldalmagasság ${heightCm} cm)`;
+  ws.getCell('B7').value = `${widthM} x ${lengthM} (wysokość boczna ${heightCm} cm)`;
   ws.getCell('B8').value = buildWiataText(sections);
   ws.getCell('B9').value = buildDachText(sections, fd);
   ws.getCell('B10').value = buildScianyText(sections);
