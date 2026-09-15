@@ -133,10 +133,18 @@ function buildWiataText(sections) {
   const w = val(canopySection, 'Szerokość', '—');
   const l = val(canopySection, 'Długość', '—');
   const backWall = val(canopySection, 'Pokrycie tylnej ściany', null);
+  const backWallColor = val(canopySection, 'Kolor tylnej ściany', null);
   const sideWall = val(canopySection, 'Pokrycie ściany bocznej', null);
+  const sideWallColor = val(canopySection, 'Kolor ściany bocznej', null);
   let text = `${w} x ${l}`;
-  if (backWall && backWall !== '—' && !/brak/i.test(backWall)) text += ` / ściana tylna: ${backWall}`;
-  if (sideWall && sideWall !== '—' && !/brak/i.test(sideWall)) text += ` / ściana boczna: ${sideWall}`;
+  if (backWall && backWall !== '—' && !/brak/i.test(backWall)) {
+    text += ` / ściana tylna: ${backWall}`;
+    if (backWallColor && backWallColor !== '—') text += ` (${backWallColor})`;
+  }
+  if (sideWall && sideWall !== '—' && !/brak/i.test(sideWall)) {
+    text += ` / ściana boczna: ${sideWall}`;
+    if (sideWallColor && sideWallColor !== '—') text += ` (${sideWallColor})`;
+  }
   return text;
 }
 
