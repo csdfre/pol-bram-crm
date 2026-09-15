@@ -95,6 +95,7 @@ addColIfMissing('vat_requested', 'INTEGER DEFAULT 0');
 addColIfMissing('reject_reason', 'TEXT');
 addColIfMissing('reject_at', 'TEXT');
 addColIfMissing('offer_sent_at', 'TEXT');
+addColIfMissing('colleague_sent_at', 'TEXT');
 addColIfMissing('reminder_sent_at', 'TEXT');
 addColIfMissing('garage_type_used', 'TEXT');
 addColIfMissing('customer_edited_at', 'TEXT');

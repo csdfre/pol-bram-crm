@@ -411,7 +411,11 @@ router.post('/customers/:id/send-order-form-colleague', async (req, res) => {
     }
     const excelBuffer = await buildColleagueReportBuffer(c);
     await email.sendOrderFormToColleague(c, excelBuffer);
-    db.prepare('UPDATE customers SET status=?, updated_at=? WHERE id=?').run('kolleganonek_kikuldve', new Date().toISOString(), c.id);
+    const now = new Date().toISOString();
+    // Ha korábban már küldve volt a kolléganőnek (pl. módosítás után újraküldve), az EREDETI
+    // (első) küldés dátumát tartjuk meg a statisztikában — csak akkor állítjuk be, ha még nincs.
+    db.prepare('UPDATE customers SET status=?, updated_at=?, colleague_sent_at=COALESCE(colleague_sent_at, ?) WHERE id=?')
+      .run('kolleganonek_kikuldve', now, now, c.id);
     logStatus(c.id, 'kolleganonek_kikuldve', 'Link kiküldve a lengyel kolléganőnek jóváhagyásra');
     res.json({ ok: true });
   } catch (err) {
