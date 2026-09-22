@@ -261,10 +261,16 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
 
   const canopyActive = !!fd.canopyYes;
   if(canopyActive || includeEmpty){
+    const canopySideOptions = { hu: [['left','Bal oldal'],['right','Jobb oldal'],['front','Elülső oldal'],['back','Hátsó oldal']],
+                                 pl: [['left','Lewa strona'],['right','Prawa strona'],['front','Strona przednia'],['back','Strona tylna']] };
+    const canopyPosOptions = { hu: [['front','Elölről (elülső faltól)'],['back','Hátulról (hátsó faltól)']],
+                                pl: [['front','Od przodu'],['back','Od tyłu']] };
     sections.push({ section: S('canopy'), items: [
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'canopyYes', canopyActive, canopyActive ? YES[lang] : VALUE_NONE[lang]),
+      ESEL(lang==='pl'?'Strona':'Melyik oldalon', 'canopySide', fd.canopySide||'left', canopySideOptions[lang], (canopySideOptions[lang].find(o=>o[0]===(fd.canopySide||'left'))||[,fd.canopySide])[1]),
       E(L('width'), (fd.canopyWidth||'—')+' cm', 'canopyWidth', fd.canopyWidth, 'number'),
       E(L('length'), (fd.canopyLength||'—')+' cm', 'canopyLength', fd.canopyLength, 'number'),
+      ESEL(lang==='pl'?'Pozycja (gdy krótsza niż garaż)':'Pozíció (ha rövidebb a garázsnál)', 'canopyPosition', fd.canopyPosition||'front', canopyPosOptions[lang], (canopyPosOptions[lang].find(o=>o[0]===(fd.canopyPosition||'front'))||[,fd.canopyPosition])[1]),
       E(L('backWallCover'), fd.canopyBackWall==='solid'?{hu:'Teli fal',pl:'Ściana pełna'}[lang]:fd.canopyBackWall==='lamella'?{hu:'Lamellás',pl:'Panele'}[lang]:VALUE_NONE[lang], 'canopyBackWall', fd.canopyBackWall),
       ESEL(L('backWallColor'), 'colorCanopyBack', fd.colorCanopyBack||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorCanopyBack, lang)),
       E(L('sideWallCover'), fd.canopySideWall==='solid'?{hu:'Teli fal',pl:'Ściana pełna'}[lang]:fd.canopySideWall==='lamella'?{hu:'Lamellás',pl:'Panele'}[lang]:VALUE_NONE[lang], 'canopySideWall', fd.canopySideWall),
@@ -285,10 +291,23 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
                               pl: [['auto','Automatycznie, proporcjonalnie'],['custom','Własna pozycja (dla każdej bramy)']] };
     const gateCornerOptions = { hu: [['left','Bal faltól'],['right','Jobb faltól']], pl: [['left','Od lewej ściany'],['right','Od prawej ściany']] };
     const gateCap = includeEmpty ? GATE_CAP : (gateCount||1);
+    const gateWidthOptions = { hu: [['200','2 m (200 cm)'],['250','2,5 m (250 cm)'],['300','3 m (300 cm)'],['400','4 m (400 cm)']],
+                                pl: [['200','2 m (200 cm)'],['250','2,5 m (250 cm)'],['300','3 m (300 cm)'],['400','4 m (400 cm)']] };
+    const gwCurrent = String(fd.gateWidth||300);
+    // Ha egy régebbi, nem szabványos érték van elmentve (a legördülő bevezetése előttről), azt is
+    // felvesszük egy extra opcióként, hogy ne írja felül hallgatólagosan a mentett adatot.
+    const gateWidthOptionsFull = { hu: [...gateWidthOptions.hu], pl: [...gateWidthOptions.pl] };
+    if(!['200','250','300','400'].includes(gwCurrent)){
+      gateWidthOptionsFull.hu.push([gwCurrent, gwCurrent+' cm (egyedi, korábbi érték)']);
+      gateWidthOptionsFull.pl.push([gwCurrent, gwCurrent+' cm (niestandardowa, poprzednia wartość)']);
+    }
+    const gateWidthItem = gateType==='uchylna'
+      ? ESEL(L('gateWidth'), 'gateWidth', gwCurrent, gateWidthOptionsFull[lang], gwCurrent+' cm')
+      : E(L('gateWidth'), (fd.gateWidth||'300')+' cm', 'gateWidth', fd.gateWidth||300, 'number');
     const items = [
       ESEL(lang==='pl'?'Typ bramy':'Kapu típusa', '__gateType', gateType, GATE_TYPE_OPTIONS[lang], (GATE_NAMES[gateType]&&GATE_NAMES[gateType][lang])||gateType),
       E(lang==='pl'?'Ilość bram (szt.)':'Kapuk száma (db)', gateCount||1, 'gateCount', gateCount||1, 'number'),
-      E(L('gateWidth'), (fd.gateWidth||'300')+' cm', 'gateWidth', fd.gateWidth||300, 'number'),
+      gateWidthItem,
       E(L('gateHeight'), (fd.gateHeight||'185')+' cm', 'gateHeight', fd.gateHeight||185, 'number'),
       ESEL(L('gateColor'), 'colorGate', fd.colorGate||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorGate||'RAL9005', lang)),
       ESEL(L('gatePattern'), 'gatePattern', fd.gatePattern||'Széles vízszintes', PATTERN_OPTIONS[lang], patternName(fd.gatePattern||'Széles vízszintes', lang)),

@@ -267,6 +267,15 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
             <label class="field"><span>Szélessége (cm)</span><input type="number" id="canopyWidth" value="300" min="100" step="10"></label>
             <label class="field"><span>Hosszúsága (cm)</span><input type="number" id="canopyLength" value="500" min="100" step="10"></label>
           </div>
+          <div class="grid2" id="canopyPositionField" style="display:none;margin-top:14px">
+            <label class="field"><span>Ha rövidebb a garázs hosszánál, honnan induljon?</span>
+              <select id="canopyPosition">
+                <option value="front">Elölről (az elülső faltól)</option>
+                <option value="back">Hátulról (a hátsó faltól)</option>
+              </select>
+            </label>
+            <div></div>
+          </div>
 
           <div class="grid2" style="margin-top:14px">
             <label class="field" style="grid-column:1/-1"><span>A fedett rész magassága a garázshoz képest</span>
@@ -878,6 +887,30 @@ wireChoiceGroup('gateType', v=>{
 function onGateTypeChange(){
   const gh = document.getElementById('gateHeight');
   const hint = document.getElementById('gateSizeHint');
+  // A kapu szélessége mező cseréje: billenő kapunál csak a szabványos méretek közül lehet választani
+  // (legördülő), kétszárnyú kapunál marad a szabad, egyedi méretmegadás.
+  const gwOld = document.getElementById('gateWidth');
+  const prevVal = gwOld.value;
+  let gwNew;
+  if(state.gateType==='uchylna'){
+    gwNew = document.createElement('select');
+    gwNew.id = 'gateWidth';
+    gwNew.innerHTML = `
+      <option value="200">2 m (200 cm)</option>
+      <option value="250">2,5 m (250 cm)</option>
+      <option value="300" selected>3 m (300 cm)</option>
+      <option value="400">4 m (400 cm)</option>`;
+    // Ha az előző (szabad) érték valamelyik szabványos méretnek megfelel, azt tartjuk meg — egyébként a 300-as alapértékre állunk.
+    if(['200','250','300','400'].includes(String(parseInt(prevVal)))) gwNew.value = String(parseInt(prevVal));
+  } else {
+    gwNew = document.createElement('input');
+    gwNew.type = 'number'; gwNew.id = 'gateWidth'; gwNew.min = 180; gwNew.max = 400; gwNew.step = 5;
+    gwNew.value = prevVal || 300;
+  }
+  gwOld.replaceWith(gwNew);
+  gwNew.addEventListener('input', refreshAll);
+  gwNew.addEventListener('change', refreshAll);
+
   if(state.gateType==='uchylna'){
     gh.min=185; gh.max=290; gh.value=185;
     hint.textContent = 'Alapszélesség: 300 cm (tiszta szélesség kb. 275 cm), max. 400 cm. Alap (tiszta) magasság: 185 cm.';
@@ -1181,6 +1214,7 @@ function renderSketch(){
   // Oldaltető kiterjedésének figyelembevétele a méretezésnél, hogy nagy épületnél/oldaltetőnél is minden kiférjen
   const canopyOn = document.getElementById('canopyYes').checked;
   const canopySideVal = document.getElementById('canopySide').value;
+  document.getElementById('canopyPositionField').style.display = (canopyOn && (canopySideVal==='left' || canopySideVal==='right')) ? 'flex' : 'none';
   const canopyWidthCm = canopyOn ? (parseFloat(document.getElementById('canopyWidth').value)||0) : 0;
   const extraLeftCm = (canopyOn && canopySideVal==='left') ? canopyWidthCm : 0;
   const extraRightCm = (canopyOn && canopySideVal==='right') ? canopyWidthCm : 0;
@@ -1349,7 +1383,8 @@ function renderSketch(){
     let x1,x2,y1,y2, outerOrientation, outerFixed, outerFrom, outerTo, backLine;
     if(side==='left' || side==='right'){
       const len = Math.min(clRaw, l)*scale;
-      y1 = y0+rl-len; y2 = y0+rl;
+      const posFromBack = document.getElementById('canopyPosition').value==='back';
+      if(posFromBack){ y1 = y0; y2 = y0+len; } else { y1 = y0+rl-len; y2 = y0+rl; }
       if(side==='left'){ x1=x0-cwPx; x2=x0; outerFixed=x1; }
       else { x1=x0+rw; x2=x0+rw+cwPx; outerFixed=x2; }
       outerOrientation='vertical'; outerFrom={x:outerFixed,y:y1}; outerTo={x:outerFixed,y:y2};
