@@ -576,6 +576,7 @@ function colleaguePage(c){
     <div class="sketch" id="sketchBox">${lightSketch || ''}</div>
     <div style="text-align:center;margin:-10px 0 16px">
       <button onclick="refreshSketch()" style="background:#454C54;font-size:0.8rem;padding:6px 14px">↻ Odśwież szkic aktualnymi danymi</button>
+      <button onclick="mirrorAndRefresh()" style="background:#454C54;font-size:0.8rem;padding:6px 14px">↔ Odbicie lustrzane (lewo / prawo)</button>
     </div>
 
     <div class="two-col">
@@ -633,6 +634,30 @@ function colleaguePage(c){
       msg(res.ok ? 'Cena zapisana.' : 'Błąd: '+data.error);
     }
     function msg(t){ document.getElementById('statusMsg').textContent = t; }
+    // Tükrözés: minden bal/jobb értékű választómezőt megfordít (fal, sarok, oldal, ajtónyitás irány),
+    // az oldalra lejtő tetőt is (jobbra <-> balra). A távolságok változatlanok maradnak, mert a sarok
+    // oldala cserélődik. Mentésig csak a képernyőn érvényes.
+    function mirrorGarage(){
+      var flipLR = function(v){ return v==='left' ? 'right' : (v==='right' ? 'left' : v); };
+      var flipRoof = function(v){ return v==='spad jobbra' ? 'spad balra' : (v==='spad balra' ? 'spad jobbra' : v); };
+      var changed = 0;
+      document.querySelectorAll('select[data-key]').forEach(function(el){
+        var cur = el.value;
+        var next = flipLR(cur);
+        if(next===cur) next = flipRoof(cur);
+        if(next!==cur && Array.prototype.some.call(el.options, function(o){ return o.value===next; })){
+          el.value = next;
+          el.dispatchEvent(new Event('change', {bubbles:true}));
+          changed++;
+        }
+      });
+      return changed;
+    }
+    async function mirrorAndRefresh(){
+      var n = mirrorGarage();
+      msg(n ? 'Odbicie lustrzane zastosowane — pamiętaj o zapisaniu zmian.' : 'Brak ustawień do odbicia (lewo/prawo).');
+      if(n) await refreshSketch();
+    }
     async function refreshSketch(){
       const formData = {};
       document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });

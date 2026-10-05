@@ -172,6 +172,7 @@ router.get('/customers/:id/editor', (req, res) => {
     <div style="text-align:center;margin:-10px 0 16px">
       <button onclick="refreshSketch()" style="background:#454C54;font-size:0.8rem;padding:6px 14px">↻ Rajz frissítése a jelenlegi adatokkal</button>
       <button onclick="regenerateAndSaveSketch()" style="background:#2F6B4F;font-size:0.8rem;padding:6px 14px">💾 Rajz újragenerálása és mentése (ha elromlott)</button>
+      <button onclick="mirrorAndRefresh()" style="background:#454C54;font-size:0.8rem;padding:6px 14px">↔ Tükörkép (jobbról balra / balról jobbra)</button>
     </div>
 
     <div class="two-col">
@@ -204,6 +205,31 @@ router.get('/customers/:id/editor', (req, res) => {
         else alert('Hiba: '+data.error);
       } catch(e){ alert('Hiba a rajz mentése közben: '+e.message); }
       box.style.opacity = '1';
+    }
+    // Tükrözés: minden bal/jobb értékű választómezőt megfordít (fal, sarok, oldal, ajtónyitás irány),
+    // az oldalra lejtő tetőt is (jobbra <-> balra). A távolságok változatlanok maradnak, mert a sarok
+    // oldala cserélődik. Mentésig csak a képernyőn érvényes.
+    function mirrorGarage(){
+      var flipLR = function(v){ return v==='left' ? 'right' : (v==='right' ? 'left' : v); };
+      var flipRoof = function(v){ return v==='spad jobbra' ? 'spad balra' : (v==='spad balra' ? 'spad jobbra' : v); };
+      var changed = 0;
+      document.querySelectorAll('select[data-key]').forEach(function(el){
+        var cur = el.value;
+        var next = flipLR(cur);
+        if(next===cur) next = flipRoof(cur);
+        if(next!==cur && Array.prototype.some.call(el.options, function(o){ return o.value===next; })){
+          el.value = next;
+          el.dispatchEvent(new Event('change', {bubbles:true}));
+          changed++;
+        }
+      });
+      return changed;
+    }
+    async function mirrorAndRefresh(){
+      var n = mirrorGarage();
+      var st = document.getElementById('statusMsg');
+      if(st) st.textContent = n ? 'Tükrözve — a változás mentéskor véglegesedik, ne felejts el menteni.' : 'Nincs tükrözhető (bal/jobb) beállítás.';
+      if(n) await refreshSketch();
     }
     async function refreshSketch(){
       const formData = {};
