@@ -36,19 +36,35 @@ async function preparePage(formData) {
     await page.setViewport({ width: 1400, height: 1000 });
     await page.setRequestInterception(true);
     page.on('request', (req) => {
-      if (req.url().includes('/public/garage-types')) {
+      const url = req.url();
+      if (url.includes('/public/garage-types')) {
         // Nem elutasítjuk (abort) a kérést, mert az hibát dobhat a form saját kódjában, ami
         // megszakíthatja a további inicializálást (pl. a rajz renderelését is). Ehelyett egy
         // ártalmatlan, sikeres, de üres választ adunk — a form ezt normál esetként kezeli.
         req.respond({ status: 200, contentType: 'application/json', body: '[]' }).catch(() => {});
+      } else if (/^https?:/i.test(url)) {
+        // MINDEN külső erőforrást (Google Fonts stb.) letiltunk. Az űrlap <head>-jében lévő betűtípus-
+        // stíluslap ugyanis blokkolja a form scriptjeit és a "load" eseményt is: ha a szerver felől a
+        // Google lassan vagy sehogy sem válaszol, az oldal betöltése elakad, és a rajz-frissítés
+        // "Navigation timeout of 15000 ms exceeded" hibával leáll. A rajz geometriája nem függ a
+        // betűtípustól (nincs szövegmérés), így erre nincs is szükség — az előnézet tartalék
+        // betűtípussal készül, de megbízhatóan és gyorsan.
+        req.abort('blockedbyclient').catch(() => {});
       } else {
         req.continue().catch(() => {});
       }
     });
-    await page.setContent(getCustomerFormHtml(), { waitUntil: 'load', timeout: 15000 });
-    // Biztosra megyünk, hogy a form saját induló inicializálása (választógombok bekötése, kezdeti rajz)
-    // teljesen lefutott — ez tartalmazhat egy kis (setTimeout-alapú) késleltetést is a form saját kódjában.
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    // Nem a "load" eseményre várunk (az külső erőforrásoktól függene), hanem csak a HTML feldolgozására,
+    // majd arra, hogy a form saját rajzoló függvényei ténylegesen elérhetők legyenek. Hidegindításkor
+    // (lassú CPU) bőséges időtúllépést engedünk.
+    await page.setContent(getCustomerFormHtml(), { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForFunction(
+      () => typeof window.applyFormState === 'function' && typeof window.renderSketch === 'function',
+      { timeout: 20000 }
+    );
+    // Rövid várakozás, hogy a form saját induló inicializálása (választógombok bekötése, kezdeti rajz)
+    // teljesen lefusson — ez tartalmazhat egy kis (setTimeout-alapú) késleltetést is a form saját kódjában.
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     const evalResult = await page.evaluate((data) => {
       try {
