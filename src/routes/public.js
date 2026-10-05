@@ -634,24 +634,37 @@ function colleaguePage(c){
       msg(res.ok ? 'Cena zapisana.' : 'Błąd: '+data.error);
     }
     function msg(t){ document.getElementById('statusMsg').textContent = t; }
-    // Tükrözés: minden bal/jobb értékű választómezőt megfordít (fal, sarok, oldal, ajtónyitás irány),
-    // az oldalra lejtő tetőt is (jobbra <-> balra). A távolságok változatlanok maradnak, mert a sarok
-    // oldala cserélődik. Mentésig csak a képernyőn érvényes.
+    // Tükrözés: a garázs vízszintes (bal <-> jobb) tükörképét állítja be a képernyőn lévő mezőkben.
+    // FONTOS szabály: a fal-elemek (ablak, ajtó, bevilágító...) "bal/jobb sarok" mezője csak VÍZSZINTES falon
+    // (elülső, hátsó, előtető fala, elöl/hátul lévő oldaltető) jelent tényleg bal/jobb oldalt. A bal/jobb
+    // oldalfalon és az oldalsó előtető külső falán ugyanez a mező az elülső/hátsó véget jelöli, ami
+    // tükrözéskor nem változik — ott CSAK a falat (bal<->jobb) cseréljük, a sarkot nem.
     function mirrorGarage(){
       var flipLR = function(v){ return v==='left' ? 'right' : (v==='right' ? 'left' : v); };
       var flipRoof = function(v){ return v==='spad jobbra' ? 'spad balra' : (v==='spad balra' ? 'spad jobbra' : v); };
-      var changed = 0;
+      var val = function(k){ var e = document.querySelector('[data-key="'+k+'"]'); return e ? e.value : undefined; };
+      var canopyHoriz = (val('canopySide')==='front' || val('canopySide')==='back');
+      var plan = [];
       document.querySelectorAll('select[data-key]').forEach(function(el){
-        var cur = el.value;
-        var next = flipLR(cur);
-        if(next===cur) next = flipRoof(cur);
-        if(next!==cur && Array.prototype.some.call(el.options, function(o){ return o.value===next; })){
-          el.value = next;
-          el.dispatchEvent(new Event('change', {bubbles:true}));
-          changed++;
+        var key = el.dataset.key, cur = el.value, next = cur;
+        var m = key.match(/^(.+)Corner(\\d+)$/);
+        var wallVal = m ? val(m[1]+'Wall'+m[2]) : undefined;
+        if(/Handle\\d+$/.test(key) && !/^wallDoorHandle/.test(key)){
+          // A személyi ajtó "kilincs oldala" a rajzon a mérés irányához (a választott sarokhoz) viszonyított oldalt jelenti,
+          // és a sarok tükrözéskor vele együtt átfordul — ezért az érték maga változatlan marad, így a kirajzolt
+          // nyitási ív pontosan a tükörkép lesz. (A válaszfal-ajtó nyitásiránya viszont valódi bal/jobb, azt cseréljük.)
+          next = cur;
+        } else if(m && wallVal !== undefined){
+          var horizontal = wallVal==='front' || wallVal==='back' || wallVal==='notch' || (wallVal==='canopy' && canopyHoriz);
+          next = horizontal ? flipLR(cur) : cur;
+        } else {
+          next = flipLR(cur);
+          if(next===cur) next = flipRoof(cur);
         }
+        if(next!==cur && Array.prototype.some.call(el.options, function(o){ return o.value===next; })) plan.push([el, next]);
       });
-      return changed;
+      plan.forEach(function(pn){ pn[0].value = pn[1]; pn[0].dispatchEvent(new Event('change', {bubbles:true})); });
+      return plan.length;
     }
     async function mirrorAndRefresh(){
       var n = mirrorGarage();

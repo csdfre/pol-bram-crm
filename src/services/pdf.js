@@ -278,6 +278,18 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
     ], isEmpty: !canopyActive });
   }
 
+  // Előtető-kiugrás (az elülső fal sarkán lévő beugró/előtető) — az ügyfél-oldalon is szerkeszthető, ezért itt is az
+  const notchActive = !!fd.notchYes;
+  if(notchActive || includeEmpty){
+    const notchSideOptions = { hu: [['left','Bal sarkon'],['right','Jobb sarkon']], pl: [['left','W lewym rogu'],['right','W prawym rogu']] };
+    sections.push({ section: lang==='pl'?'Zadaszenie w rogu ściany przedniej':'Előtető (az elülső fal sarkán)', items: [
+      ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'notchYes', notchActive, notchActive ? YES[lang] : VALUE_NONE[lang]),
+      ESEL(lang==='pl'?'Narożnik':'Melyik sarkon', 'notchSide', fd.notchSide||'left', notchSideOptions[lang], (notchSideOptions[lang].find(o=>o[0]===(fd.notchSide||'left'))||[,fd.notchSide])[1]),
+      E(L('width'), (fd.notchWidth||150)+' cm', 'notchWidth', fd.notchWidth||150, 'number'),
+      E(lang==='pl'?'Głębokość':'Mélység', (fd.notchDepth||100)+' cm', 'notchDepth', fd.notchDepth||100, 'number'),
+    ], isEmpty: !notchActive });
+  }
+
   sections.push({ section: S('roof'), items: [
     ESEL(L('roofType'), 'roofType', fd.roofType||'dwuspad', ROOF_OPTIONS_FULL[lang], (ROOF_NAMES[fd.roofType] && ROOF_NAMES[fd.roofType][lang]) || fd.roofType || '—'),
     ESEL(L('roofColor'), 'colorRoof', fd.colorRoof||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorRoof, lang)),

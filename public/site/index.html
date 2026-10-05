@@ -1548,14 +1548,14 @@ function renderSketch(){
         // A méretet is odaírjuk a cm-érték mellé, hogy ha két elem egymás mellett van a falon,
         // egyértelmű legyen, melyik mérővonal melyik elemre (méretre) vonatkozik.
         if(p.horizontal){
-          const outward = (wEl.value==='front' || wEl.value==='notch') ? 1 : -1; // elülső fal / előtető fala: lefelé kifelé; hátsó fal: felfelé kifelé
+          const outward = (wEl.value==='front' || wEl.value==='notch' || (wEl.value==='canopy' && canopyGeom && canopyGeom.side==='front')) ? 1 : -1; // elülső fal / előtető fala / elülső oldaltető: lefelé kifelé; hátsó fal / hátsó oldaltető: felfelé kifelé
           const y2 = edgeP.y + outward*baseOff;
           labelEls += `<line x1="${p.refCorner.x}" y1="${y2}" x2="${edgeP.x}" y2="${y2}" stroke="#F2B705" stroke-width="1"/>
             <line x1="${p.refCorner.x}" y1="${y2-3}" x2="${p.refCorner.x}" y2="${y2+3}" stroke="#F2B705" stroke-width="1"/>
             <line x1="${edgeP.x}" y1="${y2-3}" x2="${edgeP.x}" y2="${y2+3}" stroke="#F2B705" stroke-width="1"/>
             <text x="${(p.refCorner.x+edgeP.x)/2}" y="${y2+(outward>0?9:-4)}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${dist}cm${distLabelSuffix}</text>`;
         } else {
-          const outward = wEl.value==='left' ? -1 : 1; // bal fal: balra kifelé; minden más (jobb, oldaltető, előtető fala): jobbra kifelé
+          const outward = (wEl.value==='left' || (wEl.value==='canopy' && canopyGeom && canopyGeom.side==='left')) ? -1 : 1; // bal fal / bal oldaltető: balra kifelé; jobb fal / jobb oldaltető: jobbra kifelé
           const x2 = edgeP.x + outward*baseOff;
           labelEls += `<line x1="${x2}" y1="${p.refCorner.y}" x2="${x2}" y2="${edgeP.y}" stroke="#F2B705" stroke-width="1"/>
             <line x1="${x2-3}" y1="${p.refCorner.y}" x2="${x2+3}" y2="${p.refCorner.y}" stroke="#F2B705" stroke-width="1"/>
@@ -1613,7 +1613,7 @@ function renderSketch(){
           <circle cx="${p.refCorner.x}" cy="${p.refCorner.y}" r="2" fill="#F2B705" opacity="0.8"/>`;
       }
       labelEls += `<text x="${p.x+(p.horizontal?0:doorOff)}" y="${p.y+(p.horizontal?-doorOff:4)}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${dDist} cm a ${cornerLabel}tól (${document.getElementById('personalDoorSize').value||'90x200'})</text>`;
-      const outDir = dWall==='front' ? {x:0,y:1} : dWall==='back' ? {x:0,y:-1} : dWall==='left' ? {x:-1,y:0} : dWall==='right' ? {x:1,y:0} : dWall==='notch' ? {x:0,y:1} : (canopyGeom&&canopyGeom.side==='left'?{x:-1,y:0}:{x:1,y:0});
+      const outDir = dWall==='front' ? {x:0,y:1} : dWall==='back' ? {x:0,y:-1} : dWall==='left' ? {x:-1,y:0} : dWall==='right' ? {x:1,y:0} : dWall==='notch' ? {x:0,y:1} : (canopyGeom ? ({left:{x:-1,y:0}, right:{x:1,y:0}, front:{x:0,y:1}, back:{x:0,y:-1}}[canopyGeom.side] || {x:1,y:0}) : {x:1,y:0});
       // Az "along" (a fal mentén, a távolság-mérés irányába mutató) vektort a tényleges geometriából
       // számoljuk ki (két közeli pont különbségéből), nem előre feltételezett előjellel — korábban a
       // bal/jobb oldalfalnál ez az előjel FORDÍTVA volt megadva (mindig +y-nak véve, holott a
