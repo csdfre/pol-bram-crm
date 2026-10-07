@@ -332,7 +332,7 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
             </label>
             <div class="toggle-extra" id="gateCustomPosExtra">
               <div id="gateCustomPosList"></div>
-              <div class="hint">Minden kapunál megadhatja, melyik faltól és hány cm-re legyen — a rendszer figyeli, hogy egyik se nyúljon túl a garázs méretén, és ne fussanak egymásra.</div>
+              <div class="hint">Minden kapunál megadhatja, melyik falon legyen (alapból az elülső, főfalon), melyik faltól és hány cm-re — a rendszer figyeli, hogy egyik se nyúljon túl a fal méretén, és ne fussanak egymásra.</div>
             </div>
           </div>
           <div class="grid2" style="margin-top:14px">
@@ -782,28 +782,46 @@ function refreshPositionUnits(){
 }
 function buildGateCustomPositions(qty){
   const container = document.getElementById('gateCustomPosList');
-  const prevCorner=[], prevDist=[];
+  const prevWall=[], prevCorner=[], prevDist=[];
   for(let i=0;i<qty;i++){
-    const c=document.getElementById('gateCustomCorner'+i), d=document.getElementById('gateCustomDistance'+i);
-    prevCorner[i]=c?c.value:'left'; prevDist[i]=d?d.value:(50+i*350);
+    const wl=document.getElementById('gateCustomWall'+i), c=document.getElementById('gateCustomCorner'+i), d=document.getElementById('gateCustomDistance'+i);
+    prevWall[i]=wl?wl.value:'front'; prevCorner[i]=c?c.value:'left'; prevDist[i]=d?d.value:(50+i*350);
   }
   let html='';
   for(let i=0;i<qty;i++){
-    html += `<div class="grid2" style="margin-top:${i===0?'0':'8px'}">
+    // Oldalfalon a "bal/jobb" érték az elülső/hátsó faltól mért távolságot jelenti (ugyanúgy, mint az ajtóknál/ablakoknál).
+    const vertical = (prevWall[i]==='left' || prevWall[i]==='right');
+    const cornerOpts = vertical
+      ? '<option value="left">Elülső faltól</option><option value="right">Hátsó faltól</option>'
+      : '<option value="left">Bal faltól</option><option value="right">Jobb faltól</option>';
+    html += `<div class="grid3" style="margin-top:${i===0?'0':'8px'}">
+      <label class="field"><span>${i+1}. kapu — melyik falon legyen?</span>
+        <select id="gateCustomWall${i}">
+          <option value="front">Elülső fal (főfal)</option>
+          <option value="back">Hátsó fal</option>
+          <option value="left">Bal oldalfal</option>
+          <option value="right">Jobb oldalfal</option>
+        </select>
+      </label>
       <label class="field"><span>${i+1}. kapu — melyik faltól?</span>
-        <select id="gateCustomCorner${i}"><option value="left">Bal faltól</option><option value="right">Jobb faltól</option></select>
+        <select id="gateCustomCorner${i}">${cornerOpts}</select>
       </label>
       <label class="field"><span>${i+1}. kapu — távolság (cm)</span><input type="number" id="gateCustomDistance${i}" value="${prevDist[i]}" min="0" step="5"></label>
     </div>`;
   }
   container.innerHTML = html;
   for(let i=0;i<qty;i++){
-    const c=document.getElementById('gateCustomCorner'+i);
+    const wl=document.getElementById('gateCustomWall'+i), c=document.getElementById('gateCustomCorner'+i);
+    if(wl) wl.value=prevWall[i];
     if(c) c.value=prevCorner[i];
   }
   container.querySelectorAll('input,select').forEach(el=>{
     el.addEventListener('input', refreshAll);
     el.addEventListener('change', refreshAll);
+  });
+  // Ha egy kapu falát átállítják, a "melyik faltól" feliratai is változnak (oldalfalon: elülső/hátsó) — újraépítjük a listát.
+  container.querySelectorAll('select[id^="gateCustomWall"]').forEach(el=>{
+    el.addEventListener('change', ()=>{ buildGateCustomPositions(Math.max(1, parseInt(document.getElementById('gateCount').value)||1)); refreshAll(); });
   });
 }
 document.getElementById('gateCount').addEventListener('input', refreshPositionUnits);
@@ -972,11 +990,15 @@ function renderSketch(){
     const posMode = document.getElementById('gatePositionMode').value;
     let firstGateX;
     const gateStartCms = [];
+    const otherGates = []; // más falra (hátsó / bal / jobb) helyezett kapuk — csak egyéni pozíció módban
     if(posMode==='custom'){
       for(let i=0;i<count;i++){
+        const wlEl = document.getElementById('gateCustomWall'+i);
+        const gWall = wlEl ? wlEl.value : 'front';
         const cEl = document.getElementById('gateCustomCorner'+i), dEl = document.getElementById('gateCustomDistance'+i);
         const corner = cEl ? cEl.value : 'left';
         const dist = dEl ? (parseFloat(dEl.value)||0) : 0;
+        if(gWall!=='front'){ otherGates.push({wall:gWall, corner, dist}); continue; }
         const startCm = corner==='left' ? dist : (w-dist-gwCm);
         gateStartCms.push(startCm);
       }
@@ -1019,6 +1041,77 @@ function renderSketch(){
         }
       }
     }
+
+    // --- Más falra (hátsó, bal vagy jobb oldalfal) helyezett kapuk ---
+    // A "bal/jobb" faltól mért távolság oldalfalon az ELÜLSŐ/HÁTSÓ faltól mért távolságot jelenti (ugyanúgy, mint az
+    // ajtóknál és ablakoknál). A mérővonal mindig a garázson kívülre kerül, a kapu szélessége a kapu sávján belül látszik.
+    const otherGateSpans = {};
+    const otherGateCnt = {};
+    otherGates.forEach((og)=>{
+      const horiz = (og.wall==='back');
+      const wallLenCm = horiz ? w : l;
+      const gLenCm = Math.min(gwCm, wallLenCm);
+      const rawStart = og.corner==='left' ? og.dist : (wallLenCm - og.dist - gwCm);
+      (otherGateSpans[og.wall] = otherGateSpans[og.wall] || []).push({s:rawStart, e:rawStart+gwCm});
+      const sCm = Math.max(0, Math.min(rawStart, wallLenCm - gLenCm));
+      const barLen = gLenCm*scale;
+      const nearStart = rawStart <= (wallLenCm - rawStart - gwCm);
+      const cornerDist = Math.max(0, Math.round(nearStart ? rawStart : (wallLenCm - rawStart - gwCm)));
+      const off = 10 + ((otherGateCnt[og.wall] = (otherGateCnt[og.wall]||0)+1) - 1)*10;
+      const lightsOn = document.getElementById('gateLightYes').checked;
+      const lQty = Math.max(1, parseInt(document.getElementById('gateLightQty').value)||1);
+      const lArr = document.getElementById('gateLightArrangement').value;
+      const ls = 7;
+      const lightRect = (cx,cy)=>`<rect x="${cx-ls/2}" y="${cy-ls/2}" width="${ls}" height="${ls}" fill="#6fb7e0"/>`;
+      // a bevilágító-pozíciók (a kapu sávjának kezdetétől mért "a" távolság + befelé mért "p" eltolás)
+      const lightSpots = [];
+      if(lightsOn){
+        if(lArr==='sides'){ lightSpots.push([3+ls/2,0],[barLen-3-ls/2,0]); }
+        else { const a0 = lArr==='left-stack' ? 3+ls/2 : barLen-3-ls/2; for(let i=0;i<lQty;i++) lightSpots.push([a0, i*(ls+3)]); }
+      }
+      if(horiz){
+        const bx = x0 + sCm*scale;
+        gateEls += `<rect x="${bx}" y="${y0-6}" width="${barLen}" height="12" fill="#F2B705"/>`;
+        const cornerX = nearStart ? x0 : x0+rw, edgeX = nearStart ? bx : bx+barLen, dimY = y0 - off;
+        gateEls += `<line x1="${cornerX}" y1="${dimY}" x2="${edgeX}" y2="${dimY}" stroke="#F2B705" stroke-width="1"/>
+          <line x1="${cornerX}" y1="${dimY-3}" x2="${cornerX}" y2="${dimY+3}" stroke="#F2B705" stroke-width="1"/>
+          <line x1="${edgeX}" y1="${dimY-3}" x2="${edgeX}" y2="${dimY+3}" stroke="#F2B705" stroke-width="1"/>
+          <text x="${(cornerX+edgeX)/2}" y="${dimY-4}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${cornerDist} cm</text>`;
+        gateEls += `<text x="${bx+barLen/2}" y="${y0+2.5}" fill="#20242A" font-size="7.5" font-weight="bold" text-anchor="middle" font-family="IBM Plex Mono">${gwCm}cm</text>`;
+        lightSpots.forEach(([a,p])=>{ gateEls += lightRect(bx+a, y0+p); });
+      } else {
+        const wallX = og.wall==='left' ? x0 : x0+rw;
+        const yBottom = y0+rl - sCm*scale, yTop = yBottom - barLen;
+        gateEls += `<rect x="${wallX-6}" y="${yTop}" width="12" height="${barLen}" fill="#F2B705"/>`;
+        const cornerY = nearStart ? y0+rl : y0, edgeY = nearStart ? yBottom : yTop;
+        const dimX = og.wall==='left' ? wallX-off : wallX+off;
+        const txtX = og.wall==='left' ? dimX-4 : dimX+4, txtAnchor = og.wall==='left' ? 'end' : 'start';
+        gateEls += `<line x1="${dimX}" y1="${cornerY}" x2="${dimX}" y2="${edgeY}" stroke="#F2B705" stroke-width="1"/>
+          <line x1="${dimX-3}" y1="${cornerY}" x2="${dimX+3}" y2="${cornerY}" stroke="#F2B705" stroke-width="1"/>
+          <line x1="${dimX-3}" y1="${edgeY}" x2="${dimX+3}" y2="${edgeY}" stroke="#F2B705" stroke-width="1"/>
+          <text x="${txtX}" y="${(cornerY+edgeY)/2+3}" fill="#F2B705" font-size="7.5" text-anchor="${txtAnchor}" font-family="IBM Plex Mono">${cornerDist} cm</text>`;
+        const midY = (yTop+yBottom)/2;
+        gateEls += `<text x="${wallX}" y="${midY+2.5}" fill="#20242A" font-size="7.5" font-weight="bold" text-anchor="middle" font-family="IBM Plex Mono" transform="rotate(-90 ${wallX} ${midY})">${gwCm}cm</text>`;
+        const inward = og.wall==='left' ? 1 : -1;
+        lightSpots.forEach(([a,p])=>{ gateEls += lightRect(wallX + inward*p, yBottom - a); });
+      }
+    });
+    // Ha két, ugyanarra a falra tett kapu egymásba nyúlik, jelezzük (ez hiba lenne)
+    Object.keys(otherGateSpans).forEach((wk)=>{
+      const arr = otherGateSpans[wk].slice().sort((a,b)=>a.s-b.s);
+      for(let i=0;i<arr.length-1;i++){
+        const ov = arr[i].e - arr[i+1].s;
+        if(ov > 1){
+          const midCm = (arr[i+1].s + arr[i].e)/2;
+          if(wk==='back'){
+            gateMarginEls += `<text x="${x0+midCm*scale}" y="${y0-26}" fill="#e0555e" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono" font-weight="bold">⚠ ${Math.round(ov)}cm átfedés!</text>`;
+          } else {
+            const wx = wk==='left' ? x0 : x0+rw;
+            gateMarginEls += `<text x="${wk==='left' ? wx-28 : wx+28}" y="${y0+rl-midCm*scale}" fill="#e0555e" font-size="7.5" text-anchor="${wk==='left'?'end':'start'}" font-family="IBM Plex Mono" font-weight="bold">⚠ ${Math.round(ov)}cm átfedés!</text>`;
+          }
+        }
+      }
+    });
   }
 
   // --- Nyitott/fedett oldaltető, más tónussal, elülső falhoz igazítva (bal vagy jobb sarkon) ---
@@ -1300,22 +1393,37 @@ function computeWallUsage(){
   if(state.gateType!=='none'){
     const gw = parseFloat(document.getElementById('gateWidth').value)||0;
     const count = Math.max(1, parseInt(document.getElementById('gateCount').value)||1);
+    const posMode = document.getElementById('gatePositionMode').value;
+    // Egyéni pozíció módban egy kapu más falra is kerülhet: azokat a saját falukon számoljuk, az elülső falon csak az oda tett kapukat.
+    const frontGateIdx = [];
+    for(let i=0;i<count;i++){
+      const wlEl = document.getElementById('gateCustomWall'+i);
+      const gWall = (posMode==='custom' && wlEl) ? wlEl.value : 'front';
+      if(gWall==='front'){ frontGateIdx.push(i); continue; }
+      if(wallUsed.hasOwnProperty(gWall)){
+        const cEl = document.getElementById('gateCustomCorner'+i), dEl = document.getElementById('gateCustomDistance'+i);
+        wallUsed[gWall] += gw; wallItems[gWall].push('kapu ('+gw+' cm)');
+        if(cEl && dEl) addInterval(gWall, (count>1?(i+1)+'. kapu':'kapu'), gw, cEl.value, (parseFloat(dEl.value)||0)+gw/2);
+      }
+    }
+    const frontCount = frontGateIdx.length;
     // Kétkapus megoldásnál a közös tartóelem miatt 50 cm engedmény jár (pl. 2×300 cm = 600 cm helyett elég 550 cm)
-    const requiredSpan = (count===2) ? Math.max(0, gw*2-50) : gw*count;
-    wallUsed.front += requiredSpan;
-    wallItems.front.push(count+'× kapu ('+gw+' cm)');
+    if(frontCount>0){
+      const requiredSpan = (frontCount===2) ? Math.max(0, gw*2-50) : gw*frontCount;
+      wallUsed.front += requiredSpan;
+      wallItems.front.push(frontCount+'× kapu ('+gw+' cm)');
+    }
     const nSide = document.getElementById('notchSide').value;
     const availStart = (notchActive && nSide==='left') ? notchWidth : 0;
     const availWidth = Math.max(0, w-notchWidth);
-    const posMode = document.getElementById('gatePositionMode').value;
     if(posMode==='custom'){
-      for(let i=0;i<count;i++){
+      frontGateIdx.forEach(i=>{
         const cEl = document.getElementById('gateCustomCorner'+i), dEl = document.getElementById('gateCustomDistance'+i);
         const corner = cEl ? cEl.value : 'left';
         const dist = dEl ? (parseFloat(dEl.value)||0) : 0;
         const centerCm = corner==='left' ? dist+gw/2 : (w-dist-gw/2);
         wallIntervals.front.push({name:(count>1?(i+1)+'. kapu':'kapu'), start:centerCm-gw/2, end:centerCm+gw/2});
-      }
+      });
     } else {
       // Automatikus mód: 1 kapunál középre; 2+ kapunál a fal két szélén flush, ráhagyás nélkül
       if(count===1){
@@ -1593,8 +1701,17 @@ function buildSummary(){
       const cnt = parseInt(g('gateCount').value)||1;
       const posTxts = [];
       for(let i=0;i<cnt;i++){
-        const cEl=g('gateCustomCorner'+i), dEl=g('gateCustomDistance'+i);
-        if(cEl&&dEl) posTxts.push((cnt>1?(i+1)+'. kapu: ':'')+dEl.value+' cm a '+(cEl.value==='left'?'bal':'jobb')+' faltól');
+        const cEl=g('gateCustomCorner'+i), dEl=g('gateCustomDistance'+i), wlEl=g('gateCustomWall'+i);
+        const gWall = wlEl ? wlEl.value : 'front';
+        if(cEl&&dEl){
+          if(gWall==='front'){
+            posTxts.push((cnt>1?(i+1)+'. kapu: ':'')+dEl.value+' cm a '+(cEl.value==='left'?'bal':'jobb')+' faltól');
+          } else {
+            const wallNames = {back:'hátsó fal', left:'bal oldalfal', right:'jobb oldalfal'};
+            const vertical = (gWall==='left' || gWall==='right');
+            posTxts.push((cnt>1?(i+1)+'. kapu: ':'')+wallNames[gWall]+', '+dEl.value+' cm '+(vertical ? (cEl.value==='left'?'az elülső':'a hátsó') : (cEl.value==='left'?'a bal':'a jobb'))+' faltól');
+          }
+        }
       }
       gateTxt += ', elhelyezés: egyéni ('+posTxts.join('; ')+')';
     } else {

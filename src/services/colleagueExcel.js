@@ -398,6 +398,8 @@ async function buildColleagueReportBuffer(customer) {
   const workbook = new ExcelJS.Workbook();
   const ws = buildBaseWorksheet(workbook);
 
+  // Ha az ügyfél egy konkrét típusgarázst rendelt, annak neve a címsorban is szerepel (egyedi összeállításnál nem)
+  if (customer.garage_type_used) ws.getCell('A1').value = `Garaż blaszany — model: ${customer.garage_type_used}`;
   ws.getCell('B2').value = `${customer.name || ''} tel. ${customer.phone || ''}, mail: ${customer.email || ''}`;
   ws.getCell('B3').value = `${customer.address || ''}, ${customer.zip || ''}, ${customer.city || ''}`;
   if (quote) {
