@@ -11,6 +11,14 @@ function val(section, label, fallback) {
   const item = section.items.find((i) => i.label === label);
   return item ? item.value : fallback;
 }
+function rawVal(section, label, fallback) {
+  if (!section) return fallback;
+  const item = section.items.find((i) => i.label === label);
+  return item && item.raw !== undefined ? item.raw : fallback;
+}
+function unitRaw(section, index, suffix, fallback) {
+  return rawVal(section, `${index + 1}. ${suffix}`, fallback);
+}
 function unitVal(section, index, suffix, fallback) {
   if (!section) return fallback;
   const label = `${index + 1}. ${suffix}`;
@@ -63,11 +71,12 @@ function buildOknoText(sections) {
   const skylightSection = findSection(sections, 'Świetlik (60×27 cm)');
   if (skylightSection && !skylightSection.isEmpty) {
     const count = parseInt(val(skylightSection, 'Ilość (szt.)', 1), 10) || 1;
+    const skylightFrame = val(skylightSection, 'Kolor ramki świetlika', '—');
     for (let i = 0; i < count; i++) {
       const wall = unitVal(skylightSection, i, 'ściana', '—');
       const corner = unitVal(skylightSection, i, 'róg', '—');
       const dist = unitVal(skylightSection, i, 'odległość (cm)', '—');
-      lines.push(`Świetlik 60x27${count > 1 ? ` ${i + 1})` : ''} — na ${wall}, ${dist} cm ${corner}`);
+      lines.push(`Świetlik 60x27${count > 1 ? ` ${i + 1})` : ''} — na ${wall}, ${dist} cm ${corner} / rama: ${skylightFrame}`);
     }
   }
   return lines.length ? lines.join('\n') : 'brak';
@@ -86,9 +95,15 @@ function buildBramaText(sections) {
   const lines = [`${color} / ${pattern} / ${type} x${count} (${width} x ${height})`];
   if (/własna/i.test(placementMode)) {
     for (let i = 0; i < count; i++) {
-      const corner = unitVal(gateSection, i, 'brama — od której ściany', '—');
+      const wall = unitVal(gateSection, i, 'brama — na której ścianie', 'Ściana przednia (główna)');
+      const wallRaw = unitRaw(gateSection, i, 'brama — na której ścianie', 'front');
+      const cornerRaw = unitRaw(gateSection, i, 'brama — od której ściany', 'left');
       const dist = unitVal(gateSection, i, 'brama — odległość (cm)', '—');
-      lines.push(`  ${i + 1}. brama: ${dist} cm ${corner}`);
+      // Oldalfalon a "bal/jobb" az elülső/hátsó faltól mért távolságot jelenti
+      const from = (wallRaw === 'left' || wallRaw === 'right')
+        ? (cornerRaw === 'left' ? 'od przodu' : 'od tyłu')
+        : (cornerRaw === 'left' ? 'od lewej ściany' : 'od prawej ściany');
+      lines.push(`  ${i + 1}. brama: ${wall}, ${dist} cm ${from}`);
     }
   }
   const autoSection = findSection(sections, 'Automatyka bramy');
@@ -99,7 +114,8 @@ function buildBramaText(sections) {
   const gateLightQty = val(gateSection, 'Świetlik w bramie (szt./bramę)', null);
   if (gateLightQty) {
     const arrangement = val(gateSection, 'Rozmieszczenie świetlika w bramie', '—');
-    lines.push(`Świetlik w bramie: ${gateLightQty} szt./bramę — ${arrangement}`);
+    const gateLightFrame = val(gateSection, 'Kolor ramki świetlika w bramie', '—');
+    lines.push(`Świetlik w bramie: ${gateLightQty} szt./bramę — ${arrangement} / rama: ${gateLightFrame}`);
   }
   return lines.join('\n');
 }
@@ -129,23 +145,75 @@ function buildScianyText(sections) {
 
 function buildWiataText(sections) {
   const canopySection = findSection(sections, 'Wiata / zadaszenie boczne');
-  if (!canopySection || canopySection.isEmpty) return 'brak';
-  const w = val(canopySection, 'Szerokość', '—');
-  const l = val(canopySection, 'Długość', '—');
-  const backWall = val(canopySection, 'Pokrycie tylnej ściany', null);
-  const backWallColor = val(canopySection, 'Kolor tylnej ściany', null);
-  const sideWall = val(canopySection, 'Pokrycie ściany bocznej', null);
-  const sideWallColor = val(canopySection, 'Kolor ściany bocznej', null);
-  let text = `${w} x ${l}`;
-  if (backWall && backWall !== '—' && !/brak/i.test(backWall)) {
-    text += ` / ściana tylna: ${backWall}`;
-    if (backWallColor && backWallColor !== '—') text += ` (${backWallColor})`;
+  const notchSection = findSection(sections, 'Zadaszenie w rogu garażu');
+  const parts = [];
+
+  // --- Wiaty (oldaltetők) — mindegyik külön sorban: oldal, méret, indulási pont, távolság, falak, színek ---
+  if (canopySection && !canopySection.isEmpty) {
+    const count = Math.max(1, parseInt(val(canopySection, 'Ilość wiat (szt.)', 1), 10) || 1);
+    const lab = (txt, i) => (i === 0 ? txt : `${i + 1}. ${txt}`);
+    const roofMode = rawVal(canopySection, 'Wykonanie dachu nad wiatą', '');
+    const roofTxt = roofMode === 'level'
+      ? 'dach: kalenica na środku całej konstrukcji (wysokość wewnętrzna wiaty równoległa do garażu)'
+      : (roofMode === 'continuous' ? 'dach: spadek dachu kontynuowany nad wiatą (wysokość wewnętrzna maleje do krawędzi konstrukcji)' : '');
+    for (let i = 0; i < count; i++) {
+      const w = val(canopySection, lab('Szerokość', i), '—');
+      const l = val(canopySection, lab('Długość', i), '—');
+      const sideRaw = rawVal(canopySection, lab('Strona', i), 'left');
+      const sideTxt = val(canopySection, lab('Strona', i), '—');
+      const vertical = sideRaw === 'left' || sideRaw === 'right';
+      const startTxt = vertical
+        ? val(canopySection, lab('Start wzdłuż długości garażu', i), '—')
+        : val(canopySection, lab('Start wzdłuż szerokości garażu', i), '—');
+      const offset = parseFloat(rawVal(canopySection, lab('Odległość od rogu startowego (cm)', i), 0)) || 0;
+      const backWall = val(canopySection, lab('Pokrycie tylnej ściany', i), null);
+      const backWallColor = val(canopySection, lab('Kolor tylnej ściany', i), null);
+      const sideWall = val(canopySection, lab('Pokrycie ściany bocznej', i), null);
+      const sideWallColor = val(canopySection, lab('Kolor ściany bocznej', i), null);
+      let text = `${w} x ${l} / ${sideTxt}`;
+      if (count > 1 || offset > 0) text += ` / start: ${startTxt}${offset > 0 ? `, ${offset} cm od rogu` : ''}`;
+      if (backWall && backWall !== '—' && !/brak/i.test(backWall)) {
+        text += ` / ściana tylna: ${backWall}`;
+        if (backWallColor && backWallColor !== '—') text += ` (${backWallColor})`;
+      }
+      if (sideWall && sideWall !== '—' && !/brak/i.test(sideWall)) {
+        text += ` / ściana boczna: ${sideWall}`;
+        if (sideWallColor && sideWallColor !== '—') text += ` (${sideWallColor})`;
+      }
+      if (count === 1 && roofTxt) text += ` / ${roofTxt}`;
+      parts.push(count > 1 ? `Wiata ${i + 1}: ${text}` : text);
+    }
+    // Több wiatánál a tető kialakítása az egész szerkezetre vonatkozik, ezért külön sorban szerepel
+    if (count > 1 && roofTxt) parts.push(roofTxt);
   }
-  if (sideWall && sideWall !== '—' && !/brak/i.test(sideWall)) {
-    text += ` / ściana boczna: ${sideWall}`;
-    if (sideWallColor && sideWallColor !== '—') text += ` (${sideWallColor})`;
+
+  // --- Zadaszenia w rogu (előtetők) — a garázs sarkaiba beugró részek, a nyitott oldalak falaival ---
+  if (notchSection && !notchSection.isEmpty) {
+    const count = Math.max(1, parseInt(val(notchSection, 'Ilość zadaszeń (szt.)', 1), 10) || 1);
+    const lab = (txt, i) => (i === 0 ? txt : `${i + 1}. ${txt}`);
+    for (let i = 0; i < count; i++) {
+      const sideTxt = val(notchSection, lab('Narożnik', i), '—');
+      const edgeTxt = val(notchSection, lab('Wzdłuż ściany', i), '—');
+      const w = val(notchSection, lab('Szerokość', i), '—');
+      const d = val(notchSection, lab('Głębokość', i), '—');
+      const edgeWall = val(notchSection, lab('Ściana czołowa (otwarta strona)', i), null);
+      const edgeColor = val(notchSection, lab('Kolor ściany czołowej', i), null);
+      const sideWall = val(notchSection, lab('Ściana boczna zadaszenia (otwarta strona)', i), null);
+      const sideColor = val(notchSection, lab('Kolor ściany bocznej zadaszenia', i), null);
+      let text = `Zadaszenie${count > 1 ? ` ${i + 1}` : ''} w rogu: ${w} x ${d} / ${sideTxt}, ${edgeTxt}`;
+      if (edgeWall && edgeWall !== '—' && !/brak/i.test(edgeWall)) {
+        text += ` / ściana czołowa: ${edgeWall}`;
+        if (edgeColor && edgeColor !== '—') text += ` (${edgeColor})`;
+      }
+      if (sideWall && sideWall !== '—' && !/brak/i.test(sideWall)) {
+        text += ` / ściana boczna: ${sideWall}`;
+        if (sideColor && sideColor !== '—') text += ` (${sideColor})`;
+      }
+      parts.push(text);
+    }
   }
-  return text;
+
+  return parts.length ? parts.join('\n') : 'brak';
 }
 
 function buildFilcRynnyText(sections) {
@@ -343,7 +411,14 @@ async function buildColleagueReportBuffer(customer) {
   const lengthM = (parseFloat(fd.length) || 0) / 100;
   const heightCm = fd.height || '213';
   ws.getCell('B7').value = `${widthM} x ${lengthM} (wysokość boczna ${heightCm} cm)`;
-  ws.getCell('B8').value = buildWiataText(sections);
+  {
+    // több oldaltető/előtető esetén többsoros és hosszú a szöveg, ezért a sormagasságot a törések figyelembevételével is igazítjuk
+    const wiataText = buildWiataText(sections);
+    setWrappedCell(ws, 'B8', 8, wiataText);
+    const estLines = wiataText.split('\n').reduce((n, ln) => n + Math.max(1, Math.ceil(ln.length / 75)), 0);
+    const row8 = ws.getRow(8);
+    if (!row8.height || row8.height < estLines * 18 + 6) row8.height = estLines * 18 + 6;
+  }
   ws.getCell('B9').value = buildDachText(sections, fd);
   ws.getCell('B10').value = buildScianyText(sections);
   setWrappedCell(ws, 'B11', 11, buildBramaText(sections));

@@ -253,59 +253,18 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
         </div>
         <div class="toggle-extra" id="canopyExtra">
           <div class="grid2">
-            <label class="field"><span>Melyik oldalon legyen?</span>
-              <select id="canopySide">
-                <option value="left">A garázs bal oldalán</option>
-                <option value="right">A garázs jobb oldalán</option>
-                <option value="front">A garázs elülső oldalán</option>
-                <option value="back">A garázs hátsó oldalán</option>
-              </select>
-            </label>
-            <div></div>
+            <label class="field"><span>Hány oldaltetőt kér?</span><input type="number" id="canopyCount" value="1" min="1" max="4"></label>
+            <div class="hint" style="align-self:end">Több oldaltető is kérhető, mindegyik külön oldalra és külön pozícióba tehető.</div>
           </div>
-          <div class="grid2" style="margin-top:14px">
-            <label class="field"><span>Szélessége (cm)</span><input type="number" id="canopyWidth" value="300" min="100" step="10"></label>
-            <label class="field"><span>Hosszúsága (cm)</span><input type="number" id="canopyLength" value="500" min="100" step="10"></label>
-          </div>
-          <div class="grid2" id="canopyPositionField" style="display:none;margin-top:14px">
-            <label class="field"><span>Ha rövidebb a garázs hosszánál, honnan induljon?</span>
-              <select id="canopyPosition">
-                <option value="front">Elölről (az elülső faltól)</option>
-                <option value="back">Hátulról (a hátsó faltól)</option>
-              </select>
-            </label>
-            <div></div>
-          </div>
+          <div id="canopyList"></div>
 
           <div class="grid2" style="margin-top:14px">
-            <label class="field" style="grid-column:1/-1"><span>A fedett rész magassága a garázshoz képest</span>
+            <label class="field" style="grid-column:1/-1"><span>Tető kialakítása az oldaltetős résznél</span>
               <select id="canopyHeightMode">
-                <option value="level">Szintbe fusson a garázs magasságával (eltolt gerincvonal, felárral jár)</option>
-                <option value="continuous">Folyamatosan lejtsen tovább (a tető vonala folytatódik)</option>
+                <option value="continuous">Folyamatosan lejtsen tovább — a tető ejtése az oldaltetőn is folytatódik, a belmagasság a szerkezet széléig folyamatosan csökken</option>
+                <option value="level">A gerinc a teljes szerkezet (garázs + oldaltető) közepén legyen — az oldaltető belmagassága a garázséval párhuzamos, szintbe fut (eltolt gerincvonal, felárral jár)</option>
               </select>
             </label>
-          </div>
-
-          <div class="subgrid">
-            <label class="field"><span>Hátsó fal</span>
-              <select id="canopyBackWall">
-                <option value="none">Nincs (teljesen nyitott)</option>
-                <option value="lamella">Lamellás (panel)</option>
-                <option value="solid">Teli fal (lemez)</option>
-              </select>
-            </label>
-            <label class="field color-field" id="canopyBackColorField"><span class="color-label">Hátsó fal színe</span><select id="colorCanopyBack" class="color-select"></select></label>
-          </div>
-
-          <div class="subgrid">
-            <label class="field"><span>Oldalsó fal</span>
-              <select id="canopySideWall">
-                <option value="none">Nincs (teljesen nyitott)</option>
-                <option value="lamella">Lamellás (panel)</option>
-                <option value="solid">Teli fal (lemez)</option>
-              </select>
-            </label>
-            <label class="field color-field" id="canopySideColorField"><span class="color-label">Oldalsó fal színe</span><select id="colorCanopySide" class="color-select"></select></label>
           </div>
         </div>
       </div>
@@ -319,17 +278,11 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
           <label class="switch"><input type="checkbox" id="notchYes"><span class="track"></span><span class="thumb"></span></label>
         </div>
         <div class="toggle-extra" id="notchExtra">
-          <div class="grid3">
-            <label class="field"><span>Melyik sarkon legyen? (az elülső fal mentén)</span>
-              <select id="notchSide">
-                <option value="left">Bal sarkon</option>
-                <option value="right">Jobb sarkon</option>
-              </select>
-            </label>
-            <label class="field"><span>Szélessége (cm)</span><input type="number" id="notchWidth" value="150" min="50" step="10"></label>
-            <label class="field"><span>Mélysége (cm)</span><input type="number" id="notchDepth" value="100" min="30" step="10"></label>
+          <div class="grid2">
+            <label class="field"><span>Hány előtetőt kér?</span><input type="number" id="notchCount" value="1" min="1" max="4"></label>
+            <div class="hint" style="align-self:end">Az előtető a garázs bármelyik sarkába kerülhet (elöl vagy hátul, bal vagy jobb oldalon).</div>
           </div>
-          <div class="hint">Az előtető az elülső fal kijelölt sarkába kerül. Az előtetőben keletkező fal teli falként jelenik meg a rajzon, és arra ajtó vagy ablak is felhelyezhető ("Előtető fala" opcióként lentebb). Alapértelmezett mélység 100 cm (1 m), igény szerint módosítható.</div>
+          <div id="notchList"></div>
         </div>
       </div>
     </details>
@@ -359,7 +312,7 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
             </label>
             <div class="toggle-extra" id="gateCustomPosExtra">
               <div id="gateCustomPosList"></div>
-              <div class="hint">Minden kapunál megadhatja, melyik faltól és hány cm-re legyen — a rendszer figyeli, hogy egyik se nyúljon túl a garázs méretén, és ne fussanak egymásra.</div>
+              <div class="hint">Minden kapunál megadhatja, melyik falon legyen (alapból az elülső, főfalon), melyik faltól és hány cm-re — a rendszer figyeli, hogy egyik se nyúljon túl a fal méretén, és ne fussanak egymásra.</div>
             </div>
           </div>
           <div class="grid2" style="margin-top:14px">
@@ -492,6 +445,8 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
         <label class="field color-field" id="colorGateField"><span class="color-label">Kapu színe</span><select id="colorGate" class="color-select"></select></label>
         <label class="field color-field" id="colorWindowField"><span class="color-label">Ablak színe</span><select id="colorWindow" class="color-select"></select></label>
         <label class="field color-field" id="colorDoorField"><span class="color-label">Személyi bejáró színe</span><select id="colorDoor" class="color-select"></select></label>
+        <label class="field color-field" id="gateLightFrameColorField"><span class="color-label">Kapu-bevilágító keretszíne</span><select id="gateLightFrameColor" class="color-select"></select></label>
+        <label class="field color-field" id="skylightFrameColorField"><span class="color-label">Ablakbetét / bevilágító keretszíne</span><select id="skylightFrameColor" class="color-select"></select></label>
       </div>
     </details>
 
@@ -585,9 +540,10 @@ const colorHex = {
   'RAL3011':'#7a1f2b', 'RAL6020':'#37473a', 'RAL7016-F':'#2b323a', 'RAL9006':'#a8adb0',
   'RAL7035':'#d9dcdd', 'RAL9010':'#f5f4ef', 'RAL5010':'#1c4d78', 'RAL1002':'#d9a520',
   'OAK':'#8a5a2b', 'WALNUT':'#4a3225', 'WINCH':'#a9835a', 'GOLDOAK':'#c98a2e',
-  'GRAFIT':'#383e42', 'BARNA':'#4a3728'
+  'GRAFIT':'#383e42', 'BARNA':'#4a3728',
+  'KERET-FEHER':'#f5f4ef', 'KERET-FEKETE':'#1c1c1c', 'KERET-GRAFIT':'#383e42', 'KERET-BRONZ':'#6b4a2f', 'KERET-VILAGOSBRONZ':'#b08a5b'
 };
-const catLabels = {horganyzott:'Horganyzott', ral:'RAL', fa:'Fa'};
+const catLabels = {horganyzott:'Horganyzott', ral:'RAL', fa:'Fa', keret:'Keretszín'};
 
 // Általános kategóriák (tető, oldalfal, szegélyek, kapu, ajtó, oldaltető falak)
 const generalCategoryColors = {
@@ -606,6 +562,8 @@ const windowCategoryColors = {
   fa: [['WALNUT','Dió'],['GOLDOAK','Arany tölgy'],['WINCH','Winchester']]
 };
 const twoToneCategoryColors = { szin: [['GRAFIT','Grafit'],['BARNA','Barna']] };
+// Bevilágító (kapu- és fali) keretszínei
+const frameCategoryColors = { keret: [['KERET-FEHER','Fehér'],['KERET-FEKETE','Fekete'],['KERET-GRAFIT','Grafit'],['KERET-BRONZ','Bronz'],['KERET-VILAGOSBRONZ','Világos bronz']] };
 
 const colorFieldRegistry = {};
 function setupColorField(id, categoryMap){
@@ -664,6 +622,8 @@ function resyncColorField(id){
   const reg = colorFieldRegistry[id];
   if(!reg) return;
   const sel = document.getElementById(id);
+  // Ha a mező időközben megszűnt (pl. csökkent az oldaltetők/előtetők darabszáma), töröljük a nyilvántartásból
+  if(!sel){ delete colorFieldRegistry[id]; return; }
   const cat = reg.findCategoryOf(sel.value);
   reg.catRow.querySelectorAll('.choice').forEach((b,i)=>b.classList.toggle('active', reg.cats[i]===cat));
   reg.renderSwatches(cat);
@@ -679,14 +639,182 @@ setupColorField('colorGate', generalCategoryColors);
 setupColorField('colorDoor', generalCategoryColors);
 setupColorField('colorWindow', windowCategoryColors);
 setupColorField('gutterColor', twoToneCategoryColors);
-setupColorField('colorCanopyBack', generalCategoryColors);
-setupColorField('colorCanopySide', generalCategoryColors);
+setupColorField('gateLightFrameColor', frameCategoryColors);
+setupColorField('skylightFrameColor', frameCategoryColors);
+// ---------------------------------------------------------------
+// TÖBB OLDALTETŐ / ELŐTETŐ
+// Az ELSŐ elem mezőinek azonosítója változatlan (canopySide, notchSide, ...), így a régi mentett adatok és
+// típusgarázsok változtatás nélkül működnek; a további elemeké számmal bővül (canopySide1, notchWidth2, ...).
+// A falak azonosítója hasonló: 'canopy', 'canopy1', ... illetve 'notch', 'notch1', ...
+// ---------------------------------------------------------------
+const MAX_CANOPIES = 4, MAX_NOTCHES = 4;
+const cid = (base, i) => i===0 ? base : base+i;
+const canopyWallKey = i => i===0 ? 'canopy' : 'canopy'+i;
+const notchWallKey = i => i===0 ? 'notch' : 'notch'+i;
+function canopyCountVal(){ return Math.max(1, Math.min(MAX_CANOPIES, parseInt(document.getElementById('canopyCount').value)||1)); }
+function notchCountVal(){ return Math.max(1, Math.min(MAX_NOTCHES, parseInt(document.getElementById('notchCount').value)||1)); }
 
-function updateCanopyColorVisibility(){
-  document.getElementById('canopyBackColorField').classList.toggle('show', document.getElementById('canopyBackWall').value!=='none');
-  document.getElementById('canopySideColorField').classList.toggle('show', document.getElementById('canopySideWall').value!=='none');
+// A bekapcsolt oldaltetők adatai (rajzoláshoz, ellenőrzéshez). widthLayoutCm: az elrendezéshez (üres = 0), widthDrawCm: a rajzhoz (üres = 300).
+function readCanopies(){
+  if(!document.getElementById('canopyYes').checked) return [];
+  const out = [], n = canopyCountVal();
+  for(let i=0;i<n;i++){
+    const g = b => document.getElementById(cid(b,i));
+    if(!g('canopySide') || !g('canopyWidth')) continue;
+    out.push({ i, key:canopyWallKey(i), side:g('canopySide').value,
+      widthLayoutCm: parseFloat(g('canopyWidth').value)||0, widthDrawCm: parseFloat(g('canopyWidth').value)||300,
+      lengthCm: parseFloat(g('canopyLength').value)||500,
+      position: g('canopyPosition').value, startLR: g('canopyStartLR').value, offsetCm: parseFloat(g('canopyOffset').value)||0,
+      backType: g('canopyBackWall').value, sideType: g('canopySideWall').value });
+  }
+  return out;
 }
-document.getElementById('canopyBackWall').addEventListener('change', updateCanopyColorVisibility);
+function readNotches(){
+  if(!document.getElementById('notchYes').checked) return [];
+  const out = [], n = notchCountVal();
+  for(let i=0;i<n;i++){
+    const g = b => document.getElementById(cid(b,i));
+    if(!g('notchSide') || !g('notchWidth')) continue;
+    out.push({ i, key:notchWallKey(i), side:g('notchSide').value, edge:g('notchEdge').value,
+      widthLayoutCm: parseFloat(g('notchWidth').value)||0, widthDrawCm: parseFloat(g('notchWidth').value)||150,
+      depthDrawCm: parseFloat(g('notchDepth').value)||100,
+      edgeType: g('notchEdgeWall').value, sideType: g('notchSideWall').value });
+  }
+  return out;
+}
+const WALL_TYPE_OPTS = '<option value="none">Nincs (teljesen nyitott)</option><option value="lamella">Lamellás (panel)</option><option value="solid">Teli fal (lemez)</option>';
+function canopyBlockHtml(i, n){
+  const c = b => cid(b,i);
+  const title = n>1 ? `<div class="hint" style="margin:0 0 8px;font-weight:600;color:#F2B705">${i+1}. oldaltető</div>` : '';
+  return `<div class="canopy-block" style="${i>0?'border-top:1px dashed var(--line);padding-top:12px;margin-top:14px;':''}">${title}
+    <div class="grid2">
+      <label class="field"><span>Melyik oldalon legyen?</span>
+        <select id="${c('canopySide')}">
+          <option value="left">A garázs bal oldalán</option>
+          <option value="right">A garázs jobb oldalán</option>
+          <option value="front">A garázs elülső oldalán</option>
+          <option value="back">A garázs hátsó oldalán</option>
+        </select>
+      </label>
+      <div></div>
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <label class="field"><span>Szélessége (cm)</span><input type="number" id="${c('canopyWidth')}" value="300" min="100" step="10"></label>
+      <label class="field"><span>Hosszúsága (cm)</span><input type="number" id="${c('canopyLength')}" value="500" min="100" step="10"></label>
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <label class="field" id="${c('canopyPositionField')}"><span>Honnan induljon? (a garázs hossza mentén)</span>
+        <select id="${c('canopyPosition')}">
+          <option value="front">Elölről (az elülső faltól)</option>
+          <option value="back">Hátulról (a hátsó faltól)</option>
+        </select>
+      </label>
+      <label class="field" id="${c('canopyStartLRField')}" style="display:none"><span>Honnan induljon? (a garázs szélessége mentén)</span>
+        <select id="${c('canopyStartLR')}">
+          <option value="left">Balról (a bal faltól)</option>
+          <option value="right">Jobbról (a jobb faltól)</option>
+        </select>
+      </label>
+      <label class="field"><span>Távolság a kezdő saroktól (cm)</span><input type="number" id="${c('canopyOffset')}" value="0" min="0" step="10"></label>
+    </div>
+    <div class="subgrid">
+      <label class="field"><span>Hátsó fal</span><select id="${c('canopyBackWall')}">${WALL_TYPE_OPTS}</select></label>
+      <label class="field color-field" id="${c('canopyBackColorField')}"><span class="color-label">Hátsó fal színe</span><select id="${c('colorCanopyBack')}" class="color-select"></select></label>
+    </div>
+    <div class="subgrid">
+      <label class="field"><span>Oldalsó fal</span><select id="${c('canopySideWall')}">${WALL_TYPE_OPTS}</select></label>
+      <label class="field color-field" id="${c('canopySideColorField')}"><span class="color-label">Oldalsó fal színe</span><select id="${c('colorCanopySide')}" class="color-select"></select></label>
+    </div>
+  </div>`;
+}
+function notchBlockHtml(i, n){
+  const c = b => cid(b,i);
+  const title = n>1 ? `<div class="hint" style="margin:0 0 8px;font-weight:600;color:#F2B705">${i+1}. előtető</div>` : '';
+  return `<div class="notch-block" style="${i>0?'border-top:1px dashed var(--line);padding-top:12px;margin-top:14px;':''}">${title}
+    <div class="grid3">
+      <label class="field"><span>Melyik sarkon legyen?</span>
+        <select id="${c('notchSide')}"><option value="left">Bal sarkon</option><option value="right">Jobb sarkon</option></select>
+      </label>
+      <label class="field"><span>Melyik fal mentén?</span>
+        <select id="${c('notchEdge')}"><option value="front">Elülső fal mentén</option><option value="back">Hátsó fal mentén</option></select>
+      </label>
+      <label class="field"><span>Szélessége (cm)</span><input type="number" id="${c('notchWidth')}" value="150" min="50" step="10"></label>
+    </div>
+    <div class="grid3" style="margin-top:12px">
+      <label class="field"><span>Mélysége (cm)</span><input type="number" id="${c('notchDepth')}" value="100" min="30" step="10"></label>
+      <div></div><div></div>
+    </div>
+    <div class="hint">Az előtető belső fala teli falként jelenik meg a rajzon, és arra ajtó vagy ablak is felhelyezhető ("Előtető fala" opcióként lentebb). A két nyitott oldalát lamellás vagy teli fallal is zárhatja. Alapértelmezett mélység 100 cm (1 m), igény szerint módosítható.</div>
+    <div class="subgrid">
+      <label class="field"><span>Homlokoldali fal (a garázs fala vonalában)</span><select id="${c('notchEdgeWall')}">${WALL_TYPE_OPTS}</select></label>
+      <label class="field color-field" id="${c('notchEdgeColorField')}"><span class="color-label">Homlokoldali fal színe</span><select id="${c('colorNotchEdge')}" class="color-select"></select></label>
+    </div>
+    <div class="subgrid">
+      <label class="field"><span>Oldalsó fal (a nyitott oldalon)</span><select id="${c('notchSideWall')}">${WALL_TYPE_OPTS}</select></label>
+      <label class="field color-field" id="${c('notchSideColorField')}"><span class="color-label">Oldalsó fal színe</span><select id="${c('colorNotchSide')}" class="color-select"></select></label>
+    </div>
+  </div>`;
+}
+// Egy lista (oldaltető / előtető) újraépítése a darabszám szerint; a már beírt értékek megmaradnak.
+function rebuildBlockList(containerId, count, blockFn, colorBases){
+  const cont = document.getElementById(containerId);
+  const prev = {};
+  cont.querySelectorAll('input[id],select[id]').forEach(el=>{ prev[el.id] = el.value; });
+  cont.innerHTML = Array.from({length:count}, (_,i)=>blockFn(i, count)).join('');
+  for(let i=0;i<count;i++) colorBases.forEach(b=>setupColorField(cid(b,i), generalCategoryColors));
+  cont.querySelectorAll('input[id],select[id]').forEach(el=>{ if(prev[el.id]!==undefined) el.value = prev[el.id]; });
+  for(let i=0;i<count;i++) colorBases.forEach(b=>resyncColorField(cid(b,i)));
+  cont.querySelectorAll('input,select').forEach(el=>{
+    el.addEventListener('input', refreshAll);
+    el.addEventListener('change', refreshAll);
+  });
+  cont.querySelectorAll('select[id*="Wall"]').forEach(el=>el.addEventListener('change', updateCanopyColorVisibility));
+}
+function refreshCanopyNotchLists(){
+  rebuildBlockList('canopyList', canopyCountVal(), canopyBlockHtml, ['colorCanopyBack','colorCanopySide']);
+  rebuildBlockList('notchList', notchCountVal(), notchBlockHtml, ['colorNotchEdge','colorNotchSide']);
+  updateCanopyColorVisibility();
+}
+// Az oldaltetők "honnan induljon" mezői az oldaltól függenek (bal/jobb oldaltetőnél elölről/hátulról, elülső/hátsónál balról/jobbról)
+function syncCanopyFieldVisibility(){
+  const n = canopyCountVal();
+  for(let i=0;i<n;i++){
+    const sideEl = document.getElementById(cid('canopySide',i)); if(!sideEl) continue;
+    const lr = (sideEl.value==='left' || sideEl.value==='right');
+    const pf = document.getElementById(cid('canopyPositionField',i)), sf = document.getElementById(cid('canopyStartLRField',i));
+    if(pf) pf.style.display = lr ? '' : 'none';
+    if(sf) sf.style.display = lr ? 'none' : '';
+  }
+}
+// Az oldaltetők/előtetők lamellás vagy teli falához tartozó színek kötelezők, ha a fal nem "nincs"
+function canopyNotchColorRequirements(){
+  const out = [];
+  const cy = document.getElementById('canopyYes').checked, ny = document.getElementById('notchYes').checked;
+  for(let i=0;i<canopyCountVal();i++){
+    out.push({id:cid('colorCanopyBack',i), required: cy && document.getElementById(cid('canopyBackWall',i)).value!=='none'});
+    out.push({id:cid('colorCanopySide',i), required: cy && document.getElementById(cid('canopySideWall',i)).value!=='none'});
+  }
+  for(let i=0;i<notchCountVal();i++){
+    out.push({id:cid('colorNotchEdge',i), required: ny && document.getElementById(cid('notchEdgeWall',i)).value!=='none'});
+    out.push({id:cid('colorNotchSide',i), required: ny && document.getElementById(cid('notchSideWall',i)).value!=='none'});
+  }
+  return out;
+}
+function updateCanopyColorVisibility(){
+  const toggle = (fieldId, wallId)=>{
+    const f = document.getElementById(fieldId), wl = document.getElementById(wallId);
+    if(f && wl) f.classList.toggle('show', wl.value!=='none');
+  };
+  for(let i=0;i<canopyCountVal();i++){
+    toggle(cid('canopyBackColorField',i), cid('canopyBackWall',i));
+    toggle(cid('canopySideColorField',i), cid('canopySideWall',i));
+  }
+  for(let i=0;i<notchCountVal();i++){
+    toggle(cid('notchEdgeColorField',i), cid('notchEdgeWall',i));
+    toggle(cid('notchSideColorField',i), cid('notchSideWall',i));
+  }
+}
+refreshCanopyNotchLists();
 document.getElementById('canopySideWall').addEventListener('change', updateCanopyColorVisibility);
 
 // ---------------------------------------------------------------
@@ -778,6 +906,12 @@ function applyFormState(data){
     ].forEach(k=>delete data[k]);
   }
   // -------------------------------------------------------------------------------------
+  // Az új (többszörözhető oldaltető/előtető, kapu-fal) mezők alapértékei arra az esetre, ha a betöltött adat (pl. egy régi
+  // típusgarázs) nem tartalmazza őket — így nem ragadnak be az előző beállítás értékei.
+  const NEW_DEFAULTS = { canopyCount:'1', canopyOffset:'0', canopyStartLR:'left', notchCount:'1', notchEdge:'front', notchEdgeWall:'none', notchSideWall:'none' };
+  data = {...data};
+  Object.keys(NEW_DEFAULTS).forEach(k=>{ if(!(k in data)) data[k] = NEW_DEFAULTS[k]; });
+  for(let gi=0; gi<4; gi++){ if(!(('gateCustomWall'+gi) in data)) data['gateCustomWall'+gi] = 'front'; }
   // 1. kör: minden statikus mező, ami most létezik
   Object.keys(data).forEach(id=>{
     if(id==='__gateType') return;
@@ -797,6 +931,7 @@ function applyFormState(data){
     document.getElementById('gateDetails').style.display = data.__gateType==='none' ? 'none':'block';
   }
   onGateTypeChange();
+  refreshCanopyNotchLists();
   refreshPositionUnits();
   updateCanopyColorVisibility();
   // A fenti checkbox-értékek beállítása (el.checked = ...) NEM váltja ki a 'change' eseményt,
@@ -832,26 +967,29 @@ function applyFormState(data){
 // ---------------------------------------------------------------
 function mirrorCurrentConfig(){
   const flipLR = (v) => v==='left' ? 'right' : (v==='right' ? 'left' : v);
-  const data = captureFormState();
-  Object.keys(data).forEach(key=>{
-    // Az ablak/ajtó egységek "...Corner{i}" mezőjének jelentése attól függ, melyik
-    // falra van szerelve az egység ("...Wall{i}"): elülső/hátsó falon a "bal/jobb
-    // saroktól" tényleg a bal/jobb oldalt jelenti, DE bal/jobb OLDALFALON ugyanez a
-    // mező valójában az elülső/hátsó saroktól mért távolságot jelöli (lásd
-    // wallPoint() a rajzolónál). Ezért oldalfalon lévő elemnél ezt NEM szabad
-    // megfordítani tükrözéskor — különben egy elöl lévő ablak a másik oldalon
-    // hátra "ugrik", ahelyett hogy pontosan szemben (ugyanolyan távolságra elöltől)
-    // jelenne meg.
+  const orig = captureFormState();
+  const data = {...orig};
+  Object.keys(orig).forEach(key=>{
+    // Az ablak/ajtó/kapu egységek "...Corner{i}" mezőjének jelentése attól függ, melyik falra vannak szerelve
+    // ("...Wall{i}"): vízszintes falon (elülső/hátsó fal, előtető fala, elöl/hátul lévő oldaltető) a "bal/jobb sarok" tényleg
+    // bal/jobb oldalt jelent; bal/jobb OLDALFALON és az oldalsó (bal/jobb) oldaltető külső falán viszont az elülső/hátsó végtől mért
+    // távolságot — ez tükrözéskor nem változik, ott CSAK a falat/oldalt cseréljük, a sarkot nem.
     const unitCornerMatch = key.match(/^(.+)Corner(\d+)$/);
     if(unitCornerMatch){
       const wallKey = unitCornerMatch[1] + 'Wall' + unitCornerMatch[2];
-      if(wallKey in data && (data[wallKey]==='left' || data[wallKey]==='right')) return;
+      if(wallKey in orig){
+        const wv = orig[wallKey];
+        let vertical = (wv==='left' || wv==='right');
+        const cm = /^canopy(\d*)$/.exec(wv);
+        if(cm){ const sv = orig[cid('canopySide', cm[1]==='' ? 0 : parseInt(cm[1]))]; vertical = (sv==='left' || sv==='right'); }
+        if(vertical) return;
+      }
     }
-    const isCornerLike = /Corner\d*$/.test(key) || /Handle\d*$/.test(key) ||
-      key==='canopySide' || key==='notchSide' || key==='wallCorner' || key==='gateCorner';
-    const isWallLR = /Wall\d*$/.test(key) && (data[key]==='left' || data[key]==='right');
+    const isCornerLike = /Corner\d*$/.test(key) || /Handle\d*$/.test(key) || /^canopySide\d*$/.test(key) ||
+      /^notchSide\d*$/.test(key) || /^canopyStartLR\d*$/.test(key) || key==='wallCorner' || key==='gateCorner';
+    const isWallLR = /Wall\d*$/.test(key) && (orig[key]==='left' || orig[key]==='right');
     if(isCornerLike || isWallLR){
-      data[key] = flipLR(data[key]);
+      data[key] = flipLR(orig[key]);
     }
   });
   applyFormState(data);
@@ -924,14 +1062,19 @@ function onGateTypeChange(){
 // EGYSÉGENKÉNTI ELHELYEZÉS – minden ablak/ajtó darabhoz külön fal+sarok+cm mező
 // ---------------------------------------------------------------
 function wallOptionsHtml(){
-  const notchActive = document.getElementById('notchYes').checked;
   let html = '<option value="front">Elülső fal</option>';
   html += `
   <option value="back">Hátsó fal</option>
   <option value="left">Bal oldalfal</option>
-  <option value="right">Jobb oldalfal</option>
-  <option value="canopy">Oldaltető oldalfala (ha teli fal)</option>`;
-  if(notchActive) html += '<option value="notch">Előtető fala</option>';
+  <option value="right">Jobb oldalfal</option>`;
+  // Az első oldaltető fala mindig választható (régi viselkedés), a továbbiaké csak ha tényleg van annyi oldaltető
+  const cn = document.getElementById('canopyYes').checked ? canopyCountVal() : 1;
+  html += `<option value="canopy">${cn>1 ? '1. oldaltető oldalfala' : 'Oldaltető oldalfala (ha teli fal)'}</option>`;
+  for(let i=1;i<cn;i++) html += `<option value="${canopyWallKey(i)}">${i+1}. oldaltető oldalfala</option>`;
+  if(document.getElementById('notchYes').checked){
+    const nn = notchCountVal();
+    for(let i=0;i<nn;i++) html += `<option value="${notchWallKey(i)}">${nn>1 ? (i+1)+'. ' : ''}Előtető fala</option>`;
+  }
   return html;
 }
 
@@ -1065,28 +1208,46 @@ function refreshWallUnits(){
 }
 function buildGateCustomPositions(qty){
   const container = document.getElementById('gateCustomPosList');
-  const prevCorner=[], prevDist=[];
+  const prevWall=[], prevCorner=[], prevDist=[];
   for(let i=0;i<qty;i++){
-    const c=document.getElementById('gateCustomCorner'+i), d=document.getElementById('gateCustomDistance'+i);
-    prevCorner[i]=c?c.value:'left'; prevDist[i]=d?d.value:(50+i*350);
+    const wl=document.getElementById('gateCustomWall'+i), c=document.getElementById('gateCustomCorner'+i), d=document.getElementById('gateCustomDistance'+i);
+    prevWall[i]=wl?wl.value:'front'; prevCorner[i]=c?c.value:'left'; prevDist[i]=d?d.value:(50+i*350);
   }
   let html='';
   for(let i=0;i<qty;i++){
-    html += `<div class="grid2" style="margin-top:${i===0?'0':'8px'}">
+    // Oldalfalon a "bal/jobb" érték az elülső/hátsó faltól mért távolságot jelenti (ugyanúgy, mint az ajtóknál/ablakoknál).
+    const vertical = (prevWall[i]==='left' || prevWall[i]==='right');
+    const cornerOpts = vertical
+      ? '<option value="left">Elülső faltól</option><option value="right">Hátsó faltól</option>'
+      : '<option value="left">Bal faltól</option><option value="right">Jobb faltól</option>';
+    html += `<div class="grid3" style="margin-top:${i===0?'0':'8px'}">
+      <label class="field"><span>${i+1}. kapu — melyik falon legyen?</span>
+        <select id="gateCustomWall${i}">
+          <option value="front">Elülső fal (főfal)</option>
+          <option value="back">Hátsó fal</option>
+          <option value="left">Bal oldalfal</option>
+          <option value="right">Jobb oldalfal</option>
+        </select>
+      </label>
       <label class="field"><span>${i+1}. kapu — melyik faltól?</span>
-        <select id="gateCustomCorner${i}"><option value="left">Bal faltól</option><option value="right">Jobb faltól</option></select>
+        <select id="gateCustomCorner${i}">${cornerOpts}</select>
       </label>
       <label class="field"><span>${i+1}. kapu — távolság (cm)</span><input type="number" id="gateCustomDistance${i}" value="${prevDist[i]}" min="0" step="5"></label>
     </div>`;
   }
   container.innerHTML = html;
   for(let i=0;i<qty;i++){
-    const c=document.getElementById('gateCustomCorner'+i);
+    const wl=document.getElementById('gateCustomWall'+i), c=document.getElementById('gateCustomCorner'+i);
+    if(wl) wl.value=prevWall[i];
     if(c) c.value=prevCorner[i];
   }
   container.querySelectorAll('input,select').forEach(el=>{
     el.addEventListener('input', refreshAll);
     el.addEventListener('change', refreshAll);
+  });
+  // Ha egy kapu falát átállítják, a "melyik faltól" feliratai is változnak (oldalfalon: elülső/hátsó) — újraépítjük a listát.
+  container.querySelectorAll('select[id^="gateCustomWall"]').forEach(el=>{
+    el.addEventListener('change', ()=>{ buildGateCustomPositions(Math.max(1, parseInt(document.getElementById('gateCount').value)||1)); refreshAll(); });
   });
 }
 document.getElementById('gateCount').addEventListener('input', refreshPositionUnits);
@@ -1106,13 +1267,18 @@ document.getElementById('personalDoorYes').addEventListener('change', e=>{docume
 document.getElementById('canopyYes').addEventListener('change', e=>{
   document.getElementById('canopyExtra').classList.toggle('show', e.target.checked);
   if(!e.target.checked){
-    // Kikapcsoláskor töröljük a méreteket és a fal-beállításokat is, hogy ne maradjanak "beragadva"
-    // a beküldött adatokban — enélkül a backoffice tévesen aktívnak mutatná az oldaltetőt.
+    // Kikapcsoláskor visszaállunk egyetlen oldaltetőre, és töröljük a méreteket és a fal-beállításokat is, hogy ne
+    // maradjanak "beragadva" a beküldött adatokban — enélkül a backoffice tévesen aktívnak mutatná az oldaltetőt.
+    document.getElementById('canopyCount').value = 1;
+    refreshCanopyNotchLists();
     ['canopyWidth','canopyLength'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     ['canopyBackWall','canopySideWall'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value='none'; });
   }
+  refreshPositionUnits();
   refreshAll();
 });
+document.getElementById('canopyCount').addEventListener('input', ()=>{ refreshCanopyNotchLists(); refreshPositionUnits(); refreshAll(); });
+document.getElementById('notchCount').addEventListener('input', ()=>{ refreshCanopyNotchLists(); refreshPositionUnits(); refreshAll(); });
 document.getElementById('notchYes').addEventListener('change', e=>{document.getElementById('notchExtra').classList.toggle('show', e.target.checked); refreshAll();});
 document.getElementById('custInvoice').addEventListener('change', e=>document.getElementById('custCompanyExtra').classList.toggle('show', e.target.value==='igen'));
 
@@ -1124,6 +1290,8 @@ function updateColorVisibility(){
   const winCount = ['win8060','win50150'].reduce((s,id)=>s+(parseInt(document.getElementById(id).value)||0),0);
   document.getElementById('colorWindowField').classList.toggle('show', winCount>0);
   document.getElementById('colorDoorField').classList.toggle('show', document.getElementById('personalDoorYes').checked);
+  document.getElementById('gateLightFrameColorField').classList.toggle('show', state.gateType!=='none' && document.getElementById('gateLightYes').checked);
+  document.getElementById('skylightFrameColorField').classList.toggle('show', (parseInt(document.getElementById('skylight').value)||0) > 0);
 }
 ['win8060','win50150'].forEach(id=>{
   document.getElementById(id).addEventListener('input', refreshAll);
@@ -1211,15 +1379,14 @@ function renderSketch(){
   const l = parseFloat(document.getElementById('length').value)||500;
   const maxW=320, maxH=220;
 
-  // Oldaltető kiterjedésének figyelembevétele a méretezésnél, hogy nagy épületnél/oldaltetőnél is minden kiférjen
-  const canopyOn = document.getElementById('canopyYes').checked;
-  const canopySideVal = document.getElementById('canopySide').value;
-  document.getElementById('canopyPositionField').style.display = (canopyOn && (canopySideVal==='left' || canopySideVal==='right')) ? 'flex' : 'none';
-  const canopyWidthCm = canopyOn ? (parseFloat(document.getElementById('canopyWidth').value)||0) : 0;
-  const extraLeftCm = (canopyOn && canopySideVal==='left') ? canopyWidthCm : 0;
-  const extraRightCm = (canopyOn && canopySideVal==='right') ? canopyWidthCm : 0;
-  const extraTopCm = (canopyOn && canopySideVal==='back') ? canopyWidthCm : 0;
-  const extraBottomCm = (canopyOn && canopySideVal==='front') ? canopyWidthCm : 0;
+  // Az oldaltetők kiterjedésének figyelembevétele a méretezésnél (oldalanként a legmélyebb számít), hogy minden kiférjen
+  syncCanopyFieldVisibility();
+  const canopies = readCanopies();
+  const sideExtent = side => canopies.filter(c=>c.side===side).reduce((m,c)=>Math.max(m,c.widthLayoutCm), 0);
+  const extraLeftCm = sideExtent('left');
+  const extraRightCm = sideExtent('right');
+  const extraTopCm = sideExtent('back');
+  const extraBottomCm = sideExtent('front');
   const totalWcm = w + extraLeftCm + extraRightCm;
   const totalLcm = l + extraTopCm + extraBottomCm;
 
@@ -1229,12 +1396,11 @@ function renderSketch(){
   const totalWpx = rw+extraLeftPx+extraRightPx, totalLpx = rl+extraTopPx+extraBottomPx;
   const x0 = 200-totalWpx/2+extraLeftPx, y0 = 150-totalLpx/2+extraTopPx;
 
-  // Előtető alapadatai előre kiolvasva, hogy a kapu ki tudja kerülni
-  const notchActive = document.getElementById('notchYes').checked;
-  const notchSideVal = document.getElementById('notchSide').value;
-  const notchWidthCm = notchActive ? (parseFloat(document.getElementById('notchWidth').value)||0) : 0;
-  const availStartCm = (notchActive && notchSideVal==='left') ? notchWidthCm : 0;
-  const availWidthCm = Math.max(0, w - notchWidthCm);
+  // Az előtetők alapadatai előre kiolvasva, hogy a kapu ki tudja kerülni az elülső fal menti előtetőket
+  const notches = readNotches();
+  const frontNotches = notches.filter(n=>n.edge==='front');
+  const availStartCm = frontNotches.filter(n=>n.side==='left').reduce((m,n)=>Math.max(m,n.widthLayoutCm), 0);
+  const availWidthCm = Math.max(0, w - frontNotches.reduce((sum,n)=>sum+n.widthLayoutCm, 0));
 
   // --- Kapu(k) az elülső falon, elrendezés szerint, az előtetőt kikerülve ---
   let gateEls='';
@@ -1276,11 +1442,15 @@ function renderSketch(){
     const posMode = document.getElementById('gatePositionMode').value;
     let firstGateX;
     const gateStartCms = [];
+    const otherGates = []; // más falra (hátsó / bal / jobb) helyezett kapuk — csak egyéni pozíció módban
     if(posMode==='custom'){
       for(let i=0;i<count;i++){
+        const wlEl = document.getElementById('gateCustomWall'+i);
+        const gWall = wlEl ? wlEl.value : 'front';
         const cEl = document.getElementById('gateCustomCorner'+i), dEl = document.getElementById('gateCustomDistance'+i);
         const corner = cEl ? cEl.value : 'left';
         const dist = dEl ? (parseFloat(dEl.value)||0) : 0;
+        if(gWall!=='front'){ otherGates.push({wall:gWall, corner, dist}); continue; }
         const startCm = corner==='left' ? dist : (w-dist-gwCm);
         gateStartCms.push(startCm);
       }
@@ -1356,11 +1526,81 @@ function renderSketch(){
         }
       });
     }
+
+    // --- Más falra (hátsó, bal vagy jobb oldalfal) helyezett kapuk ---
+    // A "bal/jobb" faltól mért távolság oldalfalon az ELÜLSŐ/HÁTSÓ faltól mért távolságot jelenti (ugyanúgy, mint az
+    // ajtóknál és ablakoknál). A mérővonal mindig a garázson kívülre kerül, a kapu szélessége a kapu sávján belül látszik.
+    const otherGateSpans = {};
+    otherGates.forEach((og)=>{
+      const horiz = (og.wall==='back');
+      const wallLenCm = horiz ? w : l;
+      const gLenCm = Math.min(gwCm, wallLenCm);
+      const rawStart = og.corner==='left' ? og.dist : (wallLenCm - og.dist - gwCm);
+      (otherGateSpans[og.wall] = otherGateSpans[og.wall] || []).push({s:rawStart, e:rawStart+gwCm});
+      const sCm = Math.max(0, Math.min(rawStart, wallLenCm - gLenCm));
+      const barLen = gLenCm*scale;
+      const nearStart = rawStart <= (wallLenCm - rawStart - gwCm);
+      const cornerDist = Math.max(0, Math.round(nearStart ? rawStart : (wallLenCm - rawStart - gwCm)));
+      const off = 10 + nextLabelOffset(og.wall, rawStart+gwCm/2)*10;
+      const lightsOn = document.getElementById('gateLightYes').checked;
+      const lQty = Math.max(1, parseInt(document.getElementById('gateLightQty').value)||1);
+      const lArr = document.getElementById('gateLightArrangement').value;
+      const ls = 7;
+      const lightRect = (cx,cy)=>`<rect x="${cx-ls/2}" y="${cy-ls/2}" width="${ls}" height="${ls}" fill="#6fb7e0"/>`;
+      // a bevilágító-pozíciók (a kapu sávjának kezdetétől mért "a" távolság + befelé mért "p" eltolás)
+      const lightSpots = [];
+      if(lightsOn){
+        if(lArr==='sides'){ lightSpots.push([3+ls/2,0],[barLen-3-ls/2,0]); }
+        else { const a0 = lArr==='left-stack' ? 3+ls/2 : barLen-3-ls/2; for(let i=0;i<lQty;i++) lightSpots.push([a0, i*(ls+3)]); }
+      }
+      if(horiz){
+        const bx = x0 + sCm*scale;
+        gateEls += `<rect x="${bx}" y="${y0-6}" width="${barLen}" height="12" fill="#F2B705"/>`;
+        const cornerX = nearStart ? x0 : x0+rw, edgeX = nearStart ? bx : bx+barLen, dimY = y0 - off;
+        gateEls += `<line x1="${cornerX}" y1="${dimY}" x2="${edgeX}" y2="${dimY}" stroke="#F2B705" stroke-width="1"/>
+          <line x1="${cornerX}" y1="${dimY-3}" x2="${cornerX}" y2="${dimY+3}" stroke="#F2B705" stroke-width="1"/>
+          <line x1="${edgeX}" y1="${dimY-3}" x2="${edgeX}" y2="${dimY+3}" stroke="#F2B705" stroke-width="1"/>
+          <text x="${(cornerX+edgeX)/2}" y="${dimY-4}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${cornerDist} cm</text>`;
+        gateEls += `<text x="${bx+barLen/2}" y="${y0+2.5}" fill="#20242A" font-size="7.5" font-weight="bold" text-anchor="middle" font-family="IBM Plex Mono">${gwCm}cm</text>`;
+        lightSpots.forEach(([a,p])=>{ gateEls += lightRect(bx+a, y0+p); });
+      } else {
+        const wallX = og.wall==='left' ? x0 : x0+rw;
+        const yBottom = y0+rl - sCm*scale, yTop = yBottom - barLen;
+        gateEls += `<rect x="${wallX-6}" y="${yTop}" width="12" height="${barLen}" fill="#F2B705"/>`;
+        const cornerY = nearStart ? y0+rl : y0, edgeY = nearStart ? yBottom : yTop;
+        const dimX = og.wall==='left' ? wallX-off : wallX+off;
+        const txtX = og.wall==='left' ? dimX-4 : dimX+4, txtAnchor = og.wall==='left' ? 'end' : 'start';
+        gateEls += `<line x1="${dimX}" y1="${cornerY}" x2="${dimX}" y2="${edgeY}" stroke="#F2B705" stroke-width="1"/>
+          <line x1="${dimX-3}" y1="${cornerY}" x2="${dimX+3}" y2="${cornerY}" stroke="#F2B705" stroke-width="1"/>
+          <line x1="${dimX-3}" y1="${edgeY}" x2="${dimX+3}" y2="${edgeY}" stroke="#F2B705" stroke-width="1"/>
+          <text x="${txtX}" y="${(cornerY+edgeY)/2+3}" fill="#F2B705" font-size="7.5" text-anchor="${txtAnchor}" font-family="IBM Plex Mono">${cornerDist} cm</text>`;
+        const midY = (yTop+yBottom)/2;
+        gateEls += `<text x="${wallX}" y="${midY+2.5}" fill="#20242A" font-size="7.5" font-weight="bold" text-anchor="middle" font-family="IBM Plex Mono" transform="rotate(-90 ${wallX} ${midY})">${gwCm}cm</text>`;
+        const inward = og.wall==='left' ? 1 : -1;
+        lightSpots.forEach(([a,p])=>{ gateEls += lightRect(wallX + inward*p, yBottom - a); });
+      }
+    });
+    // Ha két, ugyanarra a falra tett kapu egymásba nyúlik, jelezzük (ez hiba lenne)
+    Object.keys(otherGateSpans).forEach((wk)=>{
+      const arr = otherGateSpans[wk].slice().sort((a,b)=>a.s-b.s);
+      for(let i=0;i<arr.length-1;i++){
+        const ov = arr[i].e - arr[i+1].s;
+        if(ov > 1){
+          const midCm = (arr[i+1].s + arr[i].e)/2;
+          if(wk==='back'){
+            gateMarginEls += `<text x="${x0+midCm*scale}" y="${y0-26}" fill="#e0555e" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono" font-weight="bold">⚠ ${Math.round(ov)}cm átfedés!</text>`;
+          } else {
+            const wx = wk==='left' ? x0 : x0+rw;
+            gateMarginEls += `<text x="${wk==='left' ? wx-28 : wx+28}" y="${y0+rl-midCm*scale}" fill="#e0555e" font-size="7.5" text-anchor="${wk==='left'?'end':'start'}" font-family="IBM Plex Mono" font-weight="bold">⚠ ${Math.round(ov)}cm átfedés!</text>`;
+          }
+        }
+      }
+    });
   }
 
   // --- Nyitott/fedett oldaltető, más tónussal, elülső falhoz igazítva (bal vagy jobb sarkon) ---
   let canopyEls='';
-  let canopyGeom=null;
+  const canopyGeoms = {};
   function drawWallLine(type,x1,y1,x2,y2){
     if(type==='solid') return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#c9cdd0" stroke-width="5"/>`;
     if(type==='lamella'){
@@ -1374,38 +1614,63 @@ function renderSketch(){
     }
     return '';
   }
-  if(document.getElementById('canopyYes').checked){
-    const cwPx = (parseFloat(document.getElementById('canopyWidth').value)||300)*scale;
-    const clRaw = parseFloat(document.getElementById('canopyLength').value)||500;
-    const side = document.getElementById('canopySide').value;
-    const backType = document.getElementById('canopyBackWall').value;
-    const sideType = document.getElementById('canopySideWall').value;
+  canopies.forEach(cp=>{
+    const cwPx = cp.widthDrawCm*scale;
+    const clRaw = cp.lengthCm;
+    const side = cp.side;
+    const backType = cp.backType;
+    const sideType = cp.sideType;
+    const off = cp.offsetCm*scale;
     let x1,x2,y1,y2, outerOrientation, outerFixed, outerFrom, outerTo, backLine;
     if(side==='left' || side==='right'){
       const len = Math.min(clRaw, l)*scale;
-      const posFromBack = document.getElementById('canopyPosition').value==='back';
-      if(posFromBack){ y1 = y0; y2 = y0+len; } else { y1 = y0+rl-len; y2 = y0+rl; }
+      if(cp.position==='back'){ y1 = y0+off; y2 = y1+len; } else { y2 = y0+rl-off; y1 = y2-len; }
       if(side==='left'){ x1=x0-cwPx; x2=x0; outerFixed=x1; }
       else { x1=x0+rw; x2=x0+rw+cwPx; outerFixed=x2; }
       outerOrientation='vertical'; outerFrom={x:outerFixed,y:y1}; outerTo={x:outerFixed,y:y2};
       backLine = {x1:x1,y1:y1,x2:x2,y2:y1};
     } else {
       const len = Math.min(clRaw, w)*scale;
-      x1 = x0; x2 = x0+len;
+      if(cp.startLR==='right'){ x2 = x0+rw-off; x1 = x2-len; } else { x1 = x0+off; x2 = x1+len; }
       if(side==='front'){ y1=y0+rl; y2=y0+rl+cwPx; outerFixed=y2; }
       else { y1=y0-cwPx; y2=y0; outerFixed=y1; }
       outerOrientation='horizontal'; outerFrom={x:x1,y:outerFixed}; outerTo={x:x2,y:outerFixed};
-      backLine = (side==='front') ? {x1:x2,y1:y1,x2:x2,y2:y2} : {x1:x1,y1:y1,x2:x1,y2:y2};
+      // A "hátsó fal" vonala: elülső oldaltetőnél a kezdő saroktól távolabbi vég, hátsónál a kezdő sarok felőli vég
+      // (balról induló oldaltetőnél ez a korábbi viselkedés; jobbról indulónál ennek pontos tükörképe).
+      const startRight = cp.startLR==='right';
+      backLine = (side==='front')
+        ? (startRight ? {x1:x1,y1:y1,x2:x1,y2:y2} : {x1:x2,y1:y1,x2:x2,y2:y2})
+        : (startRight ? {x1:x2,y1:y1,x2:x2,y2:y2} : {x1:x1,y1:y1,x2:x1,y2:y2});
     }
-    canopyEls = `<rect x="${x1}" y="${y1}" width="${x2-x1}" height="${y2-y1}" fill="rgba(242,183,5,0.15)" stroke="#F2B705" stroke-width="1" stroke-dasharray="4,3"/>`;
+    canopyEls += `<rect x="${x1}" y="${y1}" width="${x2-x1}" height="${y2-y1}" fill="rgba(242,183,5,0.15)" stroke="#F2B705" stroke-width="1" stroke-dasharray="4,3"/>`;
     canopyEls += drawWallLine(backType, backLine.x1, backLine.y1, backLine.x2, backLine.y2);
     canopyEls += drawWallLine(sideType, outerFrom.x, outerFrom.y, outerTo.x, outerTo.y);
-    canopyGeom = {x1,x2,y1,y2,side,outerOrientation,outerFixed,outerFrom,outerTo};
+    canopyGeoms[cp.key] = {x1,x2,y1,y2,side,outerOrientation,outerFixed,outerFrom,outerTo};
     const canopyLenCm = Math.round((outerOrientation==='vertical' ? (y2-y1) : (x2-x1))/scale);
-    const canopyCx = (x1+x2)/2, canopyTopY = Math.min(y1,y2);
-    canopyEls += `<text x="${canopyCx}" y="${canopyTopY-10}" fill="#F2B705" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">Oldaltető</text>
+    const canopyCx = (x1+x2)/2, canopyTopY = Math.min(y1,y2), canopyCy = (y1+y2)/2;
+    // Több oldaltetőnél a feliratot a téglalap BELSEJÉBE tesszük, ha ténylegesen elfér és nem ütközik a garázs szélesség-/hosszméret
+    // feliratával (azok fix helyen, sötét háttérrel állnak); egyébként marad a megszokott, a téglalap fölötti felirat.
+    let labelInside = false, labelCy = canopyCy;
+    if(canopies.length>1 && (x2-x1) >= 74 && (y2-y1) >= 30){
+      const avoidZones = [ {xa:x0-30, xb:x0+2, ya:127, yb:173}, {xa:x0+rw/2-30, xb:x0+rw/2+30, ya:y0-22, yb:y0-4}, {xa:x0+rw/2-60, xb:x0+rw/2+60, ya:y0+rl+19, yb:y0+rl+35} ];
+      const labelHits = cyy => avoidZones.some(z => canopyCx+36 > z.xa && canopyCx-36 < z.xb && cyy+14 > z.ya && cyy-11 < z.yb);
+      if(!labelHits(labelCy)) labelInside = true;
+      else {
+        const lo = Math.min(y1,y2)+11, hi = Math.max(y1,y2)-14;
+        const cands = [];
+        avoidZones.forEach(z=>{ cands.push(z.ya-15, z.yb+12); });
+        const okc = cands.filter(c=>c>=lo && c<=hi && !labelHits(c)).sort((a,b)=>Math.abs(a-canopyCy)-Math.abs(b-canopyCy));
+        if(okc.length){ labelCy = okc[0]; labelInside = true; }
+      }
+    }
+    if(labelInside){
+      canopyEls += `<text x="${canopyCx}" y="${labelCy-2}" fill="#F2B705" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">${cp.i+1}. oldaltető</text>
+      <text x="${canopyCx}" y="${labelCy+10}" fill="#8b939a" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">${Math.round(cwPx/scale)}×${canopyLenCm} cm</text>`;
+    } else {
+      canopyEls += `<text x="${canopyCx}" y="${canopyTopY-10}" fill="#F2B705" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">${canopies.length>1 ? (cp.i+1)+'. oldaltető' : 'Oldaltető'}</text>
       <text x="${canopyCx}" y="${canopyTopY-22}" fill="#8b939a" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">${Math.round(cwPx/scale)}×${canopyLenCm} cm</text>`;
-  }
+    }
+  });
 
   // --- Előtető (elülső fal bal vagy jobb sarkán, a belső fala teli falként szolgál) ---
   // --- Válaszfal (belső, alapjáraton függőleges, oldalfaltól mért távolságban) ---
@@ -1463,23 +1728,30 @@ function renderSketch(){
   }
 
   let notchEls='';
-  let notchGeom=null;
-  if(document.getElementById('notchYes').checked){
-    const depthPx = (parseFloat(document.getElementById('notchDepth').value)||100)*scale;
-    const notchWCm = parseFloat(document.getElementById('notchWidth').value)||150;
+  const notchGeoms = {};
+  notches.forEach(nt=>{
+    const depthPx = nt.depthDrawCm*scale;
+    const notchWCm = nt.widthDrawCm;
     const notchWpx = Math.min(notchWCm*scale, rw-20);
-    const side = document.getElementById('notchSide').value;
+    const side = nt.side;
     let nx1,nx2;
     if(side==='left'){ nx1=x0; nx2=x0+notchWpx; }
     else { nx1=x0+rw-notchWpx; nx2=x0+rw; }
-    const ny1 = y0+rl-depthPx, ny2 = y0+rl;
-    notchEls = `<rect x="${nx1}" y="${ny1}" width="${nx2-nx1}" height="${ny2-ny1}" fill="#161A1E" stroke="#8b939a" stroke-width="1" stroke-dasharray="3,2"/>`;
-    notchEls += `<line x1="${nx1}" y1="${ny1}" x2="${nx2}" y2="${ny1}" stroke="#c9cdd0" stroke-width="5"/>`;
-    notchGeom = { x1:nx1, x2:nx2, y:ny1, side };
+    // Elülső fal mentén az előtető alul (belső fala felül), hátsó fal mentén fent (belső fala alul) van
+    let ny1, ny2, wallY, edgeY;
+    if(nt.edge==='back'){ ny1 = y0; ny2 = y0+depthPx; wallY = ny2; edgeY = y0; }
+    else { ny1 = y0+rl-depthPx; ny2 = y0+rl; wallY = ny1; edgeY = y0+rl; }
+    notchEls += `<rect x="${nx1}" y="${ny1}" width="${nx2-nx1}" height="${ny2-ny1}" fill="#161A1E" stroke="#8b939a" stroke-width="1" stroke-dasharray="3,2"/>`;
+    notchEls += `<line x1="${nx1}" y1="${wallY}" x2="${nx2}" y2="${wallY}" stroke="#c9cdd0" stroke-width="5"/>`;
+    // A két nyitott oldal esetleges lamellás / teli fala
+    notchEls += drawWallLine(nt.edgeType, nx1, edgeY, nx2, edgeY);
+    const sideX = side==='left' ? x0 : x0+rw;
+    notchEls += drawWallLine(nt.sideType, sideX, edgeY, sideX, wallY);
+    notchGeoms[nt.key] = { x1:nx1, x2:nx2, y:wallY, side, edge:nt.edge };
     const notchCx=(nx1+nx2)/2, notchCy=(ny1+ny2)/2;
-    notchEls += `<text x="${notchCx}" y="${notchCy-2}" fill="#8b939a" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">Előtető</text>
+    notchEls += `<text x="${notchCx}" y="${notchCy-2}" fill="#8b939a" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">${notches.length>1 ? (nt.i+1)+'. előtető' : 'Előtető'}</text>
       <text x="${notchCx}" y="${notchCy+9}" fill="#8b939a" font-size="8" text-anchor="middle" font-family="IBM Plex Mono">${notchWCm.toFixed(0)}×${(depthPx/scale).toFixed(0)} cm</text>`;
-  }
+  });
 
   // --- Ablakok és személyi ajtó (sarok + cm távolság alapján) ---
   let els='';
@@ -1492,36 +1764,59 @@ function renderSketch(){
   // mérővonalat keresztül az egész garázson, ha az ablak/ajtó az előtető (vagy oldaltető)
   // falán volt.
   function unitPoint(wallVal, cornerVal, distanceCm){
-    if(wallVal==='canopy' && canopyGeom){
-      const A = canopyGeom.outerFrom, B = canopyGeom.outerTo;
+    const cg = canopyGeoms[wallVal];
+    if(cg){
+      const A = cg.outerFrom, B = cg.outerTo;
       const wallLenCm = Math.hypot(B.x-A.x, B.y-A.y)/scale;
       let distFromLeft = cornerVal==='left' ? distanceCm : (wallLenCm - distanceCm);
       distFromLeft = Math.max(5, Math.min(wallLenCm-5, distFromLeft));
       const t = distFromLeft/wallLenCm;
       const px = A.x+(B.x-A.x)*t, py = A.y+(B.y-A.y)*t;
-      const horizontal = canopyGeom.outerOrientation==='horizontal';
+      const horizontal = cg.outerOrientation==='horizontal';
       const refCorner = cornerVal==='left' ? A : B;
       return {x:px, y:py, horizontal, refCorner};
     }
-    if(wallVal==='notch' && notchGeom){
-      const wallLenCm = (notchGeom.x2-notchGeom.x1)/scale;
+    const ng = notchGeoms[wallVal];
+    if(ng){
+      const wallLenCm = (ng.x2-ng.x1)/scale;
       let distFromLeft = cornerVal==='left' ? distanceCm : (wallLenCm - distanceCm);
       distFromLeft = Math.max(5, Math.min(wallLenCm-5, distFromLeft));
-      const px = notchGeom.x1 + distFromLeft*scale;
-      const py = notchGeom.y;
-      const refCorner = cornerVal==='left' ? {x:notchGeom.x1,y:notchGeom.y} : {x:notchGeom.x2,y:notchGeom.y};
+      const px = ng.x1 + distFromLeft*scale;
+      const py = ng.y;
+      const refCorner = cornerVal==='left' ? {x:ng.x1,y:ng.y} : {x:ng.x2,y:ng.y};
       return {x:px, y:py, horizontal:true, refCorner};
     }
     return wallPoint(wallVal, cornerVal, distanceCm, x0, y0, rw, rl, w, l);
   }
+  // A mérővonal (kifelé) és az ajtónyílás iránya fal-kulcs szerint
+  function horizOutward(wv){
+    if(wv==='front') return 1;
+    const cg = canopyGeoms[wv]; if(cg) return cg.side==='front' ? 1 : -1;
+    const ng = notchGeoms[wv]; if(ng) return ng.edge==='back' ? -1 : 1;
+    return -1;
+  }
+  function vertOutward(wv){
+    if(wv==='left') return -1;
+    const cg = canopyGeoms[wv]; if(cg && cg.side==='left') return -1;
+    return 1;
+  }
+  function outDirFor(wv){
+    if(wv==='front') return {x:0,y:1};
+    if(wv==='back') return {x:0,y:-1};
+    if(wv==='left') return {x:-1,y:0};
+    if(wv==='right') return {x:1,y:0};
+    const ng = notchGeoms[wv]; if(ng) return ng.edge==='back' ? {x:0,y:-1} : {x:0,y:1};
+    const cg = canopyGeoms[wv]; if(cg) return ({left:{x:-1,y:0}, right:{x:1,y:0}, front:{x:0,y:1}, back:{x:0,y:-1}}[cg.side] || {x:1,y:0});
+    return {x:1,y:0};
+  }
   function drawMarker(wallVal, cornerVal, distanceCm, color, size){
     const p = unitPoint(wallVal, cornerVal, distanceCm);
-    if(wallVal==='canopy' && canopyGeom){
+    if(canopyGeoms[wallVal]){
       const THK = 3.5;
       els += `<rect x="${p.x-(p.horizontal?size/2:THK/2)}" y="${p.y-(p.horizontal?THK/2:size/2)}" width="${p.horizontal?size:THK}" height="${p.horizontal?THK:size}" fill="${color}"/>`;
       return p;
     }
-    if(wallVal==='notch' && notchGeom){
+    if(notchGeoms[wallVal]){
       els += `<rect x="${p.x-size/2}" y="${p.y-1.75}" width="${size}" height="3.5" fill="${color}"/>`;
       return p;
     }
@@ -1548,14 +1843,14 @@ function renderSketch(){
         // A méretet is odaírjuk a cm-érték mellé, hogy ha két elem egymás mellett van a falon,
         // egyértelmű legyen, melyik mérővonal melyik elemre (méretre) vonatkozik.
         if(p.horizontal){
-          const outward = (wEl.value==='front' || wEl.value==='notch' || (wEl.value==='canopy' && canopyGeom && canopyGeom.side==='front')) ? 1 : -1; // elülső fal / előtető fala / elülső oldaltető: lefelé kifelé; hátsó fal / hátsó oldaltető: felfelé kifelé
+          const outward = horizOutward(wEl.value); // elülső fal / előtető fala / elülső oldaltető: lefelé kifelé; hátsó fal / hátsó oldaltető: felfelé kifelé
           const y2 = edgeP.y + outward*baseOff;
           labelEls += `<line x1="${p.refCorner.x}" y1="${y2}" x2="${edgeP.x}" y2="${y2}" stroke="#F2B705" stroke-width="1"/>
             <line x1="${p.refCorner.x}" y1="${y2-3}" x2="${p.refCorner.x}" y2="${y2+3}" stroke="#F2B705" stroke-width="1"/>
             <line x1="${edgeP.x}" y1="${y2-3}" x2="${edgeP.x}" y2="${y2+3}" stroke="#F2B705" stroke-width="1"/>
             <text x="${(p.refCorner.x+edgeP.x)/2}" y="${y2+(outward>0?9:-4)}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${dist}cm${distLabelSuffix}</text>`;
         } else {
-          const outward = (wEl.value==='left' || (wEl.value==='canopy' && canopyGeom && canopyGeom.side==='left')) ? -1 : 1; // bal fal / bal oldaltető: balra kifelé; jobb fal / jobb oldaltető: jobbra kifelé
+          const outward = vertOutward(wEl.value); // bal fal / bal oldaltető: balra kifelé; jobb fal / jobb oldaltető: jobbra kifelé
           const x2 = edgeP.x + outward*baseOff;
           labelEls += `<line x1="${x2}" y1="${p.refCorner.y}" x2="${x2}" y2="${edgeP.y}" stroke="#F2B705" stroke-width="1"/>
             <line x1="${x2-3}" y1="${p.refCorner.y}" x2="${x2+3}" y2="${p.refCorner.y}" stroke="#F2B705" stroke-width="1"/>
@@ -1613,7 +1908,7 @@ function renderSketch(){
           <circle cx="${p.refCorner.x}" cy="${p.refCorner.y}" r="2" fill="#F2B705" opacity="0.8"/>`;
       }
       labelEls += `<text x="${p.x+(p.horizontal?0:doorOff)}" y="${p.y+(p.horizontal?-doorOff:4)}" fill="#F2B705" font-size="7.5" text-anchor="middle" font-family="IBM Plex Mono">${dDist} cm a ${cornerLabel}tól (${document.getElementById('personalDoorSize').value||'90x200'})</text>`;
-      const outDir = dWall==='front' ? {x:0,y:1} : dWall==='back' ? {x:0,y:-1} : dWall==='left' ? {x:-1,y:0} : dWall==='right' ? {x:1,y:0} : dWall==='notch' ? {x:0,y:1} : (canopyGeom ? ({left:{x:-1,y:0}, right:{x:1,y:0}, front:{x:0,y:1}, back:{x:0,y:-1}}[canopyGeom.side] || {x:1,y:0}) : {x:1,y:0});
+      const outDir = outDirFor(dWall);
       // Az "along" (a fal mentén, a távolság-mérés irányába mutató) vektort a tényleges geometriából
       // számoljuk ki (két közeli pont különbségéből), nem előre feltételezett előjellel — korábban a
       // bal/jobb oldalfalnál ez az előjel FORDÍTVA volt megadva (mindig +y-nak véve, holott a
@@ -1653,17 +1948,38 @@ function renderSketch(){
     }
   }
 
-  let outlineEls = `<line x1="${x0}" y1="${y0}" x2="${x0+rw}" y2="${y0}" stroke="#F2B705" stroke-width="2"/>
+  const gFront = Object.values(notchGeoms).filter(g=>g.edge!=='back').sort((a,b)=>a.x1-b.x1);
+  const gBack = Object.values(notchGeoms).filter(g=>g.edge==='back').sort((a,b)=>a.x1-b.x1);
+  const frameLine = (xa,ya,xb,yb) => `<line x1="${xa}" y1="${ya}" x2="${xb}" y2="${yb}" stroke="#F2B705" stroke-width="2"/>`;
+  const frameDot = (g,y) => `<circle cx="${g.side==='left'?g.x2:g.x1}" cy="${y}" r="3" fill="#8b939a"/>`;
+  let backWallEls;
+  if(gBack.length){
+    // a hátsó fal az előtetők mentén megszakad
+    let cur = x0; const parts = [];
+    gBack.forEach(g=>{ parts.push(frameLine(cur,y0,g.x1,y0)); cur = g.x2; });
+    parts.push(frameLine(cur,y0,x0+rw,y0));
+    gBack.forEach(g=>parts.push(frameDot(g,y0)));
+    backWallEls = parts.join('\n    ');
+  } else {
+    backWallEls = frameLine(x0,y0,x0+rw,y0);
+  }
+  let outlineEls = `${backWallEls}
     <line x1="${x0}" y1="${y0}" x2="${x0}" y2="${y0+rl}" stroke="#F2B705" stroke-width="2"/>
     <line x1="${x0+rw}" y1="${y0}" x2="${x0+rw}" y2="${y0+rl}" stroke="#F2B705" stroke-width="2"/>`;
-  if(notchGeom){
-    outlineEls += `<line x1="${x0}" y1="${y0+rl}" x2="${notchGeom.x1}" y2="${y0+rl}" stroke="#F2B705" stroke-width="2"/>
-      <line x1="${notchGeom.x2}" y1="${y0+rl}" x2="${x0+rw}" y2="${y0+rl}" stroke="#F2B705" stroke-width="2"/>
-      <circle cx="${notchGeom.side==='left'?notchGeom.x2:notchGeom.x1}" cy="${y0+rl}" r="3" fill="#8b939a"/>`;
+  if(gFront.length){
+    let cur = x0; const parts = [];
+    gFront.forEach(g=>{ parts.push(frameLine(cur,y0+rl,g.x1,y0+rl)); cur = g.x2; });
+    parts.push(frameLine(cur,y0+rl,x0+rw,y0+rl));
+    gFront.forEach(g=>parts.push(frameDot(g,y0+rl)));
+    outlineEls += parts.join('\n      ');
   } else {
-    outlineEls += `<line x1="${x0}" y1="${y0+rl}" x2="${x0+rw}" y2="${y0+rl}" stroke="#F2B705" stroke-width="2"/>`;
+    outlineEls += frameLine(x0,y0+rl,x0+rw,y0+rl);
   }
 
+  // Ha egy kapu nem az elülső falon van, az "elülső fal" felirat ne állítsa, hogy az a kapu oldala
+  const gatesElsewhere = state.gateType!=='none' && document.getElementById('gatePositionMode').value==='custom' &&
+    Array.from({length: Math.max(1, parseInt(document.getElementById('gateCount').value)||1)}, (_,i)=>document.getElementById('gateCustomWall'+i))
+      .some(e=>e && e.value!=='front');
   svg.innerHTML = `
     <defs><pattern id="grid" width="16" height="16" patternUnits="userSpaceOnUse">
       <path d="M16 0H0V16" fill="none" stroke="#232a30" stroke-width="1"/>
@@ -1676,24 +1992,36 @@ function renderSketch(){
     ${gateEls}${gateMarginEls}${els}${doorArc}${labelEls}
     <rect x="${x0+rw/2-28}" y="${y0-20}" width="56" height="14" fill="#161A1E" opacity="0.9"/>
     <text x="${x0+rw/2}" y="${y0-10}" fill="#8b939a" font-size="11" text-anchor="middle" font-family="IBM Plex Mono">${w.toFixed(0)} cm</text>
-    <rect x="${x0-21}" y="136" width="14" height="28" fill="#161A1E" opacity="0.9" transform="rotate(-90 ${x0-14} 150)"/>
+    <rect x="${x0-21}" y="129" width="14" height="42" fill="#161A1E" opacity="0.9"/>
     <text x="${x0-14}" y="150" fill="#8b939a" font-size="11" text-anchor="middle" font-family="IBM Plex Mono" transform="rotate(-90 ${x0-14} 150)">${l.toFixed(0)} cm</text>
-    <text x="${x0+rw/2}" y="${y0+rl+30}" fill="#F2B705" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">ELÜLSŐ FAL (kapu oldala)</text>
+    <text x="${x0+rw/2}" y="${y0+rl+30}" fill="#F2B705" font-size="9" text-anchor="middle" font-family="IBM Plex Mono">${gatesElsewhere ? 'ELÜLSŐ FAL (főfal)' : 'ELÜLSŐ FAL (kapu oldala)'}</text>
   `;
 }
 
 function computeWallUsage(){
   const w = parseFloat(document.getElementById('width').value)||0;
   const l = parseFloat(document.getElementById('length').value)||0;
-  const notchActive = document.getElementById('notchYes').checked;
-  const notchWidth = notchActive ? (parseFloat(document.getElementById('notchWidth').value)||0) : 0;
-  const canopyActive = document.getElementById('canopyYes').checked;
-  const canopyLen = canopyActive ? Math.min(parseFloat(document.getElementById('canopyLength').value)||0, l) : 0;
+  const notches = readNotches();
+  const canopies = readCanopies();
+  // A kapuk az elülső fal menti előtetőket kikerülik
+  const frontNotchW = notches.filter(n=>n.edge==='front').reduce((sum,n)=>sum+n.widthLayoutCm, 0);
+  const backNotchW = notches.filter(n=>n.edge==='back').reduce((sum,n)=>sum+n.widthLayoutCm, 0);
+  const frontAvailStart = notches.filter(n=>n.edge==='front' && n.side==='left').reduce((m,n)=>Math.max(m,n.widthLayoutCm), 0);
 
-  const wallLength = { front: Math.max(0, w-notchWidth), back: w, left: l, right: l, canopy: canopyLen, notch: notchWidth };
+  const wallLength = { front: Math.max(0, w-frontNotchW), back: Math.max(0, w-backNotchW), left: l, right: l, canopy: 0, notch: 0 };
   const wallUsed = { front:0, back:0, left:0, right:0, canopy:0, notch:0 };
   const wallItems = { front:[], back:[], left:[], right:[], canopy:[], notch:[] };
   const wallIntervals = { front:[], back:[], left:[], right:[], canopy:[], notch:[] };
+  // Minden oldaltetőnek és előtetőnek saját fala van ('canopy', 'canopy1', ... / 'notch', 'notch1', ...)
+  canopies.forEach(cp=>{
+    const lim = (cp.side==='left' || cp.side==='right') ? l : w;
+    wallLength[cp.key] = Math.min(parseFloat(document.getElementById(cid('canopyLength',cp.i)).value)||0, lim);
+    wallUsed[cp.key] = 0; wallItems[cp.key] = []; wallIntervals[cp.key] = [];
+  });
+  notches.forEach(nt=>{
+    wallLength[nt.key] = nt.widthLayoutCm;
+    wallUsed[nt.key] = 0; wallItems[nt.key] = []; wallIntervals[nt.key] = [];
+  });
 
   function addInterval(wallKey, name, widthCm, cornerVal, distanceCm){
     if(!wallIntervals.hasOwnProperty(wallKey)) return;
@@ -1704,30 +2032,44 @@ function computeWallUsage(){
     wallIntervals[wallKey].push({name, start:center-widthCm/2, end:center+widthCm/2});
   }
 
-  if(notchActive){
-    const nSide = document.getElementById('notchSide').value;
-    if(nSide==='left') wallIntervals.front.push({name:'előtető', start:0, end:notchWidth});
-    else wallIntervals.front.push({name:'előtető', start:w-notchWidth, end:w});
-  }
+  notches.forEach(nt=>{
+    // az előtető a garázs elülső vagy hátsó falának egy szakaszát foglalja el
+    if(nt.side==='left') wallIntervals[nt.edge].push({name:'előtető', start:0, end:nt.widthLayoutCm});
+    else wallIntervals[nt.edge].push({name:'előtető', start:w-nt.widthLayoutCm, end:w});
+  });
   if(state.gateType!=='none'){
     const gw = parseFloat(document.getElementById('gateWidth').value)||0;
     const count = Math.max(1, parseInt(document.getElementById('gateCount').value)||1);
-    // Kétkapus megoldásnál a közös tartóelem miatt 50 cm engedmény jár (pl. 2×300 cm = 600 cm helyett elég 550 cm)
-    const requiredSpan = (count===2) ? Math.max(0, gw*2-50) : gw*count;
-    wallUsed.front += requiredSpan;
-    wallItems.front.push(count+'× kapu ('+gw+' cm)');
-    const nSide = document.getElementById('notchSide').value;
-    const availStart = (notchActive && nSide==='left') ? notchWidth : 0;
-    const availWidth = Math.max(0, w-notchWidth);
     const posMode = document.getElementById('gatePositionMode').value;
+    // Egyéni pozíció módban egy kapu más falra is kerülhet: azokat a saját falukon számoljuk, az elülső falon csak az oda tett kapukat.
+    const frontGateIdx = [];
+    for(let i=0;i<count;i++){
+      const wlEl = document.getElementById('gateCustomWall'+i);
+      const gWall = (posMode==='custom' && wlEl) ? wlEl.value : 'front';
+      if(gWall==='front'){ frontGateIdx.push(i); continue; }
+      if(wallUsed.hasOwnProperty(gWall)){
+        const cEl = document.getElementById('gateCustomCorner'+i), dEl = document.getElementById('gateCustomDistance'+i);
+        wallUsed[gWall] += gw; wallItems[gWall].push('kapu ('+gw+' cm)');
+        if(cEl && dEl) addInterval(gWall, (count>1?(i+1)+'. kapu':'kapu'), gw, cEl.value, (parseFloat(dEl.value)||0)+gw/2);
+      }
+    }
+    const frontCount = frontGateIdx.length;
+    // Kétkapus megoldásnál a közös tartóelem miatt 50 cm engedmény jár (pl. 2×300 cm = 600 cm helyett elég 550 cm)
+    if(frontCount>0){
+      const requiredSpan = (frontCount===2) ? Math.max(0, gw*2-50) : gw*frontCount;
+      wallUsed.front += requiredSpan;
+      wallItems.front.push(frontCount+'× kapu ('+gw+' cm)');
+    }
+    const availStart = frontAvailStart;
+    const availWidth = Math.max(0, w-frontNotchW);
     if(posMode==='custom'){
-      for(let i=0;i<count;i++){
+      frontGateIdx.forEach(i=>{
         const cEl = document.getElementById('gateCustomCorner'+i), dEl = document.getElementById('gateCustomDistance'+i);
         const corner = cEl ? cEl.value : 'left';
         const dist = dEl ? (parseFloat(dEl.value)||0) : 0;
         const centerCm = corner==='left' ? dist+gw/2 : (w-dist-gw/2);
         wallIntervals.front.push({name:(count>1?(i+1)+'. kapu':'kapu'), start:centerCm-gw/2, end:centerCm+gw/2});
-      }
+      });
     } else {
       // Automatikus mód: 1 kapunál középre; 2+ kapunál a fal két szélén flush, ráhagyás nélkül
       if(count===1){
@@ -1792,17 +2134,30 @@ function computeWallUsage(){
   return {wallLength, wallUsed, wallItems, wallIntervals};
 }
 
+function wallLabelFor(k){
+  const base = {front:'Elülső fal', back:'Hátsó fal', left:'Bal oldalfal', right:'Jobb oldalfal'};
+  if(base[k]) return base[k];
+  let m = /^canopy(\d*)$/.exec(k);
+  if(m){ const i = m[1]==='' ? 0 : parseInt(m[1]); return canopyCountVal()>1 ? (i+1)+'. oldaltető oldalfala' : 'Oldaltető oldalfala'; }
+  m = /^notch(\d*)$/.exec(k);
+  if(m){ const i = m[1]==='' ? 0 : parseInt(m[1]); return notchCountVal()>1 ? (i+1)+'. előtető fala' : 'Előtető fala'; }
+  return k;
+}
+function wallBoundsRef(wallLength, w, l){
+  const ref = {front:w, back:w, left:l, right:l};
+  Object.keys(wallLength).forEach(k=>{ if(!(k in ref)) ref[k] = wallLength[k]; });
+  return ref;
+}
 function validateWalls(){
   const {wallLength, wallUsed, wallItems, wallIntervals} = computeWallUsage();
-  const wallLabels = {front:'Elülső fal', back:'Hátsó fal', left:'Bal oldalfal', right:'Jobb oldalfal', canopy:'Oldaltető oldalfala', notch:'Előtető fala'};
   const w = parseFloat(document.getElementById('width').value)||0;
   const l = parseFloat(document.getElementById('length').value)||0;
-  const boundsRef = {front:w, back:w, left:l, right:l, canopy:wallLength.canopy, notch:wallLength.notch};
+  const boundsRef = wallBoundsRef(wallLength, w, l);
   const warnings = [];
   Object.keys(wallLength).forEach(k=>{
     if(wallLength[k]<=0) return; // nincs ilyen fal / nincs bekapcsolva
     if(wallUsed[k] > wallLength[k]){
-      warnings.push(`${wallLabels[k]}: ${wallLength[k].toFixed(0)} cm hosszú, de a ráhelyezett elemek összesen ${wallUsed[k].toFixed(0)} cm szélesek (${wallItems[k].join(', ')}) — ez nem fér el!`);
+      warnings.push(`${wallLabelFor(k)}: ${wallLength[k].toFixed(0)} cm hosszú, de a ráhelyezett elemek összesen ${wallUsed[k].toFixed(0)} cm szélesek (${wallItems[k].join(', ')}) — ez nem fér el!`);
     }
     // Fizikai átfedés-ellenőrzés (két elem egymásra futna) — két kapunál 50 cm közös tartóelem-átfedés megengedett
     const items = wallIntervals[k];
@@ -1813,7 +2168,7 @@ function validateWalls(){
         const bothGates = items[i].name.includes('kapu') && items[j].name.includes('kapu');
         const tolerance = bothGates ? 50 : 0;
         if(overlap > tolerance){
-          warnings.push(`${wallLabels[k]}: a(z) ${items[i].name} és a(z) ${items[j].name} egymásra futna — módosítsa a távolságot egyiknél!`);
+          warnings.push(`${wallLabelFor(k)}: a(z) ${items[i].name} és a(z) ${items[j].name} egymásra futna — módosítsa a távolságot egyiknél!`);
         }
       }
     }
@@ -1822,10 +2177,29 @@ function validateWalls(){
     items.forEach(it=>{
       if(it.name==='előtető') return; // az előtető maga a viszonyítási keret része, nem "túlnyúlás"
       if(it.start < -0.5 || it.end > maxRef+0.5){
-        warnings.push(`${wallLabels[k]}: a(z) ${it.name} túlnyúlik a garázs méretén (a fal csak ${maxRef.toFixed(0)} cm hosszú) — ez nem lehetséges!`);
+        warnings.push(`${wallLabelFor(k)}: a(z) ${it.name} túlnyúlik a garázs méretén (a fal csak ${maxRef.toFixed(0)} cm hosszú) — ez nem lehetséges!`);
       }
     });
   });
+  // Az oldaltetők ne fussanak egymásra ugyanazon az oldalon, és ne lógjanak túl a garázs oldalán
+  const cps = readCanopies();
+  const sideTxt = {left:'bal oldalon', right:'jobb oldalon', front:'elülső oldalon', back:'hátsó oldalon'};
+  const spanOf = cp => {
+    const vertical = (cp.side==='left' || cp.side==='right');
+    const L = vertical ? l : w, len = Math.min(cp.lengthCm, L);
+    const s = vertical ? (cp.position==='back' ? L-cp.offsetCm-len : cp.offsetCm) : (cp.startLR==='right' ? L-cp.offsetCm-len : cp.offsetCm);
+    return {s, e:s+len, L};
+  };
+  const nameOf = cp => cps.length>1 ? (cp.i+1)+'. oldaltető' : 'oldaltető';
+  cps.forEach(cp=>{
+    const sp = spanOf(cp);
+    if(sp.s < -0.5 || sp.e > sp.L+0.5) warnings.push(`A(z) ${nameOf(cp)} túlnyúlik a garázs ${sideTxt[cp.side]} lévő oldalán (${sp.L.toFixed(0)} cm) — módosítsa a távolságot vagy a hosszat!`);
+  });
+  for(let i=0;i<cps.length;i++) for(let j=i+1;j<cps.length;j++){
+    if(cps[i].side!==cps[j].side) continue;
+    const a = spanOf(cps[i]), b = spanOf(cps[j]);
+    if(Math.min(a.e,b.e) - Math.max(a.s,b.s) > 0.5) warnings.push(`A(z) ${nameOf(cps[i])} és a(z) ${nameOf(cps[j])} egymásra fut a garázs ${sideTxt[cps[i].side]} — módosítsa a távolságot egyiknél!`);
+  }
   const box = document.getElementById('wallWarnings');
   if(warnings.length){
     box.style.display='block';
@@ -1887,8 +2261,9 @@ function updateMissingDataIndicators(){
     {id:'colorWindow', required: ((parseInt(document.getElementById('win8060').value)||0)+(parseInt(document.getElementById('win50150').value)||0)) > 0},
     {id:'colorDoor', required: document.getElementById('personalDoorYes').checked},
     {id:'gutterColor', required: document.getElementById('gutterYes').checked},
-    {id:'colorCanopyBack', required: document.getElementById('canopyYes').checked && document.getElementById('canopyBackWall').value!=='none'},
-    {id:'colorCanopySide', required: document.getElementById('canopyYes').checked && document.getElementById('canopySideWall').value!=='none'},
+    {id:'gateLightFrameColor', required: state.gateType!=='none' && document.getElementById('gateLightYes').checked},
+    {id:'skylightFrameColor', required: (parseInt(document.getElementById('skylight').value)||0) > 0},
+    ...canopyNotchColorRequirements(),
   ];
   requiredFields.forEach(({id,required})=>{
     const el = document.getElementById(id);
@@ -2037,35 +2412,51 @@ function buildSummary(){
   }
 
   if(g('canopyYes').checked){
-    const sideNames={'left':'bal sarkon','right':'jobb sarkon'};
-    let ct = 'Nyitott/fedett rész: igen, '+sideNames[g('canopySide').value]+', '+g('canopyWidth').value+'×'+g('canopyLength').value+' cm';
-    ct += ', magasság: '+(g('canopyHeightMode').value==='level' ? 'szintbe fut a garázzsal (eltolt gerincvonal)' : 'folyamatosan lejt tovább');
-    ct += ', hátsó fal: '+wallTypeNames[g('canopyBackWall').value];
-    if(g('canopyBackWall').value!=='none') ct += ' ('+colorLabel('colorCanopyBack')+')';
-    ct += ', oldalsó fal: '+wallTypeNames[g('canopySideWall').value];
-    if(g('canopySideWall').value!=='none') ct += ' ('+colorLabel('colorCanopySide')+')';
-    extras.push(ct);
+    const sideNames={'left':'bal sarkon','right':'jobb sarkon','front':'elülső oldalon','back':'hátsó oldalon'};
+    const startNames={'front':'elölről','back':'hátulról','left':'balról','right':'jobbról'};
+    const cn = canopyCountVal();
+    for(let i=0;i<cn;i++){
+      const gg = b => g(cid(b,i));
+      let ct = (cn>1 ? (i+1)+'. nyitott/fedett rész: ' : 'Nyitott/fedett rész: igen, ')+sideNames[gg('canopySide').value]+', '+gg('canopyWidth').value+'×'+gg('canopyLength').value+' cm';
+      const vertical = (gg('canopySide').value==='left' || gg('canopySide').value==='right');
+      const offs = parseFloat(gg('canopyOffset').value)||0;
+      if(cn>1 || offs>0) ct += ', kezdés: '+startNames[vertical ? gg('canopyPosition').value : gg('canopyStartLR').value]+(offs>0 ? ', '+offs+' cm-re a saroktól' : '');
+      if(i===0) ct += ', tető: '+(g('canopyHeightMode').value==='level' ? 'a gerinc a teljes szerkezet (garázs + oldaltető) közepén van, az oldaltető belmagassága a garázséval párhuzamos, szintbe fut (eltolt gerincvonal)' : 'a tető ejtése az oldaltetőn is tovább folytatódik, a belmagasság a szerkezet széléig folyamatosan csökken');
+      ct += ', hátsó fal: '+wallTypeNames[gg('canopyBackWall').value];
+      if(gg('canopyBackWall').value!=='none') ct += ' ('+colorLabel(cid('colorCanopyBack',i))+')';
+      ct += ', oldalsó fal: '+wallTypeNames[gg('canopySideWall').value];
+      if(gg('canopySideWall').value!=='none') ct += ' ('+colorLabel(cid('colorCanopySide',i))+')';
+      extras.push(ct);
+    }
   }
   if(g('notchYes').checked){
     const notchSideNames={'left':'bal','right':'jobb'};
-    extras.push('Előtető: igen, '+notchSideNames[g('notchSide').value]+' sarkon, szélesség '+g('notchWidth').value+' cm, mélység '+g('notchDepth').value+' cm (az előtető fala teli falként szolgál)');
+    const nn = notchCountVal();
+    for(let i=0;i<nn;i++){
+      const gg = b => g(cid(b,i));
+      let nt = (nn>1 ? (i+1)+'. előtető: ' : 'Előtető: igen, ')+notchSideNames[gg('notchSide').value]+' sarkon'+(gg('notchEdge').value==='back' ? ', hátsó fal mentén' : '')+', szélesség '+gg('notchWidth').value+' cm, mélység '+gg('notchDepth').value+' cm (az előtető fala teli falként szolgál)';
+      if(gg('notchEdgeWall').value!=='none') nt += ', homlokoldali fal: '+wallTypeNames[gg('notchEdgeWall').value]+' ('+colorLabel(cid('colorNotchEdge',i))+')';
+      if(gg('notchSideWall').value!=='none') nt += ', oldalsó fal: '+wallTypeNames[gg('notchSideWall').value]+' ('+colorLabel(cid('colorNotchSide',i))+')';
+      extras.push(nt);
+    }
   }
   const w1=+g('win8060').value||0, w4=+g('win50150').value||0, wo=+g('winOpening').value||0, sky=+g('skylight').value||0;
   const wallNames = {'front':'elülső fal','back':'hátsó fal','left':'bal oldalfal','right':'jobb oldalfal','canopy':'oldaltető oldalfala','notch':'előtető fala'};
   const cornerNames = {'left':'bal saroktól','right':'jobb saroktól'};
+  const dynWallName = v => { let m=/^canopy(\d+)$/.exec(v); if(m) return (parseInt(m[1])+1)+'. oldaltető oldalfala'; m=/^notch(\d+)$/.exec(v); if(m) return (parseInt(m[1])+1)+'. előtető fala'; return v; };
   function unitPositionsTxt(qty, prefix){
     const lines=[];
     for(let i=0;i<qty;i++){
       const wEl=g(prefix+'Wall'+i), cEl=g(prefix+'Corner'+i), dEl=g(prefix+'Distance'+i);
       if(!wEl||!cEl||!dEl) continue;
-      lines.push((i+1)+'. db – fal: '+wallNames[wEl.value]+', '+dEl.value+' cm a '+cornerNames[cEl.value]);
+      lines.push((i+1)+'. db – fal: '+(wallNames[wEl.value] || dynWallName(wEl.value))+', '+dEl.value+' cm a '+cornerNames[cEl.value]);
     }
     return lines;
   }
   if(w1) extras.push('Bukó ablak 80×60: '+w1+' db\n    '+unitPositionsTxt(w1,'win8060').join('\n    '));
   if(w4) extras.push('Fix ablak 50×150: '+w4+' db\n    '+unitPositionsTxt(w4,'win50150').join('\n    '));
   if(wo) extras.push('Ablaknyílás: '+wo+' db\n    '+unitPositionsTxt(wo,'winOpening').join('\n    '));
-  if(sky) extras.push('Ablakbetét / bevilágító (60×27 cm): '+sky+' db\n    '+unitPositionsTxt(sky,'skylight').join('\n    '));
+  if(sky) extras.push('Ablakbetét / bevilágító (60×27 cm): '+sky+' db, keretszín: '+colorLabel('skylightFrameColor')+'\n    '+unitPositionsTxt(sky,'skylight').join('\n    '));
 
   if(w1+w4>0) extras.push('Ablak színe: '+colorLabel('colorWindow'));
 
@@ -2079,8 +2470,17 @@ function buildSummary(){
       const cnt = parseInt(g('gateCount').value)||1;
       const posTxts = [];
       for(let i=0;i<cnt;i++){
-        const cEl=g('gateCustomCorner'+i), dEl=g('gateCustomDistance'+i);
-        if(cEl&&dEl) posTxts.push((cnt>1?(i+1)+'. kapu: ':'')+dEl.value+' cm a '+(cEl.value==='left'?'bal':'jobb')+' faltól');
+        const cEl=g('gateCustomCorner'+i), dEl=g('gateCustomDistance'+i), wlEl=g('gateCustomWall'+i);
+        const gWall = wlEl ? wlEl.value : 'front';
+        if(cEl&&dEl){
+          if(gWall==='front'){
+            posTxts.push((cnt>1?(i+1)+'. kapu: ':'')+dEl.value+' cm a '+(cEl.value==='left'?'bal':'jobb')+' faltól');
+          } else {
+            const wallNames = {back:'hátsó fal', left:'bal oldalfal', right:'jobb oldalfal'};
+            const vertical = (gWall==='left' || gWall==='right');
+            posTxts.push((cnt>1?(i+1)+'. kapu: ':'')+wallNames[gWall]+', '+dEl.value+' cm '+(vertical ? (cEl.value==='left'?'az elülső':'a hátsó') : (cEl.value==='left'?'a bal':'a jobb'))+' faltól');
+          }
+        }
       }
       gateTxt += ', elhelyezés: egyéni ('+posTxts.join('; ')+')';
     } else {
@@ -2088,7 +2488,7 @@ function buildSummary(){
     }
     if(g('gateLightYes').checked){
       const arrNames={'sides':'kapu két oldalán, egy szinten','left-stack':'kapu bal oldalán, egymás alatt','right-stack':'kapu jobb oldalán, egymás alatt'};
-      gateTxt += ', bevilágító: '+g('gateLightQty').value+' db/kapu, '+arrNames[g('gateLightArrangement').value];
+      gateTxt += ', bevilágító: '+g('gateLightQty').value+' db/kapu, '+arrNames[g('gateLightArrangement').value]+', keretszín: '+colorLabel('gateLightFrameColor');
     }
   }
 
@@ -2169,10 +2569,9 @@ document.getElementById('submitBtn').addEventListener('click', ()=>{
   if(winQtySum>0) requiredColorFields.push('colorWindow');
   if(document.getElementById('personalDoorYes').checked) requiredColorFields.push('colorDoor');
   if(document.getElementById('gutterYes').checked) requiredColorFields.push('gutterColor');
-  if(document.getElementById('canopyYes').checked){
-    if(document.getElementById('canopyBackWall').value!=='none') requiredColorFields.push('colorCanopyBack');
-    if(document.getElementById('canopySideWall').value!=='none') requiredColorFields.push('colorCanopySide');
-  }
+  if(state.gateType!=='none' && document.getElementById('gateLightYes').checked) requiredColorFields.push('gateLightFrameColor');
+  if((parseInt(document.getElementById('skylight').value)||0) > 0) requiredColorFields.push('skylightFrameColor');
+  canopyNotchColorRequirements().forEach(r=>{ if(r.required) requiredColorFields.push(r.id); });
   const missingColors = requiredColorFields.filter(id=>{
     const el = document.getElementById(id);
     return !el || !el.value;
@@ -2184,7 +2583,7 @@ document.getElementById('submitBtn').addEventListener('click', ()=>{
   const {wallLength, wallUsed, wallIntervals} = computeWallUsage();
   const wBuild = parseFloat(document.getElementById('width').value)||0;
   const lBuild = parseFloat(document.getElementById('length').value)||0;
-  const boundsRef = {front:wBuild, back:wBuild, left:lBuild, right:lBuild, canopy:wallLength.canopy, notch:wallLength.notch};
+  const boundsRef = wallBoundsRef(wallLength, wBuild, lBuild);
   const overflowed = Object.keys(wallLength).some(k=>wallLength[k]>0 && wallUsed[k]>wallLength[k]);
   let overlapped = false, outOfBounds = false;
   Object.keys(wallIntervals).forEach(k=>{

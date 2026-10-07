@@ -251,10 +251,10 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
           </div>
 
           <div class="grid2" style="margin-top:14px">
-            <label class="field" style="grid-column:1/-1"><span>A fedett rész magassága a garázshoz képest</span>
+            <label class="field" style="grid-column:1/-1"><span>Tető kialakítása az oldaltetős résznél</span>
               <select id="canopyHeightMode">
-                <option value="level">Szintbe fusson a garázs magasságával (eltolt gerincvonal, felárral jár)</option>
-                <option value="continuous">Folyamatosan lejtsen tovább (a tető vonala folytatódik)</option>
+                <option value="continuous">Folyamatosan lejtsen tovább — a tető ejtése az oldaltetőn is folytatódik, a belmagasság a szerkezet széléig folyamatosan csökken</option>
+                <option value="level">A gerinc a teljes szerkezet (garázs + oldaltető) közepén legyen — az oldaltető belmagassága a garázséval párhuzamos, szintbe fut (eltolt gerincvonal, felárral jár)</option>
               </select>
             </label>
           </div>
@@ -501,6 +501,8 @@ footer.notice{max-width:1240px;margin:0 auto;padding:0 20px 60px;color:#7a828a;f
         <label class="field color-field" id="colorGateField"><span class="color-label">Kapu színe</span><select id="colorGate" class="color-select"></select></label>
         <label class="field color-field" id="colorWindowField"><span class="color-label">Ablak színe</span><select id="colorWindow" class="color-select"></select></label>
         <label class="field color-field" id="colorDoorField"><span class="color-label">Személyi bejáró színe</span><select id="colorDoor" class="color-select"></select></label>
+        <label class="field color-field" id="gateLightFrameColorField"><span class="color-label">Kapu-bevilágító keretszíne</span><select id="gateLightFrameColor" class="color-select"></select></label>
+        <label class="field color-field" id="skylightFrameColorField"><span class="color-label">Ablakbetét / bevilágító keretszíne</span><select id="skylightFrameColor" class="color-select"></select></label>
       </div>
     </details>
 
@@ -534,9 +536,10 @@ const colorHex = {
   'RAL3011':'#7a1f2b', 'RAL6020':'#37473a', 'RAL7016-F':'#2b323a', 'RAL9006':'#a8adb0',
   'RAL7035':'#d9dcdd', 'RAL9010':'#f5f4ef', 'RAL5010':'#1c4d78', 'RAL1002':'#d9a520',
   'OAK':'#8a5a2b', 'WALNUT':'#4a3225', 'WINCH':'#a9835a', 'GOLDOAK':'#c98a2e',
-  'GRAFIT':'#383e42', 'BARNA':'#4a3728'
+  'GRAFIT':'#383e42', 'BARNA':'#4a3728',
+  'KERET-FEHER':'#f5f4ef', 'KERET-FEKETE':'#1c1c1c', 'KERET-GRAFIT':'#383e42', 'KERET-BRONZ':'#6b4a2f', 'KERET-VILAGOSBRONZ':'#b08a5b'
 };
-const catLabels = {horganyzott:'Horganyzott', ral:'RAL', fa:'Fa'};
+const catLabels = {horganyzott:'Horganyzott', ral:'RAL', fa:'Fa', keret:'Keretszín'};
 
 // Általános kategóriák (tető, oldalfal, szegélyek, kapu, ajtó, oldaltető falak)
 const generalCategoryColors = {
@@ -555,6 +558,8 @@ const windowCategoryColors = {
   fa: [['WALNUT','Dió'],['GOLDOAK','Arany tölgy'],['WINCH','Winchester']]
 };
 const twoToneCategoryColors = { szin: [['GRAFIT','Grafit'],['BARNA','Barna']] };
+// Bevilágító (kapu- és fali) keretszínei
+const frameCategoryColors = { keret: [['KERET-FEHER','Fehér'],['KERET-FEKETE','Fekete'],['KERET-GRAFIT','Grafit'],['KERET-BRONZ','Bronz'],['KERET-VILAGOSBRONZ','Világos bronz']] };
 
 const colorFieldRegistry = {};
 function setupColorField(id, categoryMap){
@@ -628,6 +633,8 @@ setupColorField('colorGate', generalCategoryColors);
 setupColorField('colorDoor', generalCategoryColors);
 setupColorField('colorWindow', windowCategoryColors);
 setupColorField('gutterColor', twoToneCategoryColors);
+setupColorField('gateLightFrameColor', frameCategoryColors);
+setupColorField('skylightFrameColor', frameCategoryColors);
 setupColorField('colorCanopyBack', generalCategoryColors);
 setupColorField('colorCanopySide', generalCategoryColors);
 
@@ -824,6 +831,8 @@ function updateColorVisibility(){
   const winCount = ['win8060','win50150'].reduce((s,id)=>s+(parseInt(document.getElementById(id).value)||0),0);
   document.getElementById('colorWindowField').classList.toggle('show', winCount>0);
   document.getElementById('colorDoorField').classList.toggle('show', document.getElementById('personalDoorYes').checked);
+  document.getElementById('gateLightFrameColorField').classList.toggle('show', state.gateType!=='none' && document.getElementById('gateLightYes').checked);
+  document.getElementById('skylightFrameColorField').classList.toggle('show', (parseInt(document.getElementById('skylight').value)||0) > 0);
 }
 ['win8060','win50150'].forEach(id=>{
   document.getElementById(id).addEventListener('input', refreshAll);
@@ -1570,7 +1579,7 @@ function buildSummary(){
   if(w1) extras.push('Bukó ablak 80×60: '+w1+' db\n    '+unitPositionsTxt(w1,'win8060').join('\n    '));
   if(w4) extras.push('Fix ablak 50×150: '+w4+' db\n    '+unitPositionsTxt(w4,'win50150').join('\n    '));
   if(wo) extras.push('Ablaknyílás: '+wo+' db\n    '+unitPositionsTxt(wo,'winOpening').join('\n    '));
-  if(sky) extras.push('Ablakbetét / bevilágító (60×27 cm): '+sky+' db\n    '+unitPositionsTxt(sky,'skylight').join('\n    '));
+  if(sky) extras.push('Ablakbetét / bevilágító (60×27 cm): '+sky+' db, keretszín: '+colorLabel('skylightFrameColor')+'\n    '+unitPositionsTxt(sky,'skylight').join('\n    '));
 
   if(w1+w4>0) extras.push('Ablak színe: '+colorLabel('colorWindow'));
 
@@ -1593,7 +1602,7 @@ function buildSummary(){
     }
     if(g('gateLightYes').checked){
       const arrNames={'sides':'kapu két oldalán, egy szinten','left-stack':'kapu bal oldalán, egymás alatt','right-stack':'kapu jobb oldalán, egymás alatt'};
-      gateTxt += ', bevilágító: '+g('gateLightQty').value+' db/kapu, '+arrNames[g('gateLightArrangement').value];
+      gateTxt += ', bevilágító: '+g('gateLightQty').value+' db/kapu, '+arrNames[g('gateLightArrangement').value]+', keretszín: '+colorLabel('gateLightFrameColor');
     }
   }
 

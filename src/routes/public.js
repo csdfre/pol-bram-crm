@@ -655,7 +655,9 @@ function colleaguePage(c){
           // nyitási ív pontosan a tükörkép lesz. (A válaszfal-ajtó nyitásiránya viszont valódi bal/jobb, azt cseréljük.)
           next = cur;
         } else if(m && wallVal !== undefined){
-          var horizontal = wallVal==='front' || wallVal==='back' || wallVal==='notch' || (wallVal==='canopy' && canopyHoriz);
+          var horizontal = wallVal==='front' || wallVal==='back' || /^notch\\d*$/.test(wallVal);
+          var cm = /^canopy(\\d*)$/.exec(wallVal);
+          if(cm){ var sideV = val('canopySide'+cm[1]); horizontal = (sideV==='front' || sideV==='back'); }
           next = horizontal ? flipLR(cur) : cur;
         } else {
           next = flipLR(cur);

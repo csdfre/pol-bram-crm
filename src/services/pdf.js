@@ -161,6 +161,33 @@ function filterOptions(fullOptions, codes){
 }
 const WINDOW_COLOR_OPTIONS = { hu: filterOptions(COLOR_OPTIONS.hu, WINDOW_COLOR_CODES), pl: filterOptions(COLOR_OPTIONS.pl, WINDOW_COLOR_CODES) };
 const GUTTER_COLOR_OPTIONS = { hu: filterOptions(COLOR_OPTIONS.hu, GUTTER_COLOR_CODES), pl: filterOptions(COLOR_OPTIONS.pl, GUTTER_COLOR_CODES) };
+// A bevilágítók (kapun lévő és fali) keretszínei — SZÁNDÉKOSAN külön szótárban, nem a COLOR_NAMES-ben, hogy ne kerüljenek
+// be az általános (fal, kapu, tető...) szín-választókba. Az első (üres) opció a régi, még keretszín nélküli rekordoknak kell:
+// ha nincs érték, a szerkesztő ne állítson be csendben egy alapértelmezett színt mentéskor.
+const FRAME_COLOR_NAMES = {
+  'KERET-FEHER':        { hu: 'Fehér',         pl: 'Biały' },
+  'KERET-FEKETE':       { hu: 'Fekete',        pl: 'Czarny' },
+  'KERET-GRAFIT':       { hu: 'Grafit',        pl: 'Grafitowy' },
+  'KERET-BRONZ':        { hu: 'Bronz',         pl: 'Brąz' },
+  'KERET-VILAGOSBRONZ': { hu: 'Világos bronz', pl: 'Jasny brąz' },
+};
+// Az oldaltetős résznél a tető kialakítása (értékek: az ügyfél-űrlap canopyHeightMode mezője)
+const CANOPY_ROOF_OPTIONS = {
+  hu: [['', '— nincs megadva —'],
+       ['continuous', 'Folyamatosan lejtsen tovább — a tető ejtése az oldaltetőn is folytatódik, a belmagasság a szerkezet széléig csökken'],
+       ['level', 'A gerinc a teljes szerkezet (garázs + oldaltető) közepén van — az oldaltető belmagassága a garázséval párhuzamos (eltolt gerincvonal, felárral jár)']],
+  pl: [['', '— nie podano —'],
+       ['continuous', 'Spadek dachu kontynuowany nad wiatą — wysokość wewnętrzna maleje stopniowo aż do krawędzi konstrukcji'],
+       ['level', 'Kalenica na środku całej konstrukcji (garaż + wiata) — wysokość wewnętrzna wiaty równoległa do wysokości garażu (przesunięta kalenica, z dopłatą)']],
+};
+const FRAME_COLOR_OPTIONS = {
+  hu: [['', '— nincs megadva —'], ...buildOptions(FRAME_COLOR_NAMES,'hu')],
+  pl: [['', '— nie podano —'], ...buildOptions(FRAME_COLOR_NAMES,'pl')],
+};
+function frameColorText(code, lang){
+  if(!code) return '—';
+  return (FRAME_COLOR_NAMES[code] && FRAME_COLOR_NAMES[code][lang]) || code;
+}
 const ROOF_OPTIONS_FULL = { hu: buildOptions(ROOF_NAMES,'hu'), pl: buildOptions(ROOF_NAMES,'pl') };
 const STRUCTURE_OPTIONS = { hu: buildOptions(STRUCTURE_NAMES,'hu'), pl: buildOptions(STRUCTURE_NAMES,'pl') };
 const PATTERN_OPTIONS = { hu: buildOptions(PATTERN_NAMES,'hu'), pl: buildOptions(PATTERN_NAMES,'pl') };
@@ -228,6 +255,18 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
 
   const UNIT_ROW_CAP = 10; // ennyi elem-blokkot renderelünk mindig előre (a felesleg rejtve, de kész — így ha az ügyfél/kolléganő növeli a darabszámot, azonnal megjelenik a helyhez tartozó szerkesztőmező, nem kell újratölteni az oldalt)
   const HANDLE_OPTIONS = { hu: [['left','Bal oldalt'],['right','Jobb oldalt']], pl: [['left','Lewa strona'],['right','Prawa strona']] };
+  // A falválasztóban minden oldaltető és előtető külön fal ('canopy', 'canopy1', ... / 'notch', 'notch1', ...).
+  // Egy elem esetén a megnevezés a megszokott, többnél sorszámozott.
+  const canopyCnt = Math.max(1, Math.min(4, parseInt(fd.canopyCount)||1));
+  const notchCnt = Math.max(1, Math.min(4, parseInt(fd.notchCount)||1));
+  const wallOptsLocal = (() => {
+    const out = WALL_OPTIONS[lang].filter(o=>!['canopy','notch'].includes(o[0]));
+    for(let i=0;i<canopyCnt;i++) out.push([i===0?'canopy':'canopy'+i,
+      lang==='pl' ? (canopyCnt>1 ? `Ściana wiaty ${i+1}` : 'Ściana wiaty') : (canopyCnt>1 ? `${i+1}. oldaltető fala` : 'Oldaltető fala')]);
+    for(let i=0;i<notchCnt;i++) out.push([i===0?'notch':'notch'+i,
+      lang==='pl' ? (notchCnt>1 ? `Ściana zadaszenia ${i+1}` : 'Ściana zadaszenia') : (notchCnt>1 ? `${i+1}. előtető fala` : 'Előtető fala')]);
+    return out;
+  })();
   function placementRows(prefix, count, withHandle){
     const rows = [];
     // A "kiegészítő, rejtett" blokkokat (amik lehetővé teszik a darabszám élő növelését) csak a
@@ -239,8 +278,8 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
       const hidden = i>=Math.max(count,1);
       const rowAttrs = ` data-unit="${prefix}" data-unit-idx="${i}"${hidden?' class="unit-hidden"':''}`;
       const n = `${i+1}. `;
-      rows.push(ESEL(n+(lang==='pl'?'ściana':'fal'), `${prefix}Wall${i}`, fd[`${prefix}Wall${i}`]||'front', WALL_OPTIONS[lang],
-        (WALL_OPTIONS[lang].find(o=>o[0]===(fd[`${prefix}Wall${i}`]||'front'))||[,fd[`${prefix}Wall${i}`]])[1], rowAttrs));
+      rows.push(ESEL(n+(lang==='pl'?'ściana':'fal'), `${prefix}Wall${i}`, fd[`${prefix}Wall${i}`]||'front', wallOptsLocal,
+        (wallOptsLocal.find(o=>o[0]===(fd[`${prefix}Wall${i}`]||'front'))||[,fd[`${prefix}Wall${i}`]])[1], rowAttrs));
       rows.push(ESEL(n+(lang==='pl'?'róg':'sarok'), `${prefix}Corner${i}`, fd[`${prefix}Corner${i}`]||'left', CORNER_OPTIONS[lang],
         (CORNER_OPTIONS[lang].find(o=>o[0]===(fd[`${prefix}Corner${i}`]||'left'))||[,fd[`${prefix}Corner${i}`]])[1], rowAttrs));
       rows.push(E(n+(lang==='pl'?'odległość (cm)':'távolság (cm)'), fd[`${prefix}Distance${i}`]||'—', `${prefix}Distance${i}`, fd[`${prefix}Distance${i}`], 'number', rowAttrs));
@@ -261,33 +300,81 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
 
   const canopyActive = !!fd.canopyYes;
   if(canopyActive || includeEmpty){
+    const CANOPY_CAP = 4; // ennyi oldaltető-blokkot renderelünk előre a szerkeszthető oldalakon (a felesleg rejtve)
     const canopySideOptions = { hu: [['left','Bal oldal'],['right','Jobb oldal'],['front','Elülső oldal'],['back','Hátsó oldal']],
                                  pl: [['left','Lewa strona'],['right','Prawa strona'],['front','Strona przednia'],['back','Strona tylna']] };
     const canopyPosOptions = { hu: [['front','Elölről (elülső faltól)'],['back','Hátulról (hátsó faltól)']],
                                 pl: [['front','Od przodu'],['back','Od tyłu']] };
-    sections.push({ section: S('canopy'), items: [
+    const canopyStartOptions = { hu: [['left','Balról (a bal faltól)'],['right','Jobbról (a jobb faltól)']],
+                                  pl: [['left','Od lewej strony'],['right','Od prawej strony']] };
+    const wallTypeOptions = { hu: [['none','Nincs (teljesen nyitott)'],['lamella','Lamellás (panel)'],['solid','Teli fal (lemez)']],
+                               pl: [['none','Brak'],['lamella','Panele'],['solid','Ściana pełna']] };
+    const cI = (b,i) => i===0 ? b : b+i;
+    const lab = (txt,i) => i===0 ? txt : `${i+1}. ${txt}`;
+    const optLabel = (opts, v) => (opts.find(o=>o[0]===v)||[,v])[1];
+    const items = [
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'canopyYes', canopyActive, canopyActive ? YES[lang] : VALUE_NONE[lang]),
-      ESEL(lang==='pl'?'Strona':'Melyik oldalon', 'canopySide', fd.canopySide||'left', canopySideOptions[lang], (canopySideOptions[lang].find(o=>o[0]===(fd.canopySide||'left'))||[,fd.canopySide])[1]),
-      E(L('width'), (fd.canopyWidth||'—')+' cm', 'canopyWidth', fd.canopyWidth, 'number'),
-      E(L('length'), (fd.canopyLength||'—')+' cm', 'canopyLength', fd.canopyLength, 'number'),
-      ESEL(lang==='pl'?'Pozycja (gdy krótsza niż garaż)':'Pozíció (ha rövidebb a garázsnál)', 'canopyPosition', fd.canopyPosition||'front', canopyPosOptions[lang], (canopyPosOptions[lang].find(o=>o[0]===(fd.canopyPosition||'front'))||[,fd.canopyPosition])[1]),
-      E(L('backWallCover'), fd.canopyBackWall==='solid'?{hu:'Teli fal',pl:'Ściana pełna'}[lang]:fd.canopyBackWall==='lamella'?{hu:'Lamellás',pl:'Panele'}[lang]:VALUE_NONE[lang], 'canopyBackWall', fd.canopyBackWall),
-      ESEL(L('backWallColor'), 'colorCanopyBack', fd.colorCanopyBack||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorCanopyBack, lang)),
-      E(L('sideWallCover'), fd.canopySideWall==='solid'?{hu:'Teli fal',pl:'Ściana pełna'}[lang]:fd.canopySideWall==='lamella'?{hu:'Lamellás',pl:'Panele'}[lang]:VALUE_NONE[lang], 'canopySideWall', fd.canopySideWall),
-      ESEL(L('sideWallColor'), 'colorCanopySide', fd.colorCanopySide||'RAL9005', COLOR_OPTIONS[lang], colorName(fd.colorCanopySide, lang)),
-    ], isEmpty: !canopyActive });
+      E(lang==='pl'?'Ilość wiat (szt.)':'Oldaltetők száma (db)', canopyCnt, 'canopyCount', canopyCnt, 'number'),
+    ];
+    const cap = includeEmpty ? CANOPY_CAP : canopyCnt;
+    for(let i=0;i<cap;i++){
+      const ra = ` data-unit="canopy" data-unit-idx="${i}"${i>=canopyCnt ? ' class="unit-hidden"' : ''}`;
+      const g = b => fd[cI(b,i)];
+      const sideV = g('canopySide')||'left', posV = g('canopyPosition')||'front', startV = g('canopyStartLR')||'left';
+      const bw = g('canopyBackWall')||'none', sw = g('canopySideWall')||'none';
+      items.push(
+        ESEL(lab(lang==='pl'?'Strona':'Melyik oldalon',i), cI('canopySide',i), sideV, canopySideOptions[lang], optLabel(canopySideOptions[lang], sideV), ra),
+        E(lab(L('width'),i), (g('canopyWidth')||'—')+' cm', cI('canopyWidth',i), g('canopyWidth'), 'number', ra),
+        E(lab(L('length'),i), (g('canopyLength')||'—')+' cm', cI('canopyLength',i), g('canopyLength'), 'number', ra),
+        // Oldaltetőnként csak az egyik "honnan induljon" mező értelmezett (bal/jobb oldalon a hossz mentén, elöl/hátul a szélesség mentén):
+        // a kiküldött ajánlaton/PDF-en csak a releváns sor szerepel, a szerkeszthető oldalon mindkettő (mert ott az oldal még változhat).
+        ...((includeEmpty || sideV==='left' || sideV==='right') ? [ESEL(lab(lang==='pl'?'Start wzdłuż długości garażu':'Honnan induljon (hossz mentén)',i), cI('canopyPosition',i), posV, canopyPosOptions[lang], optLabel(canopyPosOptions[lang], posV), ra)] : []),
+        ...((includeEmpty || sideV==='front' || sideV==='back') ? [ESEL(lab(lang==='pl'?'Start wzdłuż szerokości garażu':'Honnan induljon (szélesség mentén)',i), cI('canopyStartLR',i), startV, canopyStartOptions[lang], optLabel(canopyStartOptions[lang], startV), ra)] : []),
+        E(lab(lang==='pl'?'Odległość od rogu startowego (cm)':'Távolság a kezdő saroktól (cm)',i), (g('canopyOffset')||0)+' cm', cI('canopyOffset',i), g('canopyOffset')||0, 'number', ra),
+        ESEL(lab(L('backWallCover'),i), cI('canopyBackWall',i), bw, wallTypeOptions[lang], optLabel(wallTypeOptions[lang], bw), ra),
+        ESEL(lab(L('backWallColor'),i), cI('colorCanopyBack',i), g('colorCanopyBack')||'RAL9005', COLOR_OPTIONS[lang], colorName(g('colorCanopyBack'), lang), ra),
+        ESEL(lab(L('sideWallCover'),i), cI('canopySideWall',i), sw, wallTypeOptions[lang], optLabel(wallTypeOptions[lang], sw), ra),
+        ESEL(lab(L('sideWallColor'),i), cI('colorCanopySide',i), g('colorCanopySide')||'RAL9005', COLOR_OPTIONS[lang], colorName(g('colorCanopySide'), lang), ra),
+      );
+    }
+    // A tető kialakítása az oldaltetős résznél (az egész szerkezetre egy érték). Üres érték = régi rekord, nincs megadva.
+    items.push(ESEL(lang==='pl'?'Wykonanie dachu nad wiatą':'Tető kialakítása az oldaltetős résznél', 'canopyHeightMode', fd.canopyHeightMode||'', CANOPY_ROOF_OPTIONS[lang],
+      ((CANOPY_ROOF_OPTIONS[lang].find(o=>o[0]===(fd.canopyHeightMode||''))||[,'—'])[1])));
+    sections.push({ section: S('canopy'), items, isEmpty: !canopyActive });
   }
 
-  // Előtető-kiugrás (az elülső fal sarkán lévő beugró/előtető) — az ügyfél-oldalon is szerkeszthető, ezért itt is az
+  // Előtető (a garázs sarkába beugró rész) — több is lehet, bármelyik sarokban; a két nyitott oldala lamellás vagy teli fallal zárható
   const notchActive = !!fd.notchYes;
   if(notchActive || includeEmpty){
+    const NOTCH_CAP = 4;
     const notchSideOptions = { hu: [['left','Bal sarkon'],['right','Jobb sarkon']], pl: [['left','W lewym rogu'],['right','W prawym rogu']] };
-    sections.push({ section: lang==='pl'?'Zadaszenie w rogu ściany przedniej':'Előtető (az elülső fal sarkán)', items: [
+    const notchEdgeOptions = { hu: [['front','Elülső fal mentén'],['back','Hátsó fal mentén']], pl: [['front','Wzdłuż ściany przedniej'],['back','Wzdłuż ściany tylnej']] };
+    const wallTypeOptionsN = { hu: [['none','Nincs (teljesen nyitott)'],['lamella','Lamellás (panel)'],['solid','Teli fal (lemez)']],
+                                pl: [['none','Brak'],['lamella','Panele'],['solid','Ściana pełna']] };
+    const nI = (b,i) => i===0 ? b : b+i;
+    const nLab = (txt,i) => i===0 ? txt : `${i+1}. ${txt}`;
+    const optLabelN = (opts, v) => (opts.find(o=>o[0]===v)||[,v])[1];
+    const nItems = [
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'notchYes', notchActive, notchActive ? YES[lang] : VALUE_NONE[lang]),
-      ESEL(lang==='pl'?'Narożnik':'Melyik sarkon', 'notchSide', fd.notchSide||'left', notchSideOptions[lang], (notchSideOptions[lang].find(o=>o[0]===(fd.notchSide||'left'))||[,fd.notchSide])[1]),
-      E(L('width'), (fd.notchWidth||150)+' cm', 'notchWidth', fd.notchWidth||150, 'number'),
-      E(lang==='pl'?'Głębokość':'Mélység', (fd.notchDepth||100)+' cm', 'notchDepth', fd.notchDepth||100, 'number'),
-    ], isEmpty: !notchActive });
+      E(lang==='pl'?'Ilość zadaszeń (szt.)':'Előtetők száma (db)', notchCnt, 'notchCount', notchCnt, 'number'),
+    ];
+    const nCap = includeEmpty ? NOTCH_CAP : notchCnt;
+    for(let i=0;i<nCap;i++){
+      const ra = ` data-unit="notch" data-unit-idx="${i}"${i>=notchCnt ? ' class="unit-hidden"' : ''}`;
+      const g = b => fd[nI(b,i)];
+      const sideV = g('notchSide')||'left', edgeV = g('notchEdge')||'front', ew = g('notchEdgeWall')||'none', sw = g('notchSideWall')||'none';
+      nItems.push(
+        ESEL(nLab(lang==='pl'?'Narożnik':'Melyik sarkon',i), nI('notchSide',i), sideV, notchSideOptions[lang], optLabelN(notchSideOptions[lang], sideV), ra),
+        ESEL(nLab(lang==='pl'?'Wzdłuż ściany':'Melyik fal mentén',i), nI('notchEdge',i), edgeV, notchEdgeOptions[lang], optLabelN(notchEdgeOptions[lang], edgeV), ra),
+        E(nLab(L('width'),i), (g('notchWidth')||150)+' cm', nI('notchWidth',i), g('notchWidth')||150, 'number', ra),
+        E(nLab(lang==='pl'?'Głębokość':'Mélység',i), (g('notchDepth')||100)+' cm', nI('notchDepth',i), g('notchDepth')||100, 'number', ra),
+        ESEL(nLab(lang==='pl'?'Ściana czołowa (otwarta strona)':'Homlokoldali fal',i), nI('notchEdgeWall',i), ew, wallTypeOptionsN[lang], optLabelN(wallTypeOptionsN[lang], ew), ra),
+        ESEL(nLab(lang==='pl'?'Kolor ściany czołowej':'Homlokoldali fal színe',i), nI('colorNotchEdge',i), g('colorNotchEdge')||'RAL9005', COLOR_OPTIONS[lang], colorName(g('colorNotchEdge'), lang), ra),
+        ESEL(nLab(lang==='pl'?'Ściana boczna zadaszenia (otwarta strona)':'Oldalsó fal (nyitott oldal)',i), nI('notchSideWall',i), sw, wallTypeOptionsN[lang], optLabelN(wallTypeOptionsN[lang], sw), ra),
+        ESEL(nLab(lang==='pl'?'Kolor ściany bocznej zadaszenia':'Oldalsó fal színe',i), nI('colorNotchSide',i), g('colorNotchSide')||'RAL9005', COLOR_OPTIONS[lang], colorName(g('colorNotchSide'), lang), ra),
+      );
+    }
+    sections.push({ section: lang==='pl'?'Zadaszenie w rogu garażu':'Előtető (a garázs sarkában)', items: nItems, isEmpty: !notchActive });
   }
 
   sections.push({ section: S('roof'), items: [
@@ -301,7 +388,12 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
     const gatePosMode = fd.gatePositionMode || 'auto';
     const gatePosOptions = { hu: [['auto','Automatikus, arányosan a falon belül'],['custom','Egyéni pozíció megadása (kapunként)']],
                               pl: [['auto','Automatycznie, proporcjonalnie'],['custom','Własna pozycja (dla każdej bramy)']] };
-    const gateCornerOptions = { hu: [['left','Bal faltól'],['right','Jobb faltól']], pl: [['left','Od lewej ściany'],['right','Od prawej ściany']] };
+    // Oldalfalon (bal/jobb) a "bal/jobb faltól" az elülső/hátsó faltól mért távolságot jelenti — ugyanúgy, mint az ajtóknál/ablakoknál
+    const gateCornerOptions = { hu: [['left','Bal faltól (oldalfalon: elülső faltól)'],['right','Jobb faltól (oldalfalon: hátsó faltól)']],
+                                 pl: [['left','Od lewej ściany (na ścianie bocznej: od przodu)'],['right','Od prawej ściany (na ścianie bocznej: od tyłu)']] };
+    // A kapu alapból az elülső (fő) falon van, de egyéni pozíciónál más falra is tehető
+    const gateWallOptions = { hu: WALL_OPTIONS.hu.filter(o=>['front','back','left','right'].includes(o[0])).map(o=>o[0]==='front'?['front','Elülső fal (főfal)']:o),
+                               pl: WALL_OPTIONS.pl.filter(o=>['front','back','left','right'].includes(o[0])).map(o=>o[0]==='front'?['front','Ściana przednia (główna)']:o) };
     const gateCap = includeEmpty ? GATE_CAP : (gateCount||1);
     const gateWidthOptions = { hu: [['200','2 m (200 cm)'],['250','2,5 m (250 cm)'],['300','3 m (300 cm)'],['400','4 m (400 cm)']],
                                 pl: [['200','2 m (200 cm)'],['250','2,5 m (250 cm)'],['300','3 m (300 cm)'],['400','4 m (400 cm)']] };
@@ -335,6 +427,8 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
       if(condHidden) classes.push('cond-hidden');
       const rowAttrs = ` data-unit="gate" data-unit-idx="${i}" data-cond-group="gatePositionMode" data-cond-show="custom"${classes.length?` class="${classes.join(' ')}"`:''}`;
       items.push(
+        ESEL(`${i+1}. ${lang==='pl'?'brama — na której ścianie':'kapu — melyik falon'}`, 'gateCustomWall'+i, fd['gateCustomWall'+i]||'front', gateWallOptions[lang],
+          (gateWallOptions[lang].find(o=>o[0]===(fd['gateCustomWall'+i]||'front'))||[,fd['gateCustomWall'+i]])[1], rowAttrs),
         ESEL(`${i+1}. ${lang==='pl'?'brama — od której ściany':'kapu — melyik faltól'}`, 'gateCustomCorner'+i, fd['gateCustomCorner'+i]||'left', gateCornerOptions[lang],
           (gateCornerOptions[lang].find(o=>o[0]===(fd['gateCustomCorner'+i]||'left'))||[,fd['gateCustomCorner'+i]])[1], rowAttrs),
         E(`${i+1}. ${lang==='pl'?'brama — odległość (cm)':'kapu — távolság (cm)'}`, fd['gateCustomDistance'+i]||(50+i*350), 'gateCustomDistance'+i, fd['gateCustomDistance'+i]||(50+i*350), 'number', rowAttrs),
@@ -354,6 +448,8 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
         E(lang==='pl'?'Świetlik w bramie (szt./bramę)':'Bevilágító a kapun (db/kapu)', Math.max(1, parseInt(fd.gateLightQty)||1), 'gateLightQty', Math.max(1, parseInt(fd.gateLightQty)||1), 'number'),
         ESEL(lang==='pl'?'Rozmieszczenie świetlika w bramie':'Bevilágító elhelyezkedése a kapun', 'gateLightArrangement', arrangementKey,
           Object.entries(arrangementOptions[lang]).map(([k,v])=>[k,v]), arrangementOptions[lang][arrangementKey] || arrangementKey),
+        ESEL(lang==='pl'?'Kolor ramki świetlika w bramie':'Bevilágító keretszíne (kapu)', 'gateLightFrameColor', fd.gateLightFrameColor||'',
+          FRAME_COLOR_OPTIONS[lang], frameColorText(fd.gateLightFrameColor, lang)),
       );
     }
     sections.push({ section: S('gate'), items, isEmpty: gateType==='none' });
@@ -490,6 +586,8 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
     // szerepelt, mert mindhárom ebből a listából dolgozik. Most már itt is szerepel.
     sections.push({ section: S('skylight'), items: [
       E(lang==='pl'?'Ilość (szt.)':'Darabszám', skylightCount, 'skylight', skylightCount, 'number'),
+      ESEL(lang==='pl'?'Kolor ramki świetlika':'Bevilágító keretszíne', 'skylightFrameColor', fd.skylightFrameColor||'',
+        FRAME_COLOR_OPTIONS[lang], frameColorText(fd.skylightFrameColor, lang)),
       ...placementRows('skylight', skylightCount),
     ], isEmpty: skylightCount===0 });
   }
@@ -532,7 +630,7 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
 const UNIT_TOGGLE_CSS = `.unit-hidden,.cond-hidden{display:none!important}`;
 const UNIT_TOGGLE_SCRIPT = `
 function syncUnitRows(){
-  var countMap = {win8060:'win8060', win50150:'win50150', personalDoorCount:'personalDoor', wallCount:'wall', gateCount:'gate'};
+  var countMap = {win8060:'win8060', win50150:'win50150', personalDoorCount:'personalDoor', wallCount:'wall', gateCount:'gate', canopyCount:'canopy', notchCount:'notch'};
   Object.keys(countMap).forEach(function(countKey){
     var ctrl = document.querySelector('[data-key="'+countKey+'"]');
     if(!ctrl) return;
@@ -556,11 +654,11 @@ function syncCondRows(){
   });
 }
 document.addEventListener('input', function(e){
-  if(e.target.matches && e.target.matches('[data-key="win8060"],[data-key="win50150"],[data-key="personalDoorCount"],[data-key="wallCount"],[data-key="gateCount"]')) syncUnitRows();
+  if(e.target.matches && e.target.matches('[data-key="win8060"],[data-key="win50150"],[data-key="personalDoorCount"],[data-key="wallCount"],[data-key="gateCount"],[data-key="canopyCount"],[data-key="notchCount"]')) syncUnitRows();
   if(e.target.matches && e.target.matches('[data-key^="wallOpeningType"],[data-key="gatePositionMode"]')) syncCondRows();
 });
 document.addEventListener('change', function(e){
-  if(e.target.matches && e.target.matches('[data-key="win8060"],[data-key="win50150"],[data-key="personalDoorCount"],[data-key="wallCount"],[data-key="gateCount"]')) syncUnitRows();
+  if(e.target.matches && e.target.matches('[data-key="win8060"],[data-key="win50150"],[data-key="personalDoorCount"],[data-key="wallCount"],[data-key="gateCount"],[data-key="canopyCount"],[data-key="notchCount"]')) syncUnitRows();
   if(e.target.matches && e.target.matches('[data-key^="wallOpeningType"],[data-key="gatePositionMode"]')) syncCondRows();
 });
 syncUnitRows(); syncCondRows();
@@ -642,8 +740,12 @@ function translateSketchToPolish(svg){
   if(!svg) return svg;
   let out = svg;
   out = out.replace(/ELÜLSŐ FAL \(kapu oldala\)/g, 'ŚCIANA PRZEDNIA (strona bramy)');
+  out = out.replace(/ELÜLSŐ FAL \(főfal\)/g, 'ŚCIANA PRZEDNIA (ściana główna)');
+  out = out.replace(/⚠ (\d+)cm átfedés!/g, '⚠ $1cm nakładanie się!');
   out = out.replace(/>Oldaltető</g, '>Wiata boczna<');
   out = out.replace(/>Előtető</g, '>Zadaszenie<');
+  out = out.replace(/>(\d+)\. oldaltető</g, '>$1. wiata boczna<');
+  out = out.replace(/>(\d+)\. előtető</g, '>$1. zadaszenie<');
   out = out.replace(/>válaszfal</g, '>ściana działowa<');
   out = out.replace(/>ajtó (\d+cm)</g, '>drzwi $1<');
   out = out.replace(/>nyílás (\d+cm)</g, '>otwór $1<');

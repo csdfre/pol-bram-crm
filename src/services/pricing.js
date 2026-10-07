@@ -204,6 +204,34 @@ function roundUpTo10000(v){
  * A form_data (a customer form JSON állapota) alapján kiszámolja az árat.
  * Visszaad egy { totalPLN, totalHUF, lines: [{label, pln, huf}], warnings: [] } objektumot.
  */
+// Több oldaltető / előtető: az ELSŐ elem mezőinek neve változatlan (canopyWidth, notchWidth, ...), a továbbiaké számmal bővül
+// (canopyWidth1, notchWidth1, ...). Ez azonos a konfigurátor azonosítóival, így a régi mentett adatok változtatás nélkül működnek.
+const cidP = (base, i) => (i === 0 ? base : base + i);
+function canopiesOf(fd) {
+  if (!fd.canopyYes) return [];
+  const n = Math.max(1, Math.min(4, parseInt(fd.canopyCount) || 1));
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const g = (b) => fd[cidP(b, i)];
+    out.push({ i, n,
+      lengthM: (parseFloat(g('canopyLength')) || 0) / 100, widthM: (parseFloat(g('canopyWidth')) || 0) / 100,
+      backWall: g('canopyBackWall'), sideWall: g('canopySideWall'), colorBack: g('colorCanopyBack'), colorSide: g('colorCanopySide') });
+  }
+  return out;
+}
+function notchesOf(fd) {
+  if (!fd.notchYes) return [];
+  const n = Math.max(1, Math.min(4, parseInt(fd.notchCount) || 1));
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const g = (b) => fd[cidP(b, i)];
+    out.push({ i, n,
+      widthM: (parseFloat(g('notchWidth')) || 0) / 100, depthM: (parseFloat(g('notchDepth')) || 0) / 100,
+      edgeWall: g('notchEdgeWall'), sideWall: g('notchSideWall'), colorEdge: g('colorNotchEdge'), colorSide: g('colorNotchSide') });
+  }
+  return out;
+}
+
 function calculateQuote(formData) {
   const lines = [];
   const warnings = [];
@@ -341,11 +369,7 @@ function calculateQuote(formData) {
   // Páralecsapódásgátló filc (a garázs tetőfelülete + az oldaltető teteje, ha van)
   if (formData.feltYes) {
     let feltArea = m2;
-    if (formData.canopyYes) {
-      const cW = (parseFloat(formData.canopyWidth) || 0) / 100;
-      const cL = (parseFloat(formData.canopyLength) || 0) / 100;
-      feltArea += cW * cL;
-    }
+    canopiesOf(formData).forEach((cp) => { feltArea += cp.widthM * cp.lengthM; });
     lines.push(line(`Páralecsapódás-gátló filc (${feltArea.toFixed(1)} m²)`, ADDON.feltPerM2 * feltArea));
   }
 
@@ -359,19 +383,30 @@ function calculateQuote(formData) {
   }
 
   // Oldaltető / előtető falak (durva közelítés: hossz alapján, ha van megadva)
-  if (formData.canopyYes) {
-    const canopyLenM = (parseFloat(formData.canopyLength) || 0) / 100;
-    const canopyWidthM = (parseFloat(formData.canopyWidth) || 0) / 100;
-    const lamellaRateBack = ADDON.canopyLamellaWallPerMb[materialFromColor(formData.colorCanopyBack)] || ADDON.canopyLamellaWallPerMb.RAL;
-    const lamellaRateSide = ADDON.canopyLamellaWallPerMb[materialFromColor(formData.colorCanopySide)] || ADDON.canopyLamellaWallPerMb.RAL;
-    if (formData.canopyBackWall === 'solid') lines.push(line('Oldaltető hátsó fala (teli)', ADDON.canopySolidWallPerMb * canopyLenM * (1 + heightPct)));
-    if (formData.canopyBackWall === 'lamella') lines.push(line('Oldaltető hátsó fala (lamellás)', lamellaRateBack * canopyLenM * (1 + heightPct)));
-    if (formData.canopySideWall === 'solid') lines.push(line('Oldaltető oldalfala (teli)', ADDON.canopySolidWallPerMb * canopyWidthM * (1 + heightPct)));
-    if (formData.canopySideWall === 'lamella') lines.push(line('Oldaltető oldalfala (lamellás)', lamellaRateSide * canopyWidthM * (1 + heightPct)));
-    if (canopyWidthM > 0 && canopyLenM > 0) {
-      lines.push(line(`Oldaltető tetőfedése (${(canopyWidthM*canopyLenM).toFixed(1)} m²)`, ADDON.canopyRoofOpenPerM2 * canopyWidthM * canopyLenM));
+  // Több oldaltetőnél minden egyes oldaltető külön tételként szerepel (sorszámozva), egynél a megszokott megnevezésekkel.
+  canopiesOf(formData).forEach((cp) => {
+    const pre = cp.n > 1 ? `${cp.i + 1}. oldaltető` : 'Oldaltető';
+    const lamellaRateBack = ADDON.canopyLamellaWallPerMb[materialFromColor(cp.colorBack)] || ADDON.canopyLamellaWallPerMb.RAL;
+    const lamellaRateSide = ADDON.canopyLamellaWallPerMb[materialFromColor(cp.colorSide)] || ADDON.canopyLamellaWallPerMb.RAL;
+    if (cp.backWall === 'solid') lines.push(line(`${pre} hátsó fala (teli)`, ADDON.canopySolidWallPerMb * cp.lengthM * (1 + heightPct)));
+    if (cp.backWall === 'lamella') lines.push(line(`${pre} hátsó fala (lamellás)`, lamellaRateBack * cp.lengthM * (1 + heightPct)));
+    if (cp.sideWall === 'solid') lines.push(line(`${pre} oldalfala (teli)`, ADDON.canopySolidWallPerMb * cp.widthM * (1 + heightPct)));
+    if (cp.sideWall === 'lamella') lines.push(line(`${pre} oldalfala (lamellás)`, lamellaRateSide * cp.widthM * (1 + heightPct)));
+    if (cp.widthM > 0 && cp.lengthM > 0) {
+      lines.push(line(`${pre} tetőfedése (${(cp.widthM * cp.lengthM).toFixed(1)} m²)`, ADDON.canopyRoofOpenPerM2 * cp.widthM * cp.lengthM));
     }
-  }
+  });
+  // Előtetők nyitott oldalainak lamellás / teli fala: ugyanazzal a zł/fm árral, mint az oldaltető fala, a fal tényleges hosszára
+  // (homlokoldali fal = az előtető szélessége, oldalsó fal = az előtető mélysége).
+  notchesOf(formData).forEach((nt) => {
+    const pre = nt.n > 1 ? `${nt.i + 1}. előtető` : 'Előtető';
+    const lamellaRateEdge = ADDON.canopyLamellaWallPerMb[materialFromColor(nt.colorEdge)] || ADDON.canopyLamellaWallPerMb.RAL;
+    const lamellaRateSide = ADDON.canopyLamellaWallPerMb[materialFromColor(nt.colorSide)] || ADDON.canopyLamellaWallPerMb.RAL;
+    if (nt.edgeWall === 'solid') lines.push(line(`${pre} homlokoldali fala (teli)`, ADDON.canopySolidWallPerMb * nt.widthM * (1 + heightPct)));
+    if (nt.edgeWall === 'lamella') lines.push(line(`${pre} homlokoldali fala (lamellás)`, lamellaRateEdge * nt.widthM * (1 + heightPct)));
+    if (nt.sideWall === 'solid') lines.push(line(`${pre} oldalfala (teli)`, ADDON.canopySolidWallPerMb * nt.depthM * (1 + heightPct)));
+    if (nt.sideWall === 'lamella') lines.push(line(`${pre} oldalfala (lamellás)`, lamellaRateSide * nt.depthM * (1 + heightPct)));
+  });
   if (formData.ridgeShift) {
     lines.push(line('Eltolt gerincvonal (szintbe futó magasság)', basePrice * 0.1));
   }
