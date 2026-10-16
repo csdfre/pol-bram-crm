@@ -400,8 +400,9 @@ router.post('/customers/:id/send-offer', async (req, res) => {
     const isPrivateIndividual = fd.custInvoice !== 'igen';
     let cashNoteHtml = '';
     if (isPrivateIndividual) {
-      const discountedTotal = Math.round(quote.displayTotal * 0.85 / 100) * 100;
-      cashNoteHtml = `<p style="text-align:center;font-size:0.8em;color:#7a828a;margin-top:10px">Készpénzes fizetés esetén <strong>15% kedvezményt</strong> tudunk biztosítani a teljes összegből (kizárólag magánszemélyek részére). Kedvezményes végösszeg: <strong>${discountedTotal.toLocaleString('hu-HU')} Ft</strong>.</p>`;
+      // Tájékoztató, megközelítő összeg: 10 000 Ft-ra kerekítve, "kb." jelöléssel (nem pontos végösszeg)
+      const discountedTotal = Math.round(quote.displayTotal * 0.85 / 10000) * 10000;
+      cashNoteHtml = `<p style="text-align:center;font-size:0.8em;color:#7a828a;margin-top:10px">Készpénzes fizetés esetén <strong>15% kedvezményt</strong> tudunk biztosítani a teljes összegből (kizárólag magánszemélyek részére). Kedvezményes végösszeg kb. <strong>${discountedTotal.toLocaleString('hu-HU')} Ft</strong> (tájékoztató jellegű, megközelítő összeg).</p>`;
     }
     await email.sendOffer(c, priceText, { detailsHtml, sketchBuffer, logoBuffer, cashNoteHtml });
     db.prepare('UPDATE customers SET status=?, offer_sent_at=?, reminder_sent_at=NULL, updated_at=? WHERE id=?')

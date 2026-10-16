@@ -762,8 +762,8 @@ const PRICE_LABELS = {
   total: { hu: 'Végösszeg', pl: 'Suma końcowa' },
   advance: { hu: 'Előleg (30%)', pl: 'Zaliczka (30%)' },
   cashNote: {
-    hu: (amount) => `Ha a fennmaradó összeget készpénzben egyenlíti ki, magánszemélyek 15% kedvezményt kapnak a teljes összegből. Kedvezményes végösszeg: ${amount}.`,
-    pl: (amount) => `Jeśli pozostała kwota zostanie uregulowana gotówką, osoby prywatne otrzymują 15% rabatu od kwoty całkowitej. Kwota po rabacie: ${amount}.`,
+    hu: (amount) => `Ha a fennmaradó összeget készpénzben egyenlíti ki, magánszemélyek 15% kedvezményt kapnak a teljes összegből. Kedvezményes végösszeg kb. ${amount} (tájékoztató jellegű, megközelítő összeg).`,
+    pl: (amount) => `Jeśli pozostała kwota zostanie uregulowana gotówką, osoby prywatne otrzymują 15% rabatu od kwoty całkowitej. Kwota po rabacie ok. ${amount} (kwota orientacyjna).`,
   },
 };
 
@@ -772,7 +772,7 @@ function priceCardHtml(quote, fd, lang){
   const total = quote.displayTotal;
   const advance = Math.round(total*0.30/100)*100;
   const isPrivateIndividual = fd.custInvoice === 'nem';
-  const cashDiscounted = Math.round(total*0.85/100)*100;
+  const cashDiscounted = Math.round(total*0.85/10000)*10000; // megközelítő (10 000 Ft-ra kerekített) összeg
   return `<div class="price-card">
     <div class="amount">${total.toLocaleString('hu-HU')} Ft</div>
     <div class="label">${(quote.displayLabel||'').toUpperCase()}</div>

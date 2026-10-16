@@ -619,8 +619,8 @@ function colleaguePage(c){
       document.getElementById('advanceText').textContent = 'Zaliczka (30%): ' + fmt(advance) + ' Ft';
       const cashNoteEl = document.getElementById('cashNoteText');
       if(isPrivateIndividual){
-        const discounted = Math.round(total*0.85/100)*100;
-        cashNoteEl.textContent = 'Jeśli pozostała kwota zostanie uregulowana gotówką, osoby prywatne otrzymują 15% rabatu od kwoty całkowitej. Kwota po rabacie: ' + fmt(discounted) + ' Ft.';
+        const discounted = Math.round(total*0.85/10000)*10000; // kwota orientacyjna, zaokrąglona do 10 000 Ft
+        cashNoteEl.textContent = 'Jeśli pozostała kwota zostanie uregulowana gotówką, osoby prywatne otrzymują 15% rabatu od kwoty całkowitej. Kwota po rabacie ok. ' + fmt(discounted) + ' Ft (kwota orientacyjna).';
       } else {
         cashNoteEl.textContent = '';
       }
