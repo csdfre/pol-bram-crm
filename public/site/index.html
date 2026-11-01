@@ -1920,29 +1920,18 @@ function renderSketch(){
       const alongLen = Math.hypot(alongRaw.x, alongRaw.y) || 1;
       const along = { x: alongRaw.x / alongLen, y: alongRaw.y / alongLen };
       const handle = hEl.value;
-      // MEGJEGYZÉS Ferinek: a "kilincs oldala" (bal/jobb) értelmezése önmagában nem egyértelmű
-      // geometriailag (attól függ, melyik irányból nézzük a falat) — ezt a képletet már kétszer
-      // próbáltam korrigálni vizuális visszajelzés nélkül, sikertelenül. Most visszaálltam az
-      // EREDETI konvencióra (a felülnézeti alaprajzon, ahogy papíron olvasva balra/jobbra esik).
-      // Ha még mindig fordítva van: kérlek írd meg pontosan egy konkrét esetre (pl. "az elülső
-      // (kapu oldali) falon, kilincs jobb oldalt" mit kellene mutatnia), és küldj egy képet magáról
-      // a RAJZRÓL (nem a formról) — ebből tudom biztosan, egyértelműen kalibrálni.
-      // A szaggatott ív (a nyitás-szimbólum) MINDIG a kilincs oldalán jelenjen meg — ezt a
-      // felhasználó pontosan, egyértelműen így specifikálta (jobb kilincs -> ív jobbra, bal
-      // kilincs -> ív balra). Az ív a "hinge" pont körül rajzolódik (lásd lejjebb), ezért a
-      // "hinge" nevű pontot most szándékosan a KILINCS oldalára helyezzük (nem a zsanér tényleges,
-      // fizikai oldalára) — a változó neve technikailag pontatlan maradt, de a viselkedés a kért
-      // specifikációnak megfelel.
-      const hingeSign = handle==='left' ? -1 : 1;
+      // A "kilincs oldala" az ajtó KÍVÜLRŐL nézve értendő (ahogy az ajtó előtt állva látjuk): bal = a nézőtől balra.
+      // A szaggatott ív a nyitott szárny szabad végét köti össze a falnál — a kilincs a szabad végen van, vagyis az ív
+      // vége mindig a kilincs oldalán áll; a zsanér a kilincshez képest az ajtónyílás ellenkező végén van.
+      const faceV = { x:-outDir.x, y:-outDir.y };            // a néző tekintete (befelé, a fal felé)
+      const leftV = { x:faceV.y, y:-faceV.x };               // a nézőtől balra eső irány a rajzon
+      const hSign = handle==='left' ? 1 : -1;
+      const hDir = { x:leftV.x*hSign, y:leftV.y*hSign };     // a kilincs felé mutató irány
       const R = Math.max(6, doorWidthCm*scale*0.9);
       const halfDoorPx = Math.max(4, doorWidthCm*scale)/2;
-      // Az ív pivot-pontja (elnevezése "hinge" maradt technikai okokból, de a fenti specifikáció
-      // szerint most a KILINCS oldalán van) — pontosan a jelölő sarkával egyvonalban.
-      const hinge = { x:p.x+along.x*hingeSign*halfDoorPx, y:p.y+along.y*hingeSign*halfDoorPx };
-      // a nyitott ajtószárny merőlegesen áll ki a falból (mint a mellékelt szabvány jelölésen)
-      const leafEnd = { x:hinge.x+outDir.x*R, y:hinge.y+outDir.y*R };
-      // a zárt (fal menti) végpont a pivot-ponttól (kilincs oldalától) távolabb, a nyílás túlsó vége felé
-      const wallEnd = { x:hinge.x+along.x*(-hingeSign)*R, y:hinge.y+along.y*(-hingeSign)*R };
+      const hinge = { x:p.x-hDir.x*halfDoorPx, y:p.y-hDir.y*halfDoorPx };   // a zsanér a kilincstől távolabbi végen
+      const leafEnd = { x:hinge.x+outDir.x*R, y:hinge.y+outDir.y*R };       // a nyitott szárny merőlegesen kiáll a falból
+      const wallEnd = { x:hinge.x+hDir.x*R, y:hinge.y+hDir.y*R };           // az ív a kilincs oldalán, a falnál ér véget
       doorArc += `<line x1="${hinge.x}" y1="${hinge.y}" x2="${leafEnd.x}" y2="${leafEnd.y}" stroke="#c98a2e" stroke-width="2"/>`;
       doorArc += quarterArcPath(hinge, R, leafEnd, wallEnd);
     }
