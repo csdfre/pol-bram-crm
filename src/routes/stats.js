@@ -82,4 +82,38 @@ router.get('/by-status', (req, res) => {
   res.json(result);
 });
 
+// Telepített ügyfelek teljes nettó árral, dátumszűréssel (telepítés dátuma szerint).
+// A telepítés dátuma: installed_at; régi rekordnál a státusznaplóból az első "telepitve" bejegyzés, végül a kiszállítás dátuma.
+const VAT_RATE = parseFloat(process.env.VAT_RATE) || 0.27;
+function netPriceOf(r) {
+  let q = null;
+  try { q = r.price_breakdown ? JSON.parse(r.price_breakdown) : null; } catch (e) { /* ignore */ }
+  if (q) {
+    if (q.manuallyEdited && q.displayTotal) {
+      // kézzel beállított összeg: áfás számla igénynél nettó, egyébként bruttó → nettóra visszaszámoljuk
+      return q.vatRequested ? Math.round(q.displayTotal) : Math.round(q.displayTotal / (1 + VAT_RATE));
+    }
+    if (q.totalHUF) return Math.round(q.totalHUF);
+  }
+  return r.price_huf ? Math.round(r.price_huf) : null;
+}
+router.get('/installed', (req, res) => {
+  const from = req.query.from || '1970-01-01';
+  const to = req.query.to || '2999-12-31';
+  const rows = db.prepare(`
+    SELECT * FROM (
+      SELECT id, name, city, address, zip, price_huf, price_breakdown, garage_type_used,
+        COALESCE(installed_at,
+                 (SELECT MIN(changed_at) FROM status_log WHERE customer_id = customers.id AND status = 'telepitve'),
+                 delivery_date, updated_at) AS inst_at
+      FROM customers WHERE status = 'telepitve'
+    ) WHERE date(inst_at) >= date(?) AND date(inst_at) <= date(?)
+    ORDER BY inst_at DESC
+  `).all(from, to);
+  res.json(rows.map(r => ({
+    id: r.id, name: r.name, city: r.city, address: r.address, zip: r.zip,
+    type: r.garage_type_used || 'Egyedi összeállítás', installed_at: r.inst_at, net_huf: netPriceOf(r),
+  })));
+});
+
 module.exports = router;

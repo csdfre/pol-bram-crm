@@ -708,6 +708,16 @@ async function loadStats(){
       </tbody></table>
     </div>
 
+    <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px;margin-bottom:20px">
+      <h3>Telepített ügyfelek</h3>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <label style="font-size:0.85rem;color:var(--graphite-soft)">Jutalék:</label>
+        <input type="number" id="commissionPct" value="${esc(localStorage.getItem('commissionPct')||'5')}" min="0" max="100" step="0.1" style="width:80px;padding:6px;border:1px solid var(--line);border-radius:4px" oninput="localStorage.setItem('commissionPct',this.value);renderInstalledTable()">
+        <span style="font-size:0.85rem;color:var(--graphite-soft)">% a nettó összegből (a fenti időszak telepítési dátuma szerint)</span>
+      </div>
+      <div id="installedTable"></div>
+    </div>
+
     <div class="preset-panel" style="background:#fff;padding:20px;border-radius:6px">
       <h3>Ügyfelek lekérdezése státusz szerint</h3>
       <div style="display:flex;gap:10px;align-items:end">
@@ -716,6 +726,27 @@ async function loadStats(){
       </div>
     </div>
   `;
+  loadInstalled().catch(e=>{ const el=document.getElementById('installedTable'); if(el) el.textContent='Hiba: '+e.message; });
+}
+
+let installedRows = [];
+async function loadInstalled(){
+  const { from, to } = currentStatsRange();
+  installedRows = await api(`/admin/stats/installed?from=${from}&to=${to}`);
+  renderInstalledTable();
+}
+function renderInstalledTable(){
+  const el = document.getElementById('installedTable'); if(!el) return;
+  const pct = parseFloat(document.getElementById('commissionPct').value) || 0;
+  const fmt = n => n==null ? '—' : n.toLocaleString('hu-HU')+' Ft';
+  let sumNet = 0, sumCom = 0;
+  const body = installedRows.map(r=>{
+    const com = r.net_huf!=null ? Math.round(r.net_huf*pct/100) : null;
+    if(r.net_huf!=null){ sumNet += r.net_huf; sumCom += com; }
+    return `<tr><td>${esc(r.name)}</td><td>${esc((r.zip||'')+' '+(r.city||''))}</td><td>${esc(r.type)}</td><td>${new Date(r.installed_at).toLocaleDateString('hu-HU')}</td><td style="text-align:right">${fmt(r.net_huf)}</td><td style="text-align:right">${fmt(com)}</td></tr>`;
+  }).join('') || '<tr><td colspan="6" style="color:#7a828a">Nincs telepített ügyfél a megadott időszakban.</td></tr>';
+  el.innerHTML = `<table id="customerTable"><thead><tr><th>Név</th><th>Település</th><th>Típus</th><th>Telepítve</th><th style="text-align:right">Teljes nettó ár</th><th style="text-align:right">Jutalék (${pct}%)</th></tr></thead><tbody>${body}
+    <tr style="font-weight:700"><td colspan="4">Összesen (${installedRows.length} db)</td><td style="text-align:right">${fmt(sumNet)}</td><td style="text-align:right">${fmt(sumCom)}</td></tr></tbody></table>`;
 }
 
 function statCard(label, value){

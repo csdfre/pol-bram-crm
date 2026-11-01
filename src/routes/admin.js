@@ -534,10 +534,7 @@ router.post('/customers/:id/mark-installed', async (req, res) => {
   if (!c) return res.status(404).json({ error: 'Nem található.' });
 
   try {
-    await email.sendInstalledNotice(c);
-    db.prepare('UPDATE customers SET status=?, updated_at=? WHERE id=?')
-      .run('telepitve', new Date().toISOString(), c.id);
-    logStatus(c.id, 'telepitve', 'Garázs telepítve, értesítés kiküldve');
+    await require('../services/installation').markInstalled(c, 'Garázs telepítve, értesítés kiküldve');
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
