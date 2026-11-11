@@ -2,7 +2,6 @@ const cron = require('node-cron');
 const db = require('../../db');
 const email = require('./email');
 const { runAnonymization } = require('./dataRetention');
-const { autoMarkInstalled } = require('./installation');
 
 const REMINDER_AFTER_DAYS = parseInt(process.env.REMINDER_AFTER_DAYS) || 5;
 
@@ -42,14 +41,6 @@ function startScheduler(){
     checkAndSendReminders().catch(err => console.error('[emlékeztető] Ütemezett futás hiba:', err));
   });
   console.log('Emlékeztető-ütemező elindítva (naponta 9:00-kor fut).');
-
-  // Naponta 10:00-kor: a kiszállítási listában szereplő ügyfelek 2 nappal a kiszállítás után automatikusan
-  // "telepítve" státuszba kerülnek, és kimegy a záró e-mail. Indításkor is lefut egyszer (kimaradt napok pótlása).
-  cron.schedule('0 10 * * *', () => {
-    autoMarkInstalled().catch(err => console.error('[telepítés] Ütemezett futás hiba:', err));
-  });
-  setTimeout(() => autoMarkInstalled().catch(err => console.error('[telepítés] Indításkori futás hiba:', err)), 30000);
-  console.log('Automatikus "telepítve" ütemező elindítva (naponta 10:00-kor fut).');
 
   // Minden nap hajnali 3:00-kor lefuttatja az adatmegőrzési (anonimizálási) folyamatot —
   // lásd src/services/dataRetention.js és az adatkezelési tájékoztató 5. pontját.

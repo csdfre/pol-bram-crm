@@ -172,7 +172,6 @@ router.get('/customers/:id/editor', (req, res) => {
     <div style="text-align:center;margin:-10px 0 16px">
       <button onclick="refreshSketch()" style="background:#454C54;font-size:0.8rem;padding:6px 14px">↻ Rajz frissítése a jelenlegi adatokkal</button>
       <button onclick="regenerateAndSaveSketch()" style="background:#2F6B4F;font-size:0.8rem;padding:6px 14px">💾 Rajz újragenerálása és mentése (ha elromlott)</button>
-      <button onclick="mirrorAndRefresh()" style="background:#454C54;font-size:0.8rem;padding:6px 14px">↔ Tükörkép (jobbról balra / balról jobbra)</button>
     </div>
 
     <div class="two-col">
@@ -206,49 +205,9 @@ router.get('/customers/:id/editor', (req, res) => {
       } catch(e){ alert('Hiba a rajz mentése közben: '+e.message); }
       box.style.opacity = '1';
     }
-    // Tükrözés: a garázs vízszintes (bal <-> jobb) tükörképét állítja be a képernyőn lévő mezőkben.
-    // FONTOS szabály: a fal-elemek (ablak, ajtó, bevilágító...) "bal/jobb sarok" mezője csak VÍZSZINTES falon
-    // (elülső, hátsó, előtető fala, elöl/hátul lévő oldaltető) jelent tényleg bal/jobb oldalt. A bal/jobb
-    // oldalfalon és az oldalsó előtető külső falán ugyanez a mező az elülső/hátsó véget jelöli, ami
-    // tükrözéskor nem változik — ott CSAK a falat (bal<->jobb) cseréljük, a sarkot nem.
-    function mirrorGarage(){
-      var flipLR = function(v){ return v==='left' ? 'right' : (v==='right' ? 'left' : v); };
-      var flipRoof = function(v){ return v==='spad jobbra' ? 'spad balra' : (v==='spad balra' ? 'spad jobbra' : v); };
-      var val = function(k){ var e = document.querySelector('[data-key="'+k+'"]'); return e ? e.value : undefined; };
-      var canopyHoriz = (val('canopySide')==='front' || val('canopySide')==='back');
-      var plan = [];
-      document.querySelectorAll('select[data-key]').forEach(function(el){
-        var key = el.dataset.key, cur = el.value, next = cur;
-        var m = key.match(/^(.+)Corner(\\d+)$/);
-        var wallVal = m ? val(m[1]+'Wall'+m[2]) : undefined;
-        if(/Handle\\d+$/.test(key) && !/^wallDoorHandle/.test(key)){
-          // A személyi ajtó "kilincs oldala" a rajzon a mérés irányához (a választott sarokhoz) viszonyított oldalt jelenti,
-          // és a sarok tükrözéskor vele együtt átfordul — ezért az érték maga változatlan marad, így a kirajzolt
-          // nyitási ív pontosan a tükörkép lesz. (A válaszfal-ajtó nyitásiránya viszont valódi bal/jobb, azt cseréljük.)
-          next = cur;
-        } else if(m && wallVal !== undefined){
-          var horizontal = wallVal==='front' || wallVal==='back' || /^notch\\d*$/.test(wallVal);
-          var cm = /^canopy(\\d*)$/.exec(wallVal);
-          if(cm){ var sideV = val('canopySide'+cm[1]); horizontal = (sideV==='front' || sideV==='back'); }
-          next = horizontal ? flipLR(cur) : cur;
-        } else {
-          next = flipLR(cur);
-          if(next===cur) next = flipRoof(cur);
-        }
-        if(next!==cur && Array.prototype.some.call(el.options, function(o){ return o.value===next; })) plan.push([el, next]);
-      });
-      plan.forEach(function(pn){ pn[0].value = pn[1]; pn[0].dispatchEvent(new Event('change', {bubbles:true})); });
-      return plan.length;
-    }
-    async function mirrorAndRefresh(){
-      var n = mirrorGarage();
-      var st = document.getElementById('statusMsg');
-      if(st) st.textContent = n ? 'Tükrözve — a változás mentéskor véglegesedik, ne felejts el menteni.' : 'Nincs tükrözhető (bal/jobb) beállítás.';
-      if(n) await refreshSketch();
-    }
     async function refreshSketch(){
       const formData = {};
-      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
+      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; }); if('gateLightQty' in formData){ formData.gateLightYes = (parseInt(formData.gateLightQty)||0) > 0; }
       const fullData = Object.assign({}, ${JSON.stringify(fd)}, formData);
       const box = document.getElementById('sketchBox');
       box.style.opacity = '0.5';
@@ -278,7 +237,7 @@ router.get('/customers/:id/editor', (req, res) => {
     }
     async function saveChanges(){
       const formData = {};
-      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
+      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; }); if('gateLightQty' in formData){ formData.gateLightYes = (parseInt(formData.gateLightQty)||0) > 0; }
       const body = {
         name: document.getElementById('f_name').value,
         phone: document.getElementById('f_phone').value,
@@ -400,9 +359,8 @@ router.post('/customers/:id/send-offer', async (req, res) => {
     const isPrivateIndividual = fd.custInvoice !== 'igen';
     let cashNoteHtml = '';
     if (isPrivateIndividual) {
-      // Tájékoztató, megközelítő összeg: 10 000 Ft-ra kerekítve, "kb." jelöléssel (nem pontos végösszeg)
-      const discountedTotal = Math.round(quote.displayTotal * 0.85 / 10000) * 10000;
-      cashNoteHtml = `<p style="text-align:center;font-size:0.8em;color:#7a828a;margin-top:10px">Készpénzes fizetés esetén <strong>15% kedvezményt</strong> tudunk biztosítani a teljes összegből (kizárólag magánszemélyek részére). Kedvezményes végösszeg kb. <strong>${discountedTotal.toLocaleString('hu-HU')} Ft</strong> (tájékoztató jellegű, megközelítő összeg).</p>`;
+      const discountedTotal = Math.round(quote.displayTotal * 0.85 / 100) * 100;
+      cashNoteHtml = `<p style="text-align:center;font-size:0.8em;color:#7a828a;margin-top:10px">Készpénzes fizetés esetén <strong>15% kedvezményt</strong> tudunk biztosítani a teljes összegből (kizárólag magánszemélyek részére). Kedvezményes végösszeg: <strong>${discountedTotal.toLocaleString('hu-HU')} Ft</strong>.</p>`;
     }
     await email.sendOffer(c, priceText, { detailsHtml, sketchBuffer, logoBuffer, cashNoteHtml });
     db.prepare('UPDATE customers SET status=?, offer_sent_at=?, reminder_sent_at=NULL, updated_at=? WHERE id=?')
@@ -453,11 +411,7 @@ router.post('/customers/:id/send-order-form-colleague', async (req, res) => {
     }
     const excelBuffer = await buildColleagueReportBuffer(c);
     await email.sendOrderFormToColleague(c, excelBuffer);
-    const now = new Date().toISOString();
-    // Ha korábban már küldve volt a kolléganőnek (pl. módosítás után újraküldve), az EREDETI
-    // (első) küldés dátumát tartjuk meg a statisztikában — csak akkor állítjuk be, ha még nincs.
-    db.prepare('UPDATE customers SET status=?, updated_at=?, colleague_sent_at=COALESCE(colleague_sent_at, ?) WHERE id=?')
-      .run('kolleganonek_kikuldve', now, now, c.id);
+    db.prepare('UPDATE customers SET status=?, updated_at=? WHERE id=?').run('kolleganonek_kikuldve', new Date().toISOString(), c.id);
     logStatus(c.id, 'kolleganonek_kikuldve', 'Link kiküldve a lengyel kolléganőnek jóváhagyásra');
     res.json({ ok: true });
   } catch (err) {
@@ -534,7 +488,10 @@ router.post('/customers/:id/mark-installed', async (req, res) => {
   if (!c) return res.status(404).json({ error: 'Nem található.' });
 
   try {
-    await require('../services/installation').markInstalled(c, 'Garázs telepítve, értesítés kiküldve');
+    await email.sendInstalledNotice(c);
+    db.prepare('UPDATE customers SET status=?, updated_at=? WHERE id=?')
+      .run('telepitve', new Date().toISOString(), c.id);
+    logStatus(c.id, 'telepitve', 'Garázs telepítve, értesítés kiküldve');
     res.json({ ok: true });
   } catch (err) {
     console.error(err);

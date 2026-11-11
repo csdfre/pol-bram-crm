@@ -5,10 +5,7 @@ const requireAuth = require('../middleware/requireAuth');
 const router = express.Router();
 router.use(requireAuth);
 
-// "Megrendeltnek" azt számítjuk, amit ténylegesen kiküldtünk a kolléganőnek jóváhagyásra (vagy ami
-// ennél is előrébb tart a folyamatban) — az egyszerű ajánlat-elfogadás önmagában még nem számít
-// megrendelésnek, csak ha ez ténylegesen ki is lett küldve a kolléganőnek.
-const ORDERED_STATUSES = ['kolleganonek_kikuldve', 'megrendelolap_kikuldve', 'megrendelolap_elfogadva', 'elolegszamla_kikuldve', 'telepitve', 'garancialis_problema'];
+const ORDERED_STATUSES = ['ajanlat_elfogadva', 'megrendelolap_kikuldve', 'megrendelolap_elfogadva', 'elolegszamla_kikuldve', 'telepitve', 'garancialis_problema'];
 
 // FONTOS: a dátum-szűrést a SQLite saját date() függvényével normalizáljuk mindkét oldalon
 // (a created_at ISO-időbélyegét ÉS a from/to határokat is), nem nyers szöveg-összehasonlítással.
@@ -18,10 +15,6 @@ const ORDERED_STATUSES = ['kolleganonek_kikuldve', 'megrendelolap_kikuldve', 'me
 // csendben rossz (akár nulla) találatot adhat. A date() function mindkét oldalon YYYY-MM-DD alakra
 // hozza az értékeket, így a tartomány-szűrés az órától/formátumtól függetlenül helyesen működik.
 const inRange = `date(created_at) >= date(?) AND date(created_at) <= date(?)`;
-// A "megrendelt" (ordered) szűréshez NEM a beküldés (created_at), hanem a kolléganőnek kiküldés
-// (colleague_sent_at) dátuma a mérvadó — enélkül régi ajánlatok, amiket csak most küldtünk ki a
-// kolléganőnek, tévesen a beküldésük (korábbi) dátuma szerint kerülnének be a statisztikába.
-const inRangeColleagueSent = `colleague_sent_at IS NOT NULL AND date(colleague_sent_at) >= date(?) AND date(colleague_sent_at) <= date(?)`;
 
 router.get('/summary', (req, res) => {
   const from = req.query.from || '1970-01-01';
@@ -30,12 +23,12 @@ router.get('/summary', (req, res) => {
   const offersSent = db.prepare(`SELECT COUNT(*) c FROM customers WHERE offer_sent_at IS NOT NULL AND ${inRange}`).get(from, to).c;
 
   const orderedPlaceholders = ORDERED_STATUSES.map(() => '?').join(',');
-  const ordered = db.prepare(`SELECT COUNT(*) c FROM customers WHERE status IN (${orderedPlaceholders}) AND ${inRangeColleagueSent}`).get(...ORDERED_STATUSES, from, to).c;
+  const ordered = db.prepare(`SELECT COUNT(*) c FROM customers WHERE status IN (${orderedPlaceholders}) AND ${inRange}`).get(...ORDERED_STATUSES, from, to).c;
 
   const rejected = db.prepare(`SELECT COUNT(*) c FROM customers WHERE status = 'elutasitva' AND ${inRange}`).get(from, to).c;
   const noResponse = db.prepare(`SELECT COUNT(*) c FROM customers WHERE status = 'ajanlat_kikuldve' AND ${inRange}`).get(from, to).c;
 
-  const avgRow = db.prepare(`SELECT AVG(price_huf) a FROM customers WHERE status IN (${orderedPlaceholders}) AND price_huf IS NOT NULL AND ${inRangeColleagueSent}`).get(...ORDERED_STATUSES, from, to);
+  const avgRow = db.prepare(`SELECT AVG(price_huf) a FROM customers WHERE status IN (${orderedPlaceholders}) AND price_huf IS NOT NULL AND ${inRange}`).get(...ORDERED_STATUSES, from, to);
   const avgOrderValueNet = avgRow.a ? Math.round(avgRow.a) : 0;
 
   const typeBreakdown = db.prepare(`
@@ -80,40 +73,6 @@ router.get('/by-status', (req, res) => {
     return { id: r.id, name: r.name, email: r.email, phone: r.phone, created_at: r.created_at, price_huf: r.price_huf, price_pln: totalPLN };
   });
   res.json(result);
-});
-
-// Telepített ügyfelek teljes nettó árral, dátumszűréssel (telepítés dátuma szerint).
-// A telepítés dátuma: installed_at; régi rekordnál a státusznaplóból az első "telepitve" bejegyzés, végül a kiszállítás dátuma.
-const VAT_RATE = parseFloat(process.env.VAT_RATE) || 0.27;
-function netPriceOf(r) {
-  let q = null;
-  try { q = r.price_breakdown ? JSON.parse(r.price_breakdown) : null; } catch (e) { /* ignore */ }
-  if (q) {
-    if (q.manuallyEdited && q.displayTotal) {
-      // kézzel beállított összeg: áfás számla igénynél nettó, egyébként bruttó → nettóra visszaszámoljuk
-      return q.vatRequested ? Math.round(q.displayTotal) : Math.round(q.displayTotal / (1 + VAT_RATE));
-    }
-    if (q.totalHUF) return Math.round(q.totalHUF);
-  }
-  return r.price_huf ? Math.round(r.price_huf) : null;
-}
-router.get('/installed', (req, res) => {
-  const from = req.query.from || '1970-01-01';
-  const to = req.query.to || '2999-12-31';
-  const rows = db.prepare(`
-    SELECT * FROM (
-      SELECT id, name, city, address, zip, price_huf, price_breakdown, garage_type_used,
-        COALESCE(installed_at,
-                 (SELECT MIN(changed_at) FROM status_log WHERE customer_id = customers.id AND status = 'telepitve'),
-                 delivery_date, updated_at) AS inst_at
-      FROM customers WHERE status = 'telepitve'
-    ) WHERE date(inst_at) >= date(?) AND date(inst_at) <= date(?)
-    ORDER BY inst_at DESC
-  `).all(from, to);
-  res.json(rows.map(r => ({
-    id: r.id, name: r.name, city: r.city, address: r.address, zip: r.zip,
-    type: r.garage_type_used || 'Egyedi összeállítás', installed_at: r.inst_at, net_huf: netPriceOf(r),
-  })));
 });
 
 module.exports = router;

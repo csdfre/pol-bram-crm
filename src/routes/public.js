@@ -489,7 +489,7 @@ function modifyOfferPage(c){
     function msg(t){ document.getElementById('statusMsg').textContent = t; }
     async function refreshSketch(){
       const formData = {};
-      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
+      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; }); if('gateLightQty' in formData){ formData.gateLightYes = (parseInt(formData.gateLightQty)||0) > 0; }
       const box = document.getElementById('sketchBox');
       box.style.opacity = '0.5';
       try{
@@ -502,7 +502,7 @@ function modifyOfferPage(c){
     }
     async function saveChanges(){
       const formData = {};
-      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
+      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; }); if('gateLightQty' in formData){ formData.gateLightYes = (parseInt(formData.gateLightQty)||0) > 0; }
       const note = document.getElementById('customerNote').value;
       const res = await fetch('/public/modify-offer/'+token+'/save', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ formData, note }) });
       const data = await res.json();
@@ -576,7 +576,6 @@ function colleaguePage(c){
     <div class="sketch" id="sketchBox">${lightSketch || ''}</div>
     <div style="text-align:center;margin:-10px 0 16px">
       <button onclick="refreshSketch()" style="background:#454C54;font-size:0.8rem;padding:6px 14px">↻ Odśwież szkic aktualnymi danymi</button>
-      <button onclick="mirrorAndRefresh()" style="background:#454C54;font-size:0.8rem;padding:6px 14px">↔ Odbicie lustrzane (lewo / prawo)</button>
     </div>
 
     <div class="two-col">
@@ -619,8 +618,8 @@ function colleaguePage(c){
       document.getElementById('advanceText').textContent = 'Zaliczka (30%): ' + fmt(advance) + ' Ft';
       const cashNoteEl = document.getElementById('cashNoteText');
       if(isPrivateIndividual){
-        const discounted = Math.round(total*0.85/10000)*10000; // kwota orientacyjna, zaokrąglona do 10 000 Ft
-        cashNoteEl.textContent = 'Jeśli pozostała kwota zostanie uregulowana gotówką, osoby prywatne otrzymują 15% rabatu od kwoty całkowitej. Kwota po rabacie ok. ' + fmt(discounted) + ' Ft (kwota orientacyjna).';
+        const discounted = Math.round(total*0.85/100)*100;
+        cashNoteEl.textContent = 'Jeśli pozostała kwota zostanie uregulowana gotówką, osoby prywatne otrzymują 15% rabatu od kwoty całkowitej. Kwota po rabacie: ' + fmt(discounted) + ' Ft.';
       } else {
         cashNoteEl.textContent = '';
       }
@@ -634,48 +633,9 @@ function colleaguePage(c){
       msg(res.ok ? 'Cena zapisana.' : 'Błąd: '+data.error);
     }
     function msg(t){ document.getElementById('statusMsg').textContent = t; }
-    // Tükrözés: a garázs vízszintes (bal <-> jobb) tükörképét állítja be a képernyőn lévő mezőkben.
-    // FONTOS szabály: a fal-elemek (ablak, ajtó, bevilágító...) "bal/jobb sarok" mezője csak VÍZSZINTES falon
-    // (elülső, hátsó, előtető fala, elöl/hátul lévő oldaltető) jelent tényleg bal/jobb oldalt. A bal/jobb
-    // oldalfalon és az oldalsó előtető külső falán ugyanez a mező az elülső/hátsó véget jelöli, ami
-    // tükrözéskor nem változik — ott CSAK a falat (bal<->jobb) cseréljük, a sarkot nem.
-    function mirrorGarage(){
-      var flipLR = function(v){ return v==='left' ? 'right' : (v==='right' ? 'left' : v); };
-      var flipRoof = function(v){ return v==='spad jobbra' ? 'spad balra' : (v==='spad balra' ? 'spad jobbra' : v); };
-      var val = function(k){ var e = document.querySelector('[data-key="'+k+'"]'); return e ? e.value : undefined; };
-      var canopyHoriz = (val('canopySide')==='front' || val('canopySide')==='back');
-      var plan = [];
-      document.querySelectorAll('select[data-key]').forEach(function(el){
-        var key = el.dataset.key, cur = el.value, next = cur;
-        var m = key.match(/^(.+)Corner(\\d+)$/);
-        var wallVal = m ? val(m[1]+'Wall'+m[2]) : undefined;
-        if(/Handle\\d+$/.test(key) && !/^wallDoorHandle/.test(key)){
-          // A személyi ajtó "kilincs oldala" a rajzon a mérés irányához (a választott sarokhoz) viszonyított oldalt jelenti,
-          // és a sarok tükrözéskor vele együtt átfordul — ezért az érték maga változatlan marad, így a kirajzolt
-          // nyitási ív pontosan a tükörkép lesz. (A válaszfal-ajtó nyitásiránya viszont valódi bal/jobb, azt cseréljük.)
-          next = cur;
-        } else if(m && wallVal !== undefined){
-          var horizontal = wallVal==='front' || wallVal==='back' || /^notch\\d*$/.test(wallVal);
-          var cm = /^canopy(\\d*)$/.exec(wallVal);
-          if(cm){ var sideV = val('canopySide'+cm[1]); horizontal = (sideV==='front' || sideV==='back'); }
-          next = horizontal ? flipLR(cur) : cur;
-        } else {
-          next = flipLR(cur);
-          if(next===cur) next = flipRoof(cur);
-        }
-        if(next!==cur && Array.prototype.some.call(el.options, function(o){ return o.value===next; })) plan.push([el, next]);
-      });
-      plan.forEach(function(pn){ pn[0].value = pn[1]; pn[0].dispatchEvent(new Event('change', {bubbles:true})); });
-      return plan.length;
-    }
-    async function mirrorAndRefresh(){
-      var n = mirrorGarage();
-      msg(n ? 'Odbicie lustrzane zastosowane — pamiętaj o zapisaniu zmian.' : 'Brak ustawień do odbicia (lewo/prawo).');
-      if(n) await refreshSketch();
-    }
     async function refreshSketch(){
       const formData = {};
-      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
+      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; }); if('gateLightQty' in formData){ formData.gateLightYes = (parseInt(formData.gateLightQty)||0) > 0; }
       const box = document.getElementById('sketchBox');
       box.style.opacity = '0.5';
       try{
@@ -688,7 +648,7 @@ function colleaguePage(c){
     }
     async function saveData(){
       const formData = {};
-      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; });
+      document.querySelectorAll('[data-key]').forEach(el => { formData[el.dataset.key] = (el.type==='checkbox') ? el.checked : el.value; }); if('gateLightQty' in formData){ formData.gateLightYes = (parseInt(formData.gateLightQty)||0) > 0; }
       const body = {
         name: document.getElementById('f_name').value,
         phone: document.getElementById('f_phone').value,

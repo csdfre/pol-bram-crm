@@ -95,7 +95,6 @@ addColIfMissing('vat_requested', 'INTEGER DEFAULT 0');
 addColIfMissing('reject_reason', 'TEXT');
 addColIfMissing('reject_at', 'TEXT');
 addColIfMissing('offer_sent_at', 'TEXT');
-addColIfMissing('colleague_sent_at', 'TEXT');
 addColIfMissing('reminder_sent_at', 'TEXT');
 addColIfMissing('garage_type_used', 'TEXT');
 addColIfMissing('customer_edited_at', 'TEXT');
@@ -107,7 +106,6 @@ addColIfMissing('recalculated_price_huf', 'INTEGER'); // ha az ár kézzel be vo
 addColIfMissing('consent_accepted_at', 'TEXT'); // mikor fogadta el az ügyfél az adatkezelési tájékoztatót (beküldéskor)
 addColIfMissing('consent_version', 'TEXT');     // a tájékoztató melyik verzióját fogadta el (lásd src/services/consent.js)
 addColIfMissing('anonymized_at', 'TEXT');       // mikor lett a rekord automatikusan anonimizálva a megőrzési idő lejártával (lásd src/services/dataRetention.js)
-addColIfMissing('installed_at', 'TEXT');           // mikor lett a megrendelés "telepítve" státuszú (kézzel vagy automatikusan) — a telepített-statisztika dátumszűréséhez
 addColIfMissing('delivery_date', 'TEXT');             // kiszállítási lista: hozzárendelt dátum (YYYY-MM-DD)
 addColIfMissing('delivery_time', 'TEXT');             // kiszállítási lista: hozzávetőleges időpont (szabad szöveg, pl. "10:00" vagy "délelőtt")
 addColIfMissing('delivery_remaining_amount', 'INTEGER'); // kiszállítási lista: a helyszínen fizetendő fennmaradó összeg (Ft)
