@@ -335,19 +335,11 @@ router.post('/modify-offer/:token/save', async (req, res) => {
     : 'Ügyfél módosította az ajánlat tételeit, ár újraszámolva'
   + (editNote ? ' — megjegyzés: ' + editNote : ''));
 
-  if (process.env.ADMIN_NOTIFY_EMAIL) {
-    const notifyHtml = `<div style="font-family:Arial,sans-serif">
-      <h3>Ügyfél módosította a saját ajánlatát</h3>
-      <p><strong>${escapeHtml(c.name)}</strong> (${escapeHtml(c.email)}) módosított a garázs beállításain.</p>
-      ${priceWasManual
-        ? `<p><strong>Figyelem:</strong> az ár korábban kézzel lett beállítva (${c.price_huf.toLocaleString('hu-HU')} Ft), ezért ez a módosítás NEM írta felül automatikusan. A képlet szerint most <strong>${quote.totalHUF.toLocaleString('hu-HU')} Ft</strong> lenne — nézd át és állítsd be, ha szükséges.</p>`
-        : `<p>Az új ár: ${quote.displayTotal.toLocaleString('hu-HU')} Ft (${quote.displayLabel}).</p>`}
-      ${editNote ? `<p><strong>Az ügyfél megjegyzése:</strong> ${escapeHtml(editNote)}</p>` : ''}
-      <p>Nézd meg a backoffice-ban a részleteket.</p>
-    </div>`;
-    email.sendMail({ to: process.env.ADMIN_NOTIFY_EMAIL, subject: 'Ügyfél módosított egy ajánlatot – ' + c.name, html: notifyHtml })
-      .catch(err => console.error('Admin értesítő email hiba:', err));
-  }
+  queueModificationNotice(c.id, {
+    kind: 'offer', note: editNote, priceWasManual,
+    formulaTotal: quote.totalHUF, displayTotal: quote.displayTotal, displayLabel: quote.displayLabel,
+    oldPrice: c.price_huf,
+  });
 
   res.json({ ok: true, quote: priceWasManual ? existingQuote : quote });
 });
@@ -381,18 +373,53 @@ router.post('/order-modify/:token', async (req, res) => {
   logStatus(c.id, c.status, 'Ügyfél módosítást kért: ' + text);
   markStatusAlert(c.id, 'Ügyfél módosítást kért a megrendelőlapon');
 
-  const notifyHtml = `<div style="font-family:Arial,sans-serif">
-    <h3>Módosítást kért az ügyfél</h3>
-    <p><strong>${escapeHtml(c.name)}</strong> (${escapeHtml(c.email)})</p>
-    <p>${escapeHtml(text)}</p>
-  </div>`;
-  Promise.all([
-    email.sendMail({ to: process.env.ADMIN_NOTIFY_EMAIL, subject: 'Ügyfél módosítást kért – ' + c.name, html: notifyHtml }),
-    process.env.COLLEAGUE_EMAIL ? email.sendMail({ to: process.env.COLLEAGUE_EMAIL, subject: 'Klient prosi o zmiany – ' + c.name, html: notifyHtml }) : Promise.resolve(),
-  ]).catch(err => console.error('Értesítő email hiba:', err));
+  queueModificationNotice(c.id, { kind: 'text', note: text });
 
   res.send(simplePage('Köszönjük! Rögzítettük a módosítási kérését, munkatársunk hamarosan felveszi Önnel a kapcsolatot.'));
 });
+
+
+// ---------------------------------------------------------------
+// Módosítási értesítők összevonása: ha az ügyfél rövid időn belül többször módosít/ír,
+// NEM minden mentésről megy külön email, hanem egyetlen összefoglaló, amikor az ügyfél
+// MOD_NOTICE_QUIET_MIN percig (alapból 10) nem módosított újra.
+// ---------------------------------------------------------------
+const pendingModNotices = new Map(); // customerId -> { timer, events: [] }
+function queueModificationNotice(customerId, event){
+  let entry = pendingModNotices.get(customerId);
+  if (!entry) { entry = { timer: null, events: [] }; pendingModNotices.set(customerId, entry); }
+  entry.events.push(event);
+  if (entry.timer) clearTimeout(entry.timer);
+  const quietMs = Math.max(0.1, parseFloat(process.env.MOD_NOTICE_QUIET_MIN) || 10) * 60 * 1000;
+  entry.timer = setTimeout(() => flushModificationNotice(customerId), quietMs);
+  if (entry.timer.unref) entry.timer.unref();
+}
+function flushModificationNotice(customerId){
+  const entry = pendingModNotices.get(customerId);
+  pendingModNotices.delete(customerId);
+  if (!entry || !entry.events.length) return;
+  const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(customerId);
+  if (!c) return;
+  const offerEvents = entry.events.filter(e => e.kind === 'offer');
+  const textEvents = entry.events.filter(e => e.kind === 'text');
+  const lastOffer = offerEvents[offerEvents.length - 1];
+  const notes = entry.events.filter(e => e.note).map(e => e.note);
+  let body = `<h3>Ügyfél módosítást kért</h3>
+    <p><strong>${escapeHtml(c.name)}</strong> (${escapeHtml(c.email)})${entry.events.length > 1 ? ` — ${entry.events.length} módosítás egy levélben összevonva` : ''}</p>`;
+  if (lastOffer) {
+    body += lastOffer.priceWasManual
+      ? `<p><strong>Figyelem:</strong> az ár korábban kézzel lett beállítva (${Number(lastOffer.oldPrice||0).toLocaleString('hu-HU')} Ft), ezért a módosítások NEM írták felül automatikusan. A képlet szerint most <strong>${Number(lastOffer.formulaTotal).toLocaleString('hu-HU')} Ft</strong> lenne — nézd át és állítsd be, ha szükséges.</p>`
+      : `<p>A garázs beállításai módosultak. Az új ár: ${Number(lastOffer.displayTotal).toLocaleString('hu-HU')} Ft (${escapeHtml(lastOffer.displayLabel||'')}).</p>`;
+  }
+  if (notes.length) body += `<p><strong>Az ügyfél megjegyzései:</strong></p><ul>${notes.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`;
+  body += '<p>Nézd meg a backoffice-ban a részleteket.</p>';
+  const html = `<div style="font-family:Arial,sans-serif">${body}</div>`;
+  const subject = 'Ügyfél módosítást kért – ' + c.name;
+  const jobs = [];
+  if (process.env.ADMIN_NOTIFY_EMAIL) jobs.push(email.sendMail({ to: process.env.ADMIN_NOTIFY_EMAIL, subject, html }));
+  if (textEvents.length && process.env.COLLEAGUE_EMAIL) jobs.push(email.sendMail({ to: process.env.COLLEAGUE_EMAIL, subject: 'Klient prosi o zmiany – ' + c.name, html }));
+  Promise.all(jobs).catch(err => console.error('Módosítási értesítő email hiba:', err));
+}
 
 function escapeHtml(str){
   return String(str==null?'':str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

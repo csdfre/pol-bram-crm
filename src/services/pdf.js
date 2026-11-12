@@ -207,6 +207,10 @@ const GATE_TYPE_OPTIONS = {
   pl: [['none','Brak'],['uchylna','Uchylna'],['dwuskrz','Dwuskrzydłowa']],
 };
 
+const CANOPY_SIDE_OPTIONS = {
+  hu: [['left','A garázs bal oldalán'],['right','A garázs jobb oldalán'],['front','A garázs elülső oldalán'],['back','A garázs hátsó oldalán']],
+  pl: [['left','Z lewej strony garażu'],['right','Z prawej strony garażu'],['front','Z przodu garażu'],['back','Z tyłu garażu']],
+};
 function buildOrderFields(fd, lang, includeEmpty, prevFd){
   const gateType = fd.__gateType || fd.gateType || 'none';
   const gateCount = parseInt(fd.gateCount)||0;
@@ -263,6 +267,7 @@ function buildOrderFields(fd, lang, includeEmpty, prevFd){
   if(canopyActive || includeEmpty){
     sections.push({ section: S('canopy'), items: [
       ECHECK(lang==='pl'?'Potrzebne':'Kérjük', 'canopyYes', canopyActive, canopyActive ? YES[lang] : VALUE_NONE[lang]),
+      ESEL(lang==='pl'?'Strona garażu':'Melyik oldalon', 'canopySide', fd.canopySide||'left', CANOPY_SIDE_OPTIONS[lang], (CANOPY_SIDE_OPTIONS[lang].find(o=>o[0]===(fd.canopySide||'left'))||[,''])[1]),
       E(L('width'), (fd.canopyWidth||'—')+' cm', 'canopyWidth', fd.canopyWidth, 'number'),
       E(L('length'), (fd.canopyLength||'—')+' cm', 'canopyLength', fd.canopyLength, 'number'),
       E(L('backWallCover'), fd.canopyBackWall==='solid'?{hu:'Teli fal',pl:'Ściana pełna'}[lang]:fd.canopyBackWall==='lamella'?{hu:'Lamellás',pl:'Lamelowa'}[lang]:VALUE_NONE[lang], 'canopyBackWall', fd.canopyBackWall),

@@ -135,6 +135,8 @@ function buildWiataText(sections) {
   const backWall = val(canopySection, 'Pokrycie tylnej ściany', null);
   const sideWall = val(canopySection, 'Pokrycie ściany bocznej', null);
   let text = `${w} x ${l}`;
+  const side = val(canopySection, 'Strona garażu', null);
+  if (side && side !== '—') text += ` / ${side}`;
   if (backWall && backWall !== '—' && !/brak/i.test(backWall)) text += ` / ściana tylna: ${backWall}`;
   if (sideWall && sideWall !== '—' && !/brak/i.test(sideWall)) text += ` / ściana boczna: ${sideWall}`;
   return text;
