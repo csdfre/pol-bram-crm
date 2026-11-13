@@ -99,7 +99,7 @@ router.get('/accept-offer/:token', (req, res) => {
     logStatus(customer.id, 'ajanlat_elfogadva', 'Ügyfél elfogadta az ajánlatot');
     markStatusAlert(customer.id, 'Ügyfél elfogadta az ajánlatot');
   }
-  res.send(simplePage('Köszönjük! Az ajánlat elfogadását rögzítettük. Hamarosan felvesszük Önnel a kapcsolatot a megrendelőlappal kapcsolatban.'));
+  res.send(simplePage('Köszönjük megrendelését! Az ajánlat elfogadását rögzítettük, a megrendelése aktív. Az előlegszámlát és a megrendelőlapot 2-3 napon belül elküldjük Önnek.'));
 });
 
 // ---------------------------------------------------------------
